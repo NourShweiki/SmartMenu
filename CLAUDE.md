@@ -29,4 +29,17 @@ Read `PROJECT_SPEC.md` at the start of every session. It is the source of truth.
 ```
 
 ## Commands
-(fill in once the project skeleton exists: install, dev, test, lint, typecheck, e2e)
+- Install: `npm install` (Node 22, see `.nvmrc`)
+- Dev server: `npm run dev` -> http://localhost:3000
+- Unit tests: `npm test` (Vitest, files `src/**/*.test.ts`)
+- Lint: `npm run lint` (also enforces layer import rules)
+- Typecheck: `npm run typecheck`
+- Everything before pushing: `npm run check`
+- E2E (Playwright): not set up yet
+
+## Layout
+- `src/domain/` — pure business rules (no framework imports; ESLint enforces)
+- `src/application/use-cases/`, `src/application/ports/` — use cases + interfaces
+- `src/interface/api/`, `src/interface/web/` — HTTP handlers, DTOs, UI components
+- `src/app/` — Next.js routes (thin; call interface/use cases)
+- `src/infrastructure/` — Supabase, notifications; `container.ts` wires adapters
