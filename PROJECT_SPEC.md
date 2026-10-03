@@ -197,7 +197,7 @@ Domain rules get built and agreed on first because they're the hardest to change
 - **Next.js + TypeScript** — one project for customer menu, staff screen, and owner portal
 - **Supabase** — Postgres, auth, image storage, and live/real-time updates (powers instant order updates on the staff screen)
 - **Claude Code** — primary dev tool
-- **Hosting** — not finalized (Vercel+Supabase vs. AWS both on the table). Since Supabase is standard Postgres, this decision doesn't block building.
+- **Hosting** — DECIDED (2026-10-03): **Vercel + Supabase** for now. Vercel builds every push (preview URL per branch/PR, `main` = test environment). Supabase is standard Postgres, so moving to AWS later stays possible.
 
 ### Skills to set up before building starts (`.claude/skills/<name>/SKILL.md`)
 - `architecture-rules` — the layer rules from Section 8, so Claude Code enforces them on every file it writes
@@ -247,7 +247,6 @@ Each phase ends with something demoable.
 - Loyalty points: exact earn/redeem rules (blocks Phase 6/10 loyalty work)
 - Menu UI editing: exact list of editable elements (blocks Phase 3)
 - Pricing model (intentionally deferred — doesn't block building)
-- Hosting: Vercel/Supabase vs. AWS (doesn't block building — Postgres either way)
 - Who owns finding/talking to the first pilot restaurant (doesn't block building)
 
 ---
