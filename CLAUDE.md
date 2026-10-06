@@ -1,6 +1,7 @@
 # SmartMenu — instructions for Claude Code
 
 Read `PROJECT_SPEC.md` at the start of every session. It is the source of truth.
+Then read `docs/PROGRESS.md` to see where work stopped, and update it at the end of every iteration.
 
 ## Skills — load before the matching work
 - `architecture-rules` — before creating/editing any code file or deciding where code goes
@@ -30,7 +31,7 @@ Read `PROJECT_SPEC.md` at the start of every session. It is the source of truth.
 
 ## Showing work to Nour (required for every feature)
 - After any change that affects what the app shows, run `npm run dev` and open http://localhost:3000 (the relevant page) so Nour can see it, and say in the report which URL to look at.
-- If you cannot start the dev server on Nour's machine, open the Vercel preview URL for the pushed commit instead, or give Nour the exact commands to run.
+- You run the commands yourself (npm, npx supabase, git) — don't ask Nour to copy-paste output. Ask before anything destructive.
 
 ## Hosting
 - Vercel (app) + Supabase (database, auth, storage, realtime). Secrets go in Vercel/Supabase env settings and `.env.local` (never committed); document variable names in `.env.example`.
