@@ -3,6 +3,19 @@ import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import { cookies } from "next/headers";
 import { NextResponse, type NextRequest } from "next/server";
 
+/**
+ * DEBUG_SUPABASE=1 logs every Supabase HTTP call with its duration (local profiling only).
+ * Off by default; never enable it in production logs (URLs can contain ids).
+ */
+const timedFetch: typeof fetch = async (input, init) => {
+  const started = performance.now();
+  const response = await fetch(input, init);
+  const url = typeof input === "string" ? input : input instanceof URL ? input.href : input.url;
+  console.log(`[supabase] ${init?.method ?? "GET"} ${url.replace(/^https?:\/\/[^/]+/, "").split("?")[0]} ${Math.round(performance.now() - started)}ms`);
+  return response;
+};
+const globalFetch = () => (process.env.DEBUG_SUPABASE === "1" ? { global: { fetch: timedFetch } } : {});
+
 function supabaseEnv() {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const key = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
@@ -18,7 +31,7 @@ function supabaseEnv() {
  */
 export function createPublicClient(): SupabaseClient {
   const { url, key } = supabaseEnv();
-  return createClient(url, key, { auth: { persistSession: false } });
+  return createClient(url, key, { auth: { persistSession: false }, ...globalFetch() });
 }
 
 /**
@@ -29,6 +42,7 @@ export async function createSessionClient(): Promise<SupabaseClient> {
   const { url, key } = supabaseEnv();
   const store = await cookies();
   return createServerClient(url, key, {
+    ...globalFetch(),
     cookies: {
       getAll: () => store.getAll(),
       setAll: (toSet) => {
@@ -51,6 +65,7 @@ export async function refreshSessionCookies(request: NextRequest): Promise<NextR
   const { url, key } = supabaseEnv();
   let response = NextResponse.next({ request });
   const supabase = createServerClient(url, key, {
+    ...globalFetch(),
     cookies: {
       getAll: () => request.cookies.getAll(),
       setAll: (toSet) => {
@@ -60,7 +75,8 @@ export async function refreshSessionCookies(request: NextRequest): Promise<NextR
       },
     },
   });
-  // getUser() validates the token with Supabase Auth and triggers the refresh if needed.
-  await supabase.auth.getUser();
+  // getClaims() refreshes an expiring session and verifies the token LOCALLY against the
+  // cached signing keys (ES256) — no round trip to Supabase Auth on every request.
+  await supabase.auth.getClaims();
   return response;
 }

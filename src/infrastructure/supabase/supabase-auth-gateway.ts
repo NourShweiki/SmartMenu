@@ -16,9 +16,12 @@ export class SupabaseAuthGateway implements AuthGateway {
   }
 
   async currentUserId(): Promise<UserId | null> {
-    // getUser() asks Supabase Auth to verify the token; never trust the cookie contents alone.
-    const { data } = await this.db.auth.getUser();
-    return (data.user?.id as UserId | undefined) ?? null;
+    // getClaims() verifies the token's signature and expiry locally (asymmetric signing keys,
+    // JWKS cached across requests) — never trust the cookie contents without this. Tradeoff vs
+    // getUser(): a session ended elsewhere stays valid until the token expires (max 1 hour).
+    const { data, error } = await this.db.auth.getClaims();
+    if (error || !data?.claims.sub) return null;
+    return data.claims.sub as UserId;
   }
 
   async signOut(): Promise<void> {

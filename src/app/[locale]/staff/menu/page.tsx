@@ -4,6 +4,7 @@ import { getTranslations } from "next-intl/server";
 import { localized } from "@/domain/shared/localized";
 import { menu, menuPhotoUrl, options } from "@/infrastructure/container";
 import { LanguageSwitch } from "@/interface/web/components/language-switch";
+import { OptimisticToggle } from "@/interface/web/components/optimistic-toggle";
 import { formatPrice } from "@/interface/web/format";
 import { initLocale } from "@/interface/web/i18n/init-locale";
 import { otherLocale } from "@/interface/web/i18n/locales";
@@ -18,13 +19,14 @@ export default async function StaffMenuPage({ params }: { params: Promise<{ loca
   const locale = await initLocale(params);
   const { restaurant, staff } = await requireStaff(locale);
   const t = await getTranslations("StaffMenu");
-  const { sections, canManage, canToggleSoldOut } = await menu.getStaffMenu({
-    restaurantId: staff.restaurantId,
-    role: staff.role,
-  });
+  const actor = { restaurantId: staff.restaurantId, role: staff.role };
+  // Both reads in parallel, not one after the other.
+  const [{ sections, canManage, canToggleSoldOut }, { groups }] = await Promise.all([
+    menu.getStaffMenu(actor),
+    options.getGroups(actor),
+  ]);
   const other = otherLocale(locale);
   // Which option groups each item offers, shown as small labels.
-  const { groups } = await options.getGroups({ restaurantId: staff.restaurantId, role: staff.role });
   const groupsOf = (itemId: string) => groups.filter((g) => g.itemIds.some((id) => id === itemId)).map((g) => g.group);
 
   return (
@@ -78,11 +80,14 @@ export default async function StaffMenuPage({ params }: { params: Promise<{ loca
                   >
                     {t("edit")}
                   </Link>
-                  <form action={setCategoryHiddenAction.bind(null, locale, category.id, !category.isHidden)}>
-                    <button type="submit" className={`${toggle} border-gray-300 text-gray-700 hover:bg-gray-100`}>
-                      {category.isHidden ? t("show") : t("hide")}
-                    </button>
-                  </form>
+                  <OptimisticToggle
+                    on={category.isHidden}
+                    action={setCategoryHiddenAction.bind(null, locale, category.id)}
+                    onLabel={t("show")}
+                    offLabel={t("hide")}
+                    onClassName={`${toggle} border-gray-300 text-gray-700 hover:bg-gray-100`}
+                    offClassName={`${toggle} border-gray-300 text-gray-700 hover:bg-gray-100`}
+                  />
                   <Link
                     href={`/${locale}/staff/menu/items/new?category=${category.id}`}
                     className="rounded-lg bg-gray-900 px-3 py-1.5 text-sm font-semibold text-white hover:bg-gray-700"
@@ -140,18 +145,14 @@ export default async function StaffMenuPage({ params }: { params: Promise<{ loca
 
                   <div className="flex w-full justify-end gap-2 sm:w-80">
                     {canToggleSoldOut && (
-                      <form action={setSoldOutAction.bind(null, locale, item.id, !item.isSoldOut)}>
-                        <button
-                          type="submit"
-                          className={`${toggle} ${
-                            item.isSoldOut
-                              ? "border-green-600 text-green-700 hover:bg-green-50"
-                              : "border-red-300 text-red-700 hover:bg-red-50"
-                          }`}
-                        >
-                          {item.isSoldOut ? t("markAvailable") : t("markSoldOut")}
-                        </button>
-                      </form>
+                      <OptimisticToggle
+                        on={item.isSoldOut}
+                        action={setSoldOutAction.bind(null, locale, item.id)}
+                        onLabel={t("markAvailable")}
+                        offLabel={t("markSoldOut")}
+                        onClassName={`${toggle} border-green-600 text-green-700 hover:bg-green-50`}
+                        offClassName={`${toggle} border-red-300 text-red-700 hover:bg-red-50`}
+                      />
                     )}
                     {canManage && (
                       <Link
@@ -162,11 +163,14 @@ export default async function StaffMenuPage({ params }: { params: Promise<{ loca
                       </Link>
                     )}
                     {canManage && (
-                      <form action={setHiddenAction.bind(null, locale, item.id, !item.isHidden)}>
-                        <button type="submit" className={`${toggle} border-gray-300 text-gray-700 hover:bg-gray-100`}>
-                          {item.isHidden ? t("show") : t("hide")}
-                        </button>
-                      </form>
+                      <OptimisticToggle
+                        on={item.isHidden}
+                        action={setHiddenAction.bind(null, locale, item.id)}
+                        onLabel={t("show")}
+                        offLabel={t("hide")}
+                        onClassName={`${toggle} border-gray-300 text-gray-700 hover:bg-gray-100`}
+                        offClassName={`${toggle} border-gray-300 text-gray-700 hover:bg-gray-100`}
+                      />
                     )}
                   </div>
                 </li>

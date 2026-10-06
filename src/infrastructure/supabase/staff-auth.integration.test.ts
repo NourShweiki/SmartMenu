@@ -37,4 +37,28 @@ describe.skipIf(!process.env.NEXT_PUBLIC_SUPABASE_URL)("staff auth against local
     expect(result).toEqual({ ok: false, error: { type: "INVALID_CREDENTIALS" } });
     expect(await deps.auth.currentUserId()).toBeNull();
   });
+
+  it("rejects forged tokens even though verification is local (getClaims)", async () => {
+    const db = createPublicClient();
+    const { data, error } = await db.auth.signInWithPassword({ email: "waiter@demo-dinein.test", password: PASSWORD });
+    if (error) throw error;
+    const token = data.session.access_token;
+    const [header, payload, signature] = token.split(".") as [string, string, string];
+    const b64 = (o: unknown) => Buffer.from(JSON.stringify(o)).toString("base64url");
+
+    expect((await db.auth.getClaims(token)).data?.claims.sub).toBe(data.user.id); // the real one works
+
+    // 1. Same claims, broken signature.
+    const flipped = signature.slice(0, -2) + (signature.endsWith("AA") ? "BB" : "AA");
+    expect((await db.auth.getClaims(`${header}.${payload}.${flipped}`)).data).toBeNull();
+
+    // 2. Waiter edits the payload to claim the OWNER's user id, keeping the old signature.
+    const claims = JSON.parse(Buffer.from(payload, "base64url").toString());
+    const asOwner = b64({ ...claims, sub: "aaaa0001-0000-4000-8000-000000000001" });
+    expect((await db.auth.getClaims(`${header}.${asOwner}.${signature}`)).data).toBeNull();
+
+    // 3. "alg: none" with no signature at all.
+    const none = `${b64({ alg: "none", typ: "JWT" })}.${asOwner}.`;
+    expect((await db.auth.getClaims(none)).data).toBeNull();
+  });
 });
