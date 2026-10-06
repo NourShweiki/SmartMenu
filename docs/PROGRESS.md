@@ -16,6 +16,7 @@ Read this after `PROJECT_SPEC.md` at the start of every session. Update it at th
   `localhost:3000` internally, so the raw `host` header is wrong there; `x-forwarded-host` keeps the real one.
 - Gotcha: after Docker restarts, `npx supabase start` may say "already running" while containers are stopped ->
   `npx supabase stop` then `npx supabase start` (data is kept in the Docker volume).
+- Menu rules (decided 2026-10-06, Phase 3): hidden = invisible to customers; sold out = visible but not orderable; delete = soft; WAITER/CASHIER read the menu but only OWNER/MANAGER change it.
 - Working style: very small iterations, one at a time; Nour approves each. Show every visible change on http://localhost:3000.
 
 ## Done
@@ -45,14 +46,22 @@ Read this after `PROJECT_SPEC.md` at the start of every session. Update it at th
     Verified in browser: wrong password -> error; waiter/owner -> dashboard with role; sign out; Grill owner refused on demo-takeout
     (same error, no session) while their Grill session stays active.
 
+- Phase 3 step 1 (domain): `src/domain/menu/menu.ts` — categories + items, bilingual names (both required, max 80),
+  optional descriptions (max 500), price as `Fils` (`src/domain/shared/money.ts`, whole fils 0..1,000,000 JD), sort order,
+  hidden (customers don't see it) vs sold out (shown, not orderable), soft delete, items only in a live category of the
+  same restaurant. `isVisibleToCustomers` / `isOrderable`. Unit tests.
+- Phase 3 step 2 (DB): migration `menu_categories_items` — RLS (all staff read; OWNER/MANAGER write), composite FK
+  (item's category must be in the same restaurant), column grants (restaurant_id can't change), no hard delete, anon no
+  access. pgTAP `menu_isolation.test.sql` (15). `npx supabase test db` -> `Tests=35`. Seed: demo menus for both restaurants.
+
 ## In progress / verify first
 - Nothing pending.
 
 ## Next
-- 4d: staff login page at `<slug>.localhost:3000/staff/login` + a minimal signed-in page showing the role, and sign out.
-  Needs translated strings -> decide first: set up `next-intl` + `/ar` `/en` routing before the login page, or after.
-- Then locale routing `/ar` `/en` with `next-intl`, message files, Arabic font (e.g. IBM Plex Sans Arabic).
-- Later: custom domains (needs a DB lookup in tenant resolution); set `APP_ROOT_DOMAIN` on Vercel when deploying.
+- Phase 3 step 3: `MenuRepository` port + Supabase adapter (+ integration test).
+- Step 4: use cases (list menu for staff, create/update category + item, hide, sold out, delete) with role check (menu:manage).
+- Step 5: owner menu screen at `/<locale>/staff/menu` (list by category, add/edit item, toggles, prices via `formatPrice`).
+- Later in Phase 3: item photos (Supabase Storage), options/modifiers (e.g. size, extras), branding (needs the open question answered).
 
 ## Open questions (do not build without asking) — see spec §12
 - Removing items after order confirmation; takeout/delivery session model; loyalty rules; exact branding elements.
