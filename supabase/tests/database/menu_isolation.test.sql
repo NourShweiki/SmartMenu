@@ -2,7 +2,7 @@
 -- Run with: npx supabase test db
 begin;
 create extension if not exists pgtap with schema extensions;
-select plan(15);
+select plan(20);
 
 -- Fixtures (as superuser): restaurants A and B, owner of each, a waiter in A, one category + item each.
 insert into auth.users (id, email) values
@@ -72,11 +72,17 @@ select throws_ok(
      values ('aaaaaaaa-2222-4000-8000-000000000000', 'Waiter cat', 'فئة') $$,
   '42501', null, 'waiter cannot add categories');
 update public.menu_items set price_fils = 2 where id = 'aaaaaaaa-4444-4000-8000-000000000000';
+select is(public.set_menu_item_sold_out('aaaaaaaa-4444-4000-8000-000000000000', false), true,
+  'waiter A can mark an A item back in stock');
+select is(public.set_menu_item_sold_out('bbbbbbbb-4444-4000-8000-000000000000', true), false,
+  'waiter A cannot mark a B item sold out');
 
 -- ── Act as anonymous visitor ──
 reset role;
 set local role anon;
 select throws_ok($$ select * from public.menu_items $$, '42501', null, 'anon has no direct menu access');
+select throws_ok($$ select public.set_menu_item_sold_out('aaaaaaaa-4444-4000-8000-000000000000', true) $$,
+  '42501', null, 'anon cannot call set_menu_item_sold_out');
 
 -- ── Verify as superuser ──
 reset role;
@@ -84,6 +90,10 @@ select is((select price_fils from public.menu_items where id = 'bbbbbbbb-4444-40
   'B price unchanged by owner A');
 select is((select price_fils from public.menu_items where id = 'aaaaaaaa-4444-4000-8000-000000000000'), 5000::bigint,
   'waiter could not change A price; owner change kept');
+select is((select is_sold_out from public.menu_items where id = 'aaaaaaaa-4444-4000-8000-000000000000'), false,
+  'waiter sold-out change was saved');
+select is((select is_sold_out from public.menu_items where id = 'bbbbbbbb-4444-4000-8000-000000000000'), false,
+  'B item untouched by waiter A');
 select ok((select updated_at is not null from public.menu_items where id = 'aaaaaaaa-4444-4000-8000-000000000000'),
   'updated_at is set on change');
 

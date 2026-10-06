@@ -16,7 +16,9 @@ Read this after `PROJECT_SPEC.md` at the start of every session. Update it at th
   `localhost:3000` internally, so the raw `host` header is wrong there; `x-forwarded-host` keeps the real one.
 - Gotcha: after Docker restarts, `npx supabase start` may say "already running" while containers are stopped ->
   `npx supabase stop` then `npx supabase start` (data is kept in the Docker volume).
-- Menu rules (decided 2026-10-06, Phase 3): hidden = invisible to customers; sold out = visible but not orderable; delete = soft; WAITER/CASHIER read the menu but only OWNER/MANAGER change it.
+- Menu rules (decided 2026-10-06, Phase 3): hidden = invisible to customers; sold out = visible but not orderable; delete = soft;
+  price 0 allowed; both names required. All staff read the menu; OWNER/MANAGER edit it; WAITER may only toggle sold out
+  (`menu:sold-out`, DB function `set_menu_item_sold_out`).
 - Gotcha: CI uses npm 11 (installed in the workflow). Node 22's bundled npm 10 rejects lock files written by npm 11
   (CI failed on 76f788e..cb45e37 for this reason). Use npm 11 locally too.
 - Working style: very small iterations, one at a time; Nour approves each. Show every visible change on http://localhost:3000.
@@ -54,7 +56,7 @@ Read this after `PROJECT_SPEC.md` at the start of every session. Update it at th
   same restaurant. `isVisibleToCustomers` / `isOrderable`. Unit tests.
 - Phase 3 step 2 (DB): migration `menu_categories_items` — RLS (all staff read; OWNER/MANAGER write), composite FK
   (item's category must be in the same restaurant), column grants (restaurant_id can't change), no hard delete, anon no
-  access. pgTAP `menu_isolation.test.sql` (15). `npx supabase test db` -> `Tests=35`. Seed: demo menus for both restaurants.
+  access. pgTAP `menu_isolation.test.sql` (20). `npx supabase test db` -> `Tests=40`. Seed: demo menus for both restaurants.
 
 ## In progress / verify first
 - Nothing pending.

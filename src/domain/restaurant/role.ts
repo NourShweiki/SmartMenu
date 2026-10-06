@@ -4,7 +4,8 @@ export type Role = (typeof ROLES)[number];
 export const PERMISSIONS = [
   "restaurant:settings", // modes, tax, branding, domain
   "staff:manage", // invite/remove staff, assign roles
-  "menu:manage", // categories, items, prices, sold-out
+  "menu:manage", // categories, items, prices, hide, delete
+  "menu:sold-out", // mark items sold out / back in stock during service (decided 2026-10-06)
   "tables:manage", // tables + QR codes
   "orders:confirm", // confirm / move orders through statuses
   "service-requests:handle", // waiter call, cleaning
@@ -18,13 +19,14 @@ const ROLE_PERMISSIONS: Record<Role, readonly Permission[]> = {
   MANAGER: [
     "staff:manage",
     "menu:manage",
+    "menu:sold-out",
     "tables:manage",
     "orders:confirm",
     "service-requests:handle",
     "payments:close",
     "reports:view",
   ],
-  WAITER: ["orders:confirm", "service-requests:handle"],
+  WAITER: ["orders:confirm", "service-requests:handle", "menu:sold-out"],
   // Spec: cashier handles billing/closing only and does NOT see service requests.
   CASHIER: ["payments:close"],
 };

@@ -57,6 +57,13 @@ describe("updateSettings", () => {
 });
 
 describe("role permissions", () => {
+  it("lets owner, manager and waiter mark items sold out, but only owner/manager edit the menu", () => {
+    for (const role of ["OWNER", "MANAGER", "WAITER"] as const) expect(can(role, "menu:sold-out")).toBe(true);
+    expect(can("CASHIER", "menu:sold-out")).toBe(false);
+    expect(can("WAITER", "menu:manage")).toBe(false);
+    expect(can("MANAGER", "menu:manage")).toBe(true);
+  });
+
   it("cashier cannot see service requests (spec §4)", () => {
     expect(can("CASHIER", "service-requests:handle")).toBe(false);
     expect(can("CASHIER", "payments:close")).toBe(true);
