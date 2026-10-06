@@ -43,6 +43,10 @@ Read `PROJECT_SPEC.md` at the start of every session. It is the source of truth.
 - Typecheck: `npm run typecheck`
 - Everything before pushing: `npm run check`
 - E2E (Playwright): not set up yet
+- Local database (needs Docker): `npx supabase start` (Studio: http://localhost:54323), `npx supabase stop`
+- Rebuild DB from migrations + seed: `npx supabase db reset`
+- Database tests (pgTAP, RLS isolation): `npx supabase test db`
+- New migration: `npx supabase migration new <name>` (never edit an applied migration; add a new one)
 
 ## Layout
 - `src/domain/` — pure business rules (no framework imports; ESLint enforces)
