@@ -1,7 +1,8 @@
+import Image from "next/image";
 import Link from "next/link";
 import { getTranslations } from "next-intl/server";
 import { localized } from "@/domain/shared/localized";
-import { menu } from "@/infrastructure/container";
+import { menu, menuPhotoUrl } from "@/infrastructure/container";
 import { LanguageSwitch } from "@/interface/web/components/language-switch";
 import { formatPrice } from "@/interface/web/format";
 import { initLocale } from "@/interface/web/i18n/init-locale";
@@ -91,6 +92,19 @@ export default async function StaffMenuPage({ params }: { params: Promise<{ loca
                   key={item.id}
                   className={`flex flex-wrap items-center gap-x-4 gap-y-2 px-5 py-4 ${item.isHidden ? "opacity-60" : ""}`}
                 >
+                  <div className="size-14 shrink-0 overflow-hidden rounded-lg bg-gray-100">
+                    {item.imagePath && (
+                      // Decorative: the item name is right next to it.
+                      <Image
+                        src={menuPhotoUrl(item.imagePath)}
+                        alt=""
+                        width={56}
+                        height={56}
+                        unoptimized
+                        className="size-14 object-cover"
+                      />
+                    )}
+                  </div>
                   <div className="min-w-0 flex-1">
                     <p className="flex flex-wrap items-center gap-2 font-semibold">
                       {localized(item.name, locale)}

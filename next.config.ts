@@ -11,6 +11,11 @@ const I18N_REQUEST_CONFIG = "./src/interface/web/i18n/request.ts";
 
 const nextConfig: NextConfig = {
   reactStrictMode: true,
+  experimental: {
+    // Menu photos (max 5 MB, enforced in the domain + the storage bucket) are uploaded through a
+    // Server Action, whose default body limit is 1 MB. 6 MB leaves room for the form overhead.
+    serverActions: { bodySizeLimit: "6mb" },
+  },
   turbopack: {
     resolveAlias: { "next-intl/config": I18N_REQUEST_CONFIG },
   },

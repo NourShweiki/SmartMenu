@@ -89,5 +89,24 @@
       "notFound": "This category no longer exists.",
       "notEmpty": "This category isn't empty. Move or delete its items first."
     }
+  },
+  "Photo": {
+    "title": "Item photo",
+    "none": "No photo yet",
+    "choose": "Choose a photo",
+    "upload": "Upload photo",
+    "replace": "Replace photo",
+    "uploading": "Uploading…",
+    "remove": "Remove photo",
+    "removeConfirm": "Remove this photo?",
+    "hint": "JPG, PNG or WebP, up to 5 MB.",
+    "errors": {
+      "empty": "Choose a photo first.",
+      "tooLarge": "The photo is larger than 5 MB.",
+      "notImage": "The photo must be a JPG, PNG or WebP image.",
+      "forbidden": "You don't have permission to edit the menu.",
+      "notFound": "This item no longer exists."
+    },
+    "noneChosen": "No file chosen"
   }
 }

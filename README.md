@@ -38,6 +38,10 @@ One codebase serves every restaurant (multi-tenant). Each restaurant lives on it
   - Owner and manager can **add, rename, hide and delete categories**. A category can only be deleted when it's empty, so nothing disappears by surprise.
   - Owner and manager can **delete items** (with an "are you sure?" step). Deleting is soft, so past orders keep the item's name and price.
   - Owner and manager can **hide or show** items. Hiding a category hides everything in it from customers.
+  - **Item photos.** Owner and manager can upload, replace or remove one photo per item (JPG / PNG / WebP, up to 5 MB). Photos show as thumbnails on the menu screen.
+    - Files are checked by their actual content, so a disguised file (e.g. HTML renamed `.jpg`) is rejected.
+    - Each restaurant can only write into its own storage folder; the database storage rules enforce this.
+    - Photos are publicly viewable, ready for the customer menu.
   - Owner, manager **and waiters** can mark items **sold out / back in stock** during service.
   - Cashiers can view the menu but not change it.
 - **Menu rules.**
@@ -51,7 +55,6 @@ One codebase serves every restaurant (multi-tenant). Each restaurant lives on it
 
 - **Phase 3 (now):**
   - reorder categories and items
-  - item photos
   - options / modifiers (size, extras)
   - restaurant branding (waiting on a decision, see below)
 - **Phase 4+:** everything customer-facing, including:
@@ -79,7 +82,7 @@ One codebase serves every restaurant (multi-tenant). Each restaurant lives on it
 ## Tech stack
 
 - **Next.js 15 + React 19 + TypeScript (strict)**, Tailwind CSS v4, `next-intl` for translations
-- **Supabase** (Postgres, Auth, Row Level Security; later Storage + Realtime) running locally in Docker
+- **Supabase** (Postgres, Auth, Row Level Security, Storage; later Realtime) running locally in Docker
 - **Vitest** (unit + integration), **pgTAP** (database security tests), ESLint (also enforces architecture layers)
 - Hosting plan: **Vercel + Supabase**
 
