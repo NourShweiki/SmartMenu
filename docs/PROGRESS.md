@@ -12,6 +12,10 @@ Read this after `PROJECT_SPEC.md` at the start of every session. Update it at th
 - Public (logged-out) reads go through narrow SECURITY DEFINER functions with an explicit column list, never the service-role key and never direct anon table grants (decided 2026-10-06).
 - Gotcha: `npm run check` (next build) overwrites `.next` and breaks a running `npm run dev` (500s) — restart the dev server after it.
 - Staff auth: email + password; public sign-up OFF; staff accounts created by founders (seed / setup tool) for now, owner invites later (decided 2026-10-06).
+- Gotcha: read the host via `getCurrentSite()` only. After a Server Action redirect, Next re-fetches the page from
+  `localhost:3000` internally, so the raw `host` header is wrong there; `x-forwarded-host` keeps the real one.
+- Gotcha: after Docker restarts, `npx supabase start` may say "already running" while containers are stopped ->
+  `npx supabase stop` then `npx supabase start` (data is kept in the Docker volume).
 - Working style: very small iterations, one at a time; Nour approves each. Show every visible change on http://localhost:3000.
 
 ## Done
@@ -33,6 +37,13 @@ Read this after `PROJECT_SPEC.md` at the start of every session. Update it at th
   - 4b Application: `AuthGateway` + `MembershipRepository` ports; `signInStaff` (non-members get the same error as a wrong password and are signed out) and `getStaffContext`; unit tests.
   - 4c Infrastructure: Supabase adapters, cookie sessions via `@supabase/ssr`, `src/middleware.ts` refreshes sessions on `/staff/*` only.
     `npm run test:integration` runs the real adapters against local Supabase (3 tests).
+
+- Phase 2 step 5b: staff login UI. `/<locale>/staff/login` (email + password, translated errors) -> `/<locale>/staff`
+  (restaurant + role, sign out). Server actions in `src/interface/web/staff/actions.ts`; tenant ALWAYS from the host via
+  `getCurrentSite()` (`src/interface/web/current-site.ts`), never from the form. Pages now have an explicit light theme.
+    Look at: http://demo-dinein.localhost:3000/ar/staff/login (demo accounts + password in `supabase/seed.sql`).
+    Verified in browser: wrong password -> error; waiter/owner -> dashboard with role; sign out; Grill owner refused on demo-takeout
+    (same error, no session) while their Grill session stays active.
 
 ## In progress / verify first
 - Nothing pending.

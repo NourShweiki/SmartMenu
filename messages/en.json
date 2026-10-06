@@ -8,5 +8,25 @@
   "NotFound": {
     "title": "Page not found",
     "description": "Check the link and try again."
+  },
+  "StaffLogin": {
+    "title": "Staff sign in",
+    "email": "Email",
+    "password": "Password",
+    "submit": "Sign in",
+    "submitting": "Signing in…",
+    "invalid": "Incorrect email or password."
+  },
+  "StaffHome": {
+    "title": "Staff dashboard",
+    "yourRole": "Your role",
+    "signOut": "Sign out",
+    "comingSoon": "Order and menu screens will appear here soon."
+  },
+  "Roles": {
+    "OWNER": "Owner",
+    "MANAGER": "Manager",
+    "WAITER": "Waiter",
+    "CASHIER": "Cashier"
   }
 }

@@ -4,6 +4,11 @@
   --font-sans: var(--font-plex-arabic), ui-sans-serif, system-ui, sans-serif;
 }
 
+/* Light theme only for now; a dark theme would be a branding option later. */
+:root {
+  color-scheme: light;
+}
+
 /* Arabic script needs a little more line height (arabic-rtl skill). */
 :lang(ar) {
   line-height: 1.8;

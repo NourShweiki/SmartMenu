@@ -1,19 +1,17 @@
-import { headers } from "next/headers";
 import { notFound } from "next/navigation";
 import { getTranslations } from "next-intl/server";
-import { slugFromHost } from "@/domain/restaurant/host";
 import { localized } from "@/domain/shared/localized";
-import { appRootDomain, getPublicRestaurant } from "@/infrastructure/container";
 import { LanguageSwitch } from "@/interface/web/components/language-switch";
+import { getCurrentSite } from "@/interface/web/current-site";
 import { initLocale } from "@/interface/web/i18n/init-locale";
 import { otherLocale } from "@/interface/web/i18n/locales";
 
 export default async function HomePage({ params }: { params: Promise<{ locale: string }> }) {
   const locale = await initLocale(params);
   const t = await getTranslations("Home");
-  const slug = slugFromHost((await headers()).get("host") ?? "", appRootDomain());
+  const site = await getCurrentSite();
 
-  if (!slug) {
+  if (site.kind === "platform") {
     return (
       <main className="flex min-h-screen flex-col items-center justify-center gap-6">
         <h1 className="text-2xl font-semibold">{t("platformName")}</h1>
@@ -22,10 +20,9 @@ export default async function HomePage({ params }: { params: Promise<{ locale: s
     );
   }
 
-  const result = await getPublicRestaurant({ slug });
-  if (!result.ok) notFound();
+  if (site.kind === "unknown") notFound();
 
-  const { name } = result.value;
+  const { name } = site.restaurant;
   const other = otherLocale(locale);
 
   // Restaurant content comes from the _ar/_en columns; UI text comes from messages/*.json.

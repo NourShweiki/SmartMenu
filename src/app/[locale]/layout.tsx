@@ -25,7 +25,7 @@ export default async function LocaleLayout({
   const locale = await initLocale(params);
   return (
     <html lang={locale} dir={dirOf(locale)} className={plexArabic.variable}>
-      <body className="min-h-screen font-sans antialiased">
+      <body className="min-h-screen bg-white font-sans text-gray-900 antialiased">
         <NextIntlClientProvider>{children}</NextIntlClientProvider>
       </body>
     </html>
