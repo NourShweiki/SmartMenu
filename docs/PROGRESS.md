@@ -17,10 +17,10 @@ Read this after `PROJECT_SPEC.md` at the start of every session. Update it at th
 - Phase 2 step 1: restaurant domain — `src/domain/restaurant/` (slug, bilingual name, settings + presets, roles/permissions) with unit tests. Passing.
 - Phase 2 step 2: local Supabase + migration for `restaurants`, `restaurant_settings`, `restaurant_members` with RLS; pgTAP isolation test (12 tests); seed with 2 demo restaurants.
 - Fix: migration `20261006000100_grant_table_privileges.sql` (new Supabase doesn't auto-grant table privileges).
+- Verified 2026-10-06: `npx supabase db reset` + `npx supabase test db` -> `Tests=12`, all pass; `npm run check` green (typecheck, lint, 19 unit tests, build).
 
 ## In progress / verify first
-- Run `npx supabase db reset` then `npx supabase test db` — expect `Tests=12`, all pass. The first run failed with
-  "permission denied for table restaurants"; the grants migration should fix it. If it still fails, fix that before anything else.
+- Nothing pending.
 
 ## Next
 - Phase 2 step 3: connect the app to the database — Supabase client in `src/infrastructure/supabase/`, `.env.example`,
