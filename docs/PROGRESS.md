@@ -11,6 +11,7 @@ Read this after `PROJECT_SPEC.md` at the start of every session. Update it at th
 - Table session states (planned): `OPEN -> PAYMENT_REQUESTED -> CLOSED`.
 - Public (logged-out) reads go through narrow SECURITY DEFINER functions with an explicit column list, never the service-role key and never direct anon table grants (decided 2026-10-06).
 - Gotcha: `npm run check` (next build) overwrites `.next` and breaks a running `npm run dev` (500s) — restart the dev server after it.
+- Staff auth: email + password; public sign-up OFF; staff accounts created by founders (seed / setup tool) for now, owner invites later (decided 2026-10-06).
 - Working style: very small iterations, one at a time; Nour approves each. Show every visible change on http://localhost:3000.
 
 ## Done
@@ -27,11 +28,18 @@ Read this after `PROJECT_SPEC.md` at the start of every session. Update it at th
   - 3d Tenant from subdomain (`slugFromHost`, domain) + composition root `src/infrastructure/container.ts`; `/` shows the restaurant name (default language first, other below). Root layout now `lang="ar" dir="rtl"`.
     Look at: http://demo-dinein.localhost:3000 (Demo Grill) and http://demo-takeout.localhost:3000; unknown subdomain -> 404; plain http://localhost:3000 -> "SmartMenu".
 
+- Phase 2 step 4 (staff login: email + password; founders create accounts):
+  - 4a DB: public sign-up disabled (`supabase/config.toml`), 4 demo staff seeded (owner/waiter/cashier @demo-dinein.test, owner@demo-takeout.test; password in `supabase/seed.sql`).
+  - 4b Application: `AuthGateway` + `MembershipRepository` ports; `signInStaff` (non-members get the same error as a wrong password and are signed out) and `getStaffContext`; unit tests.
+  - 4c Infrastructure: Supabase adapters, cookie sessions via `@supabase/ssr`, `src/middleware.ts` refreshes sessions on `/staff/*` only.
+    `npm run test:integration` runs the real adapters against local Supabase (3 tests).
+
 ## In progress / verify first
 - Nothing pending.
 
 ## Next
-- Staff auth (Supabase Auth): sign-in for staff, resolve restaurant + role from `restaurant_members`.
+- 4d: staff login page at `<slug>.localhost:3000/staff/login` + a minimal signed-in page showing the role, and sign out.
+  Needs translated strings -> decide first: set up `next-intl` + `/ar` `/en` routing before the login page, or after.
 - Then locale routing `/ar` `/en` with `next-intl`, message files, Arabic font (e.g. IBM Plex Sans Arabic).
 - Later: custom domains (needs a DB lookup in tenant resolution); set `APP_ROOT_DOMAIN` on Vercel when deploying.
 
