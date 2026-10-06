@@ -54,7 +54,7 @@ export type MenuDeps = { newId: () => string };
 
 const LANGS = ["en", "ar"] as const;
 
-function validateName(name: LocalizedText): Result<LocalizedText, MenuError> {
+export function validateName(name: LocalizedText): Result<LocalizedText, MenuError> {
   const clean = { en: name.en.trim(), ar: name.ar.trim() };
   for (const lang of LANGS) {
     if (!clean[lang]) return err({ type: "NAME_REQUIRED", lang });
@@ -71,11 +71,11 @@ function validateDescription(description: LocalizedText): Result<LocalizedText, 
   return ok(clean);
 }
 
-function validateSortOrder(n: number): Result<number, MenuError> {
+export function validateSortOrder(n: number): Result<number, MenuError> {
   return Number.isSafeInteger(n) && n >= 0 ? ok(n) : err({ type: "INVALID_SORT_ORDER" });
 }
 
-function validatePrice(fils: number): Result<Fils, MenuError> {
+export function validatePrice(fils: number): Result<Fils, MenuError> {
   const price = toFils(fils);
   return price.ok ? price : err({ type: "INVALID_PRICE" });
 }
