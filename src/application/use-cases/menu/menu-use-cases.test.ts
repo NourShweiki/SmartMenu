@@ -12,6 +12,7 @@ import { makeEditMenuCategory } from "./edit-menu-category";
 import { makeEditMenuItem } from "./edit-menu-item";
 import { makeGetStaffMenu } from "./get-staff-menu";
 import { makeSetMenuCategoryHidden } from "./set-menu-category-hidden";
+import { makeRemoveMenuItemPhoto, makeSetMenuItemPhoto } from "./set-menu-item-photo";
 import { makeSetMenuItemHidden } from "./set-menu-item-hidden";
 import { makeSetMenuItemSoldOut } from "./set-menu-item-sold-out";
 
@@ -222,5 +223,60 @@ describe("categories", () => {
       ok: false,
       error: { type: "CATEGORY_NOT_FOUND" },
     });
+  });
+});
+
+describe("item photos", () => {
+  const PNG = new Uint8Array([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 1, 2, 3, 4, 5, 6, 7, 8]);
+  const kebab = "kebab" as MenuItemId;
+
+  function withPhotos() {
+    const d = deps();
+    const files = new Map<string, Uint8Array>();
+    const photos = {
+      async upload(path: string, bytes: Uint8Array) { files.set(path, bytes); },
+      async remove(path: string) { files.delete(path); },
+      publicUrl: (path: string) => `https://cdn.test/${path}`,
+    };
+    return { ...d, photos, files };
+  }
+
+  it("uploads into the restaurant/item folder and points the item at it", async () => {
+    const d = withPhotos();
+    const result = await makeSetMenuItemPhoto(d)(actor("OWNER"), { itemId: kebab, bytes: PNG });
+    expect(result.ok && result.value.imagePath).toMatch(/^grill\/kebab\/new-\d+\.png$/);
+    expect([...d.files.keys()]).toEqual([result.ok && result.value.imagePath]);
+  });
+
+  it("replacing a photo deletes the old file; removing clears it", async () => {
+    const d = withPhotos();
+    const first = await makeSetMenuItemPhoto(d)(actor("MANAGER"), { itemId: kebab, bytes: PNG });
+    const second = await makeSetMenuItemPhoto(d)(actor("MANAGER"), { itemId: kebab, bytes: PNG });
+    expect(first.ok && second.ok && first.value.imagePath !== second.value.imagePath).toBe(true);
+    expect(d.files.size).toBe(1);
+    const removed = await makeRemoveMenuItemPhoto(d)(actor("MANAGER"), { itemId: kebab });
+    expect(removed.ok && removed.value.imagePath).toBeNull();
+    expect(d.files.size).toBe(0);
+  });
+
+  it("rejects non-images and waiters, uploading nothing", async () => {
+    const d = withPhotos();
+    const html = new TextEncoder().encode("<!DOCTYPE html><script>alert(1)</script>");
+    expect(await makeSetMenuItemPhoto(d)(actor("OWNER"), { itemId: kebab, bytes: html })).toEqual({
+      ok: false,
+      error: { type: "PHOTO_TYPE_NOT_ALLOWED" },
+    });
+    expect(await makeSetMenuItemPhoto(d)(actor("WAITER"), { itemId: kebab, bytes: PNG })).toEqual({
+      ok: false,
+      error: { type: "FORBIDDEN" },
+    });
+    expect(d.files.size).toBe(0);
+  });
+
+  it("cleans up the uploaded file if saving the item fails", async () => {
+    const d = withPhotos();
+    d.menu.updateItem = async () => { throw new Error("db down"); };
+    await expect(makeSetMenuItemPhoto(d)(actor("OWNER"), { itemId: kebab, bytes: PNG })).rejects.toThrow("db down");
+    expect(d.files.size).toBe(0);
   });
 });

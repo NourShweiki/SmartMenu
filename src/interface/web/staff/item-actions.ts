@@ -54,6 +54,9 @@ function toFormState(values: ItemFormValues, error: MenuUseCaseError): ItemFormS
     case "DELETED":
     case "INVALID_SORT_ORDER":
     case "CATEGORY_NOT_EMPTY": // only from category deletes; can't happen when saving an item
+    case "PHOTO_EMPTY": // photo errors come from the photo upload, not from this form
+    case "PHOTO_TOO_LARGE":
+    case "PHOTO_TYPE_NOT_ALLOWED":
       return { values, formError: "notFound" };
   }
 }

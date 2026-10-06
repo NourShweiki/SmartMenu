@@ -13,6 +13,7 @@ import { makeEditMenuItem } from "@/application/use-cases/menu/edit-menu-item";
 import { makeGetStaffMenu } from "@/application/use-cases/menu/get-staff-menu";
 import { makeSetMenuCategoryHidden } from "@/application/use-cases/menu/set-menu-category-hidden";
 import { makeSetMenuItemHidden } from "@/application/use-cases/menu/set-menu-item-hidden";
+import { makeRemoveMenuItemPhoto, makeSetMenuItemPhoto } from "@/application/use-cases/menu/set-menu-item-photo";
 import { makeSetMenuItemSoldOut } from "@/application/use-cases/menu/set-menu-item-sold-out";
 import type { MenuActor } from "@/application/use-cases/menu/shared";
 import type { RestaurantId } from "@/domain/restaurant/restaurant";
@@ -20,6 +21,7 @@ import { createPublicClient, createSessionClient } from "./supabase/client";
 import { SupabaseAuthGateway } from "./supabase/supabase-auth-gateway";
 import { SupabaseMembershipRepository } from "./supabase/supabase-membership-repository";
 import { SupabaseMenuRepository } from "./supabase/supabase-menu-repository";
+import { SupabasePhotoStorage } from "./supabase/supabase-photo-storage";
 import { SupabaseRestaurantRepository } from "./supabase/supabase-restaurant-repository";
 
 export { refreshSessionCookies } from "./supabase/client";
@@ -59,7 +61,13 @@ const uuidIds = { newId: () => crypto.randomUUID() };
 
 /** Menu use cases run as the signed-in staff user, so RLS applies to every query. */
 async function menuDeps() {
-  return { menu: new SupabaseMenuRepository(await createSessionClient()), ids: uuidIds, clock: systemClock };
+  const db = await createSessionClient();
+  return { menu: new SupabaseMenuRepository(db), photos: new SupabasePhotoStorage(db), ids: uuidIds, clock: systemClock };
+}
+
+/** Public URL of a menu photo (no session needed: the bucket is view-only public). */
+export function menuPhotoUrl(path: string): string {
+  return new SupabasePhotoStorage(createPublicClient()).publicUrl(path);
 }
 
 export const menu = {
@@ -80,4 +88,8 @@ export const menu = {
     makeSetMenuCategoryHidden(await menuDeps())(...args),
   deleteCategory: async (...args: Parameters<ReturnType<typeof makeDeleteMenuCategory>>) =>
     makeDeleteMenuCategory(await menuDeps())(...args),
+  setItemPhoto: async (...args: Parameters<ReturnType<typeof makeSetMenuItemPhoto>>) =>
+    makeSetMenuItemPhoto(await menuDeps())(...args),
+  removeItemPhoto: async (...args: Parameters<ReturnType<typeof makeRemoveMenuItemPhoto>>) =>
+    makeRemoveMenuItemPhoto(await menuDeps())(...args),
 };

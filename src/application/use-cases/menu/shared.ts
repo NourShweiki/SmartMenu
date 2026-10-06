@@ -1,4 +1,5 @@
 import type { MenuError } from "@/domain/menu/menu";
+import type { PhotoError } from "@/domain/menu/photo";
 import type { RestaurantId } from "@/domain/restaurant/restaurant";
 import { can, type Permission, type Role } from "@/domain/restaurant/role";
 import { err, ok, type Result } from "@/domain/shared/result";
@@ -11,6 +12,7 @@ export type MenuActor = { restaurantId: RestaurantId; role: Role };
 
 export type MenuUseCaseError =
   | MenuError
+  | PhotoError
   | { type: "FORBIDDEN" }
   | { type: "ITEM_NOT_FOUND" };
 

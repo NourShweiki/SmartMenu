@@ -5,19 +5,22 @@ import { describe, expect, it } from "vitest";
 import { createCategory, createMenuItem, deleteCategory, deleteMenuItem, type CategoryId, type MenuItemId } from "@/domain/menu/menu";
 import type { RestaurantId } from "@/domain/restaurant/restaurant";
 import { createPublicClient } from "./client";
+import { makeRemoveMenuItemPhoto, makeSetMenuItemPhoto } from "@/application/use-cases/menu/set-menu-item-photo";
 import { SupabaseMenuRepository } from "./supabase-menu-repository";
+import { SupabasePhotoStorage } from "./supabase-photo-storage";
 
 const GRILL = "11111111-1111-4000-8000-000000000001" as RestaurantId;
 const COFFEE = "22222222-2222-4000-8000-000000000002" as RestaurantId;
 const GRILLS = "c1000000-0000-4000-8000-000000000001" as CategoryId;
 const PASSWORD = "smartmenu-demo-2026"; // supabase/seed.sql
 
-async function signedInRepo(email: string) {
+async function signedInClient(email: string) {
   const db = createPublicClient();
   const { error } = await db.auth.signInWithPassword({ email, password: PASSWORD });
   if (error) throw error;
-  return new SupabaseMenuRepository(db);
+  return db;
 }
+const signedInRepo = async (email: string) => new SupabaseMenuRepository(await signedInClient(email));
 
 describe.skipIf(!process.env.NEXT_PUBLIC_SUPABASE_URL)("menu repository against local Supabase", () => {
   it("lists only the signed-in owner's restaurant menu, in order", async () => {
@@ -64,5 +67,30 @@ describe.skipIf(!process.env.NEXT_PUBLIC_SUPABASE_URL)("menu repository against 
     expect(await waiter.setItemSoldOut(GRILL, crypto.randomUUID() as MenuItemId, true)).toBe(false);
     expect(await waiter.setItemSoldOut(GRILL, "not-a-uuid" as MenuItemId, true)).toBe(false);
     expect(await waiter.findCategory(GRILL, "abc" as CategoryId)).toBeNull(); // no Postgres error
+  });
+
+  it("uploads a real photo, serves it publicly, then removes it", async () => {
+    const db = await signedInClient("owner@demo-dinein.test");
+    const deps = { menu: new SupabaseMenuRepository(db), photos: new SupabasePhotoStorage(db), ids: { newId: () => crypto.randomUUID() } };
+    const item = (await deps.menu.listItems(GRILL))[0];
+    if (!item) throw new Error("no seed items");
+    // 1x1 transparent PNG
+    const png = Uint8Array.from(atob("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII="), (c) => c.charCodeAt(0));
+    const actor = { restaurantId: GRILL, role: "OWNER" as const };
+
+    const set = await makeSetMenuItemPhoto(deps)(actor, { itemId: item.id, bytes: png });
+    if (!set.ok) throw new Error(JSON.stringify(set.error));
+    const res = await fetch(deps.photos.publicUrl(set.value.imagePath!));
+    expect(res.status).toBe(200);
+    expect(res.headers.get("content-type")).toBe("image/png");
+
+    const removed = await makeRemoveMenuItemPhoto(deps)(actor, { itemId: item.id });
+    expect(removed.ok && removed.value.imagePath).toBeNull();
+    expect((await fetch(deps.photos.publicUrl(set.value.imagePath!))).status).not.toBe(200);
+  });
+
+  it("does not let a waiter upload to storage directly", async () => {
+    const photos = new SupabasePhotoStorage(await signedInClient("waiter@demo-dinein.test"));
+    await expect(photos.upload(`${GRILL}/x/y.png`, new Uint8Array([0x89, 0x50]), "image/png")).rejects.toThrow();
   });
 });
