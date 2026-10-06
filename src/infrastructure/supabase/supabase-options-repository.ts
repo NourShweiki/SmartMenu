@@ -174,21 +174,15 @@ export class SupabaseOptionsRepository implements OptionsRepository {
     }));
   }
 
-  /** Applies only the difference, so a failure half-way never leaves the item with no groups. */
+  /**
+   * Applies only the difference, ADDING before REMOVING: if an add fails (e.g. a group that
+   * isn't this restaurant's), the item keeps its old groups instead of ending up with none.
+   */
   async setItemGroups(restaurantId: RestaurantId, itemId: MenuItemId, groupIds: OptionGroupId[]): Promise<void> {
     const current = (await this.listLinks(restaurantId)).filter((l) => l.itemId === itemId);
     const wanted = [...new Set(groupIds)];
     const removed = current.filter((l) => !wanted.includes(l.groupId)).map((l) => l.groupId);
 
-    if (removed.length > 0) {
-      const { error } = await this.db
-        .from("menu_item_option_groups")
-        .delete()
-        .eq("restaurant_id", restaurantId)
-        .eq("item_id", itemId)
-        .in("group_id", removed);
-      check("menu_item_option_groups detach", error);
-    }
     for (const [sortOrder, groupId] of wanted.entries()) {
       const existing = current.find((l) => l.groupId === groupId);
       if (!existing) {
@@ -205,6 +199,15 @@ export class SupabaseOptionsRepository implements OptionsRepository {
           .eq("group_id", groupId);
         check("menu_item_option_groups reorder", error);
       }
+    }
+    if (removed.length > 0) {
+      const { error } = await this.db
+        .from("menu_item_option_groups")
+        .delete()
+        .eq("restaurant_id", restaurantId)
+        .eq("item_id", itemId)
+        .in("group_id", removed);
+      check("menu_item_option_groups detach", error);
     }
   }
 

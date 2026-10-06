@@ -43,7 +43,8 @@
     "show": "Show",
     "addItem": "Add item",
     "edit": "Edit",
-    "addCategory": "Add category"
+    "addCategory": "Add category",
+    "optionGroups": "Option groups"
   },
   "ItemForm": {
     "titleNew": "New item",
@@ -72,7 +73,8 @@
     "deleteTitle": "Delete item",
     "deleteHint": "It disappears from the menu. Past orders keep its name and price.",
     "deleteConfirm": "Delete this item?",
-    "delete": "Delete item"
+    "delete": "Delete item",
+    "optionGroupsTitle": "Option groups"
   },
   "CategoryForm": {
     "titleNew": "New category",
@@ -108,5 +110,48 @@
       "notFound": "This item no longer exists."
     },
     "noneChosen": "No file chosen"
+  },
+  "Options": {
+    "title": "Option groups",
+    "intro": "Create a group like “Size” or “Extras” once, then attach it to as many items as you like.",
+    "addGroup": "Add group",
+    "newGroup": "New option group",
+    "editGroup": "Edit option group",
+    "edit": "Edit",
+    "nameAr": "Name in Arabic",
+    "nameEn": "Name in English",
+    "rule": "How many options does the customer pick?",
+    "minSelect": "At least",
+    "maxSelect": "At most",
+    "ruleHint": "0 = optional. E.g. Size: 1 and 1 (must pick one), Extras: 0 and 3.",
+    "ruleOptional": "Optional · up to {max}",
+    "ruleRequiredExact": "Required · choose {count}",
+    "ruleRequiredRange": "Required · choose {min}–{max}",
+    "usedBy": "{count, plural, =0 {not used by any item} one {used by # item} other {used by # items}}",
+    "noGroupsYet": "There are no option groups yet.",
+    "noOptionsYet": "This group has no options yet.",
+    "optionsTitle": "Options",
+    "optionsHint": "The extra price is added to the item price. Leave it empty if it's free.",
+    "extraPrice": "Extra price",
+    "addOption": "Add an option",
+    "add": "Add",
+    "save": "Save",
+    "saving": "Saving…",
+    "cancel": "Cancel",
+    "saved": "Saved.",
+    "saveItemGroups": "Save groups",
+    "deleteOption": "Delete option",
+    "deleteOptionConfirm": "Delete this option?",
+    "deleteGroup": "Delete group",
+    "deleteGroupConfirm": "Delete this group?",
+    "deleteGroupHint": "{count, plural, =0 {This group isn't attached to any item.} one {It will be detached from # item. The item itself won't change.} other {It will be detached from # items. The items themselves won't change.}}",
+    "errors": {
+      "required": "This field is required.",
+      "tooLong": "Maximum {max} characters.",
+      "invalidPrice": "Enter a valid price in JD, e.g. 0.500.",
+      "invalidRule": "“At least” must be 0–{limit}, “at most” 1–{limit}, and at least can't be more than at most.",
+      "forbidden": "You don't have permission to edit the menu.",
+      "notFound": "This no longer exists."
+    }
   }
 }

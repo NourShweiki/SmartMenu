@@ -1,6 +1,6 @@
 import { notFound } from "next/navigation";
 import { localized } from "@/domain/shared/localized";
-import { menuPhotoUrl } from "@/infrastructure/container";
+import { menuPhotoUrl, options } from "@/infrastructure/container";
 import { getTranslations } from "next-intl/server";
 import { initLocale } from "@/interface/web/i18n/init-locale";
 import { filsToPriceInput } from "@/interface/web/price-input";
@@ -8,6 +8,10 @@ import { ConfirmSubmit } from "@/interface/web/components/confirm-submit";
 import { deleteItemAction, saveItemAction } from "@/interface/web/staff/item-actions";
 import { ItemForm } from "@/interface/web/staff/item-form";
 import { categoryOptions, ItemFormShell, loadMenuForEditing } from "@/interface/web/staff/item-form-page";
+import { setItemGroupsAction } from "@/interface/web/staff/option-actions";
+import { ItemGroupsForm } from "@/interface/web/staff/option-forms";
+import { ruleSummaries } from "@/interface/web/staff/options-page";
+import { requireStaff } from "@/interface/web/staff/require-staff";
 import { removePhotoAction, uploadPhotoAction } from "@/interface/web/staff/photo-actions";
 import { PhotoUploader } from "@/interface/web/staff/photo-uploader";
 
@@ -20,6 +24,10 @@ export default async function EditItemPage({ params }: { params: Promise<{ local
   // Only this restaurant's live items are in the staff menu, so another restaurant's id 404s.
   const item = staffMenu.sections.flatMap((s) => s.items).find((i) => i.id === itemId);
   if (!item) notFound();
+
+  const { staff } = await requireStaff(locale);
+  const { groups } = await options.getGroups({ restaurantId: staff.restaurantId, role: staff.role });
+  const rule = await ruleSummaries();
 
   return (
     <ItemFormShell locale={locale} restaurant={restaurant} title={t("titleEdit")}>
@@ -36,6 +44,19 @@ export default async function EditItemPage({ params }: { params: Promise<{ local
         categories={categoryOptions(staffMenu, locale)}
         cancelHref={`/${locale}/staff/menu`}
       />
+      <hr className="my-6 border-gray-100" />
+      <section className="flex flex-col gap-3">
+        <h2 className="font-semibold">{t("optionGroupsTitle")}</h2>
+        <ItemGroupsForm
+          action={setItemGroupsAction.bind(null, locale, item.id)}
+          groups={groups.map(({ group }) => ({
+            id: group.id,
+            label: localized(group.name, locale),
+            rule: rule(group),
+          }))}
+          selected={groups.filter((g) => g.itemIds.includes(item.id)).map((g) => g.group.id)}
+        />
+      </section>
       <hr className="my-6 border-gray-100" />
       <PhotoUploader
         imageUrl={item.imagePath ? menuPhotoUrl(item.imagePath) : null}

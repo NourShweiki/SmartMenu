@@ -42,6 +42,11 @@ One codebase serves every restaurant (multi-tenant). Each restaurant lives on it
     - Files are checked by their actual content, so a disguised file (e.g. HTML renamed `.jpg`) is rejected.
     - Each restaurant can only write into its own storage folder; the database storage rules enforce this.
     - Photos are publicly viewable, ready for the customer menu.
+  - **Option groups (modifiers).** Owner and manager create reusable groups like "Size" (Regular / Large +2.000) or "Extras" once, then attach them to any items.
+    - Each group sets how many options a customer must or may pick (e.g. *required · choose 1*, or *optional · up to 3*).
+    - Options can add an extra price (in fils) or be free.
+    - The rules that will check a customer's picks and compute the final price are already built and tested, ready for ordering in Phase 4.
+    - Items on the menu screen show which groups they offer.
   - Owner, manager **and waiters** can mark items **sold out / back in stock** during service.
   - Cashiers can view the menu but not change it.
 - **Menu rules.**
@@ -55,7 +60,6 @@ One codebase serves every restaurant (multi-tenant). Each restaurant lives on it
 
 - **Phase 3 (now):**
   - reorder categories and items
-  - options / modifiers (size, extras)
   - restaurant branding (waiting on a decision, see below)
 - **Phase 4+:** everything customer-facing, including:
   - the public customer menu

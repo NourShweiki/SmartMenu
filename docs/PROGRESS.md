@@ -23,6 +23,8 @@ Read this after `PROJECT_SPEC.md` at the start of every session. Update it at th
   (CI failed on 76f788e..cb45e37 for this reason). Use npm 11 locally too.
 - Gotcha: Supabase Storage blocks direct SQL DELETE on storage.objects (trigger); DB tests set
   `storage.allow_delete_query = 'true'` like the Storage API does.
+- Gotcha: integration tests run against the same local DB you look at — they must leave demo data as they found it.
+- Gotcha: long bash heredocs with curly quotes (“ ” « ») break the Bash tool; write such scripts to a file first.
 - Working style: very small iterations, one at a time; Nour approves each. Show every visible change on http://localhost:3000.
 
 ## Done
@@ -87,12 +89,22 @@ Read this after `PROJECT_SPEC.md` at the start of every session. Update it at th
   update item -> delete old; cleans up on failure). UI: photo section on the edit-item page, thumbnails on the menu.
   Server Action body limit raised to 6 MB (`next.config.ts`).
 
+- Phase 3 step 9: reusable option groups (decided 2026-10-06). Domain `src/domain/menu/options.ts` (groups with
+  min/max picks, options with extra price in fils, `validateSelection`, `priceWithOptions`, `isGroupOrderable`).
+  DB: `option_groups`, `options`, `menu_item_option_groups` with composite tenant FKs on both sides, RLS, column
+  grants; pgTAP `options_isolation.test.sql` (13); demo Size/Extras/Milk in seed. `OptionsRepository` + adapter
+  (setItemGroups adds before it removes, so a failed change never strips an item's groups). Use cases in
+  `use-cases/menu/options/`. UI: `/staff/menu/options` (list, new, edit group + options), item edit page checkboxes,
+  group labels on the menu screen. Deleting a group detaches it from items (items unchanged).
+    Look at: http://demo-dinein.localhost:3000/ar/staff/menu -> "مجموعات الخيارات".
+
 ## In progress / verify first
 - Nothing pending.
 
 ## Next
-- Phase 3 step 9: options / modifiers (e.g. size, extras) — needs a short design decision first (see report).
-- Then: reordering categories/items; branding (blocked on the open question).
+- Phase 3 step 10: reordering (categories, items, options, groups on an item).
+- Then: branding (blocked on the open question: exact list of owner-editable elements) -> Phase 3 done.
+- Phase 4 (customer ordering) will need the Open Questions on takeout sessions answered before that part.
 - Later in Phase 3: item photos (Supabase Storage), options/modifiers (size, extras), branding (needs the open question answered).
 
 ## Open questions (do not build without asking) — see spec §12

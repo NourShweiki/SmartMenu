@@ -2,7 +2,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { getTranslations } from "next-intl/server";
 import { localized } from "@/domain/shared/localized";
-import { menu, menuPhotoUrl } from "@/infrastructure/container";
+import { menu, menuPhotoUrl, options } from "@/infrastructure/container";
 import { LanguageSwitch } from "@/interface/web/components/language-switch";
 import { formatPrice } from "@/interface/web/format";
 import { initLocale } from "@/interface/web/i18n/init-locale";
@@ -23,6 +23,9 @@ export default async function StaffMenuPage({ params }: { params: Promise<{ loca
     role: staff.role,
   });
   const other = otherLocale(locale);
+  // Which option groups each item offers, shown as small labels.
+  const { groups } = await options.getGroups({ restaurantId: staff.restaurantId, role: staff.role });
+  const groupsOf = (itemId: string) => groups.filter((g) => g.itemIds.some((id) => id === itemId)).map((g) => g.group);
 
   return (
     <main className="min-h-screen bg-gray-50">
@@ -45,6 +48,12 @@ export default async function StaffMenuPage({ params }: { params: Promise<{ loca
               className="inline-block rounded-lg border border-gray-900 bg-white px-4 py-2 text-sm font-semibold hover:bg-gray-100"
             >
               + {t("addCategory")}
+            </Link>
+            <Link
+              href={`/${locale}/staff/menu/options`}
+              className="ms-2 inline-block rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-semibold hover:bg-gray-100"
+            >
+              {t("optionGroups")}
             </Link>
           </div>
         )}
@@ -114,6 +123,15 @@ export default async function StaffMenuPage({ params }: { params: Promise<{ loca
                     <p className="text-sm text-gray-500">
                       <bdi lang={other}>{localized(item.name, other)}</bdi>
                     </p>
+                    {groupsOf(item.id).length > 0 && (
+                      <p className="mt-1 flex flex-wrap gap-1">
+                        {groupsOf(item.id).map((g) => (
+                          <span key={g.id} className="rounded bg-blue-50 px-1.5 py-0.5 text-xs text-blue-800">
+                            {localized(g.name, locale)}
+                          </span>
+                        ))}
+                      </p>
+                    )}
                   </div>
 
                   <p className="font-semibold tabular-nums">

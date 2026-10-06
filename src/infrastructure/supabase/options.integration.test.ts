@@ -44,9 +44,15 @@ describe.skipIf(!process.env.NEXT_PUBLIC_SUPABASE_URL)("options repository again
     expect(await linksOf()).toEqual([]);
   });
 
-  it("cannot link a Grill item to a Coffee group", async () => {
+  it("cannot link a Grill item to a Coffee group, and a failed change keeps the old groups", async () => {
     const { options, menu } = await signedIn("owner@demo-dinein.test");
-    const item = (await menu.listItems(GRILL))[0]!;
-    await expect(options.setItemGroups(GRILL, item.id, [MILK])).rejects.toThrow();
+    const kebab = (await menu.listItems(GRILL)).find((i) => i.name.en === "Kebab");
+    if (!kebab) throw new Error("seed kebab missing");
+    const linksOf = async () => (await options.listLinks(GRILL)).filter((l) => l.itemId === kebab.id).map((l) => l.groupId);
+    const before = await linksOf();
+    expect(before.length).toBeGreaterThan(0);
+
+    await expect(options.setItemGroups(GRILL, kebab.id, [MILK])).rejects.toThrow();
+    expect(await linksOf()).toEqual(before); // nothing was removed
   });
 });
