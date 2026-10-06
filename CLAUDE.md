@@ -14,6 +14,9 @@ Then read `docs/PROGRESS.md` to see where work stopped, and update it at the end
 - Build order per feature: domain → infrastructure → use case → API → UI. Never skip ahead to an unapproved layer.
 - If a requirement changes, list the affected layers BEFORE editing.
 - Never build anything listed under "Open Questions" in the spec without asking first.
+- After every iteration, update `README.md` (pushed to GitHub with the iteration's commit): what's done, what's not done
+  yet, and the major features added — written for the team and visitors, not as a commit log. `docs/PROGRESS.md` stays
+  the detailed working log.
 - After every iteration, stop and reply in exactly this format, then wait:
 
 ```
