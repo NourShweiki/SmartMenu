@@ -26,12 +26,13 @@ export type ItemRow = {
   sort_order: number;
   is_hidden: boolean;
   is_sold_out: boolean;
+  image_path: string | null;
   deleted_at: string | null;
 };
 
 const CATEGORY_COLUMNS = "id, restaurant_id, name_en, name_ar, sort_order, is_hidden, deleted_at";
 const ITEM_COLUMNS =
-  "id, restaurant_id, category_id, name_en, name_ar, description_en, description_ar, price_fils, sort_order, is_hidden, is_sold_out, deleted_at";
+  "id, restaurant_id, category_id, name_en, name_ar, description_en, description_ar, price_fils, sort_order, is_hidden, is_sold_out, image_path, deleted_at";
 
 // ─── Mappers ────────────────────────────────────────────────────────────
 
@@ -58,6 +59,7 @@ export function toItem(row: ItemRow): MenuItem {
     sortOrder: row.sort_order,
     isHidden: row.is_hidden,
     isSoldOut: row.is_sold_out,
+    imagePath: row.image_path,
     deletedAt: row.deleted_at ? new Date(row.deleted_at) : null,
   };
 }
@@ -84,6 +86,7 @@ function editableItemColumns(i: MenuItem) {
     sort_order: i.sortOrder,
     is_hidden: i.isHidden,
     is_sold_out: i.isSoldOut,
+    image_path: i.imagePath,
     deleted_at: i.deletedAt?.toISOString() ?? null,
   };
 }

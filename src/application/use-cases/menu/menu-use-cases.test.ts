@@ -37,6 +37,7 @@ const item = (id: string, cat: MenuCategory): MenuItem => ({
   sortOrder: 0,
   isHidden: false,
   isSoldOut: false,
+  imagePath: null,
   deletedAt: null,
 });
 

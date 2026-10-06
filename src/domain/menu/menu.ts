@@ -29,6 +29,8 @@ export type MenuItem = {
   readonly isHidden: boolean;
   /** Ran out today: customers still see it, but can't order it. */
   readonly isSoldOut: boolean;
+  /** Storage path of its photo ("<restaurantId>/<itemId>/<file>"), or null. See photo.ts. */
+  readonly imagePath: string | null;
   readonly deletedAt: Date | null;
 };
 
@@ -170,6 +172,7 @@ export function createMenuItem(
     ...fields.value,
     isHidden: false,
     isSoldOut: false,
+    imagePath: null,
     deletedAt: null,
   });
 }
@@ -195,6 +198,15 @@ export function setItemHidden(item: MenuItem, isHidden: boolean): Result<MenuIte
 
 export function setItemSoldOut(item: MenuItem, isSoldOut: boolean): Result<MenuItem, MenuError> {
   return item.deletedAt ? err({ type: "DELETED" }) : ok({ ...item, isSoldOut });
+}
+
+/** Sets or clears (null) the item's photo. The path must be inside this item's own folder. */
+export function setItemPhoto(item: MenuItem, imagePath: string | null): Result<MenuItem, MenuError> {
+  if (item.deletedAt) return err({ type: "DELETED" });
+  if (imagePath !== null && !imagePath.startsWith(`${item.restaurantId}/${item.id}/`)) {
+    throw new Error("photo path outside the item's folder"); // a bug, not a user error
+  }
+  return ok({ ...item, imagePath });
 }
 
 export function deleteMenuItem(item: MenuItem, now: Date): Result<MenuItem, MenuError> {
