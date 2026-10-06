@@ -5,11 +5,7 @@ export const metadata: Metadata = {
   title: "SmartMenu",
 };
 
-// Arabic is the default. Locale routing (/ar, /en) will set lang/dir per request in a later iteration.
+// <html lang dir> is rendered per locale in app/[locale]/layout.tsx (arabic-rtl skill).
 export default function RootLayout({ children }: { children: React.ReactNode }) {
-  return (
-    <html lang="ar" dir="rtl">
-      <body className="min-h-screen antialiased">{children}</body>
-    </html>
-  );
+  return children;
 }

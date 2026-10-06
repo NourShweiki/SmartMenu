@@ -6,4 +6,4 @@ export function middleware(request: NextRequest) {
   return refreshSessionCookies(request);
 }
 
-export const config = { matcher: ["/staff/:path*"] };
+export const config = { matcher: ["/(ar|en)/staff/:path*"] };

@@ -1,0 +1,12 @@
+{
+  "Home": {
+    "platformName": "SmartMenu"
+  },
+  "LanguageSwitch": {
+    "label": "English"
+  },
+  "NotFound": {
+    "title": "الصفحة غير موجودة",
+    "description": "تأكد من الرابط وحاول مرة أخرى."
+  }
+}
