@@ -66,3 +66,26 @@ insert into public.menu_items (restaurant_id, category_id, name_en, name_ar, des
    '', '', 2250, 1, false),
   ('22222222-2222-4000-8000-000000000002', 'c2000000-0000-4000-8000-000000000002', 'Knafeh', 'كنافة',
    'Nabulsi cheese knafeh', 'كنافة بالجبنة النابلسية', 2500, 0, false);
+
+-- ─── Demo option groups (reusable; prices are extra fils) ────────────────
+insert into public.option_groups (id, restaurant_id, name_en, name_ar, min_select, max_select, sort_order) values
+  ('09000000-0000-4000-8000-000000000001', '11111111-1111-4000-8000-000000000001', 'Size',   'الحجم',   1, 1, 0),
+  ('09000000-0000-4000-8000-000000000002', '11111111-1111-4000-8000-000000000001', 'Extras', 'إضافات', 0, 3, 1),
+  ('09000000-0000-4000-8000-000000000003', '22222222-2222-4000-8000-000000000002', 'Milk',   'الحليب',  0, 1, 0);
+
+insert into public.options (restaurant_id, group_id, name_en, name_ar, price_delta_fils, sort_order) values
+  ('11111111-1111-4000-8000-000000000001', '09000000-0000-4000-8000-000000000001', 'Regular',     'عادي',        0,    0),
+  ('11111111-1111-4000-8000-000000000001', '09000000-0000-4000-8000-000000000001', 'Large',       'كبير',        2000, 1),
+  ('11111111-1111-4000-8000-000000000001', '09000000-0000-4000-8000-000000000002', 'Extra bread', 'خبز إضافي',   250,  0),
+  ('11111111-1111-4000-8000-000000000001', '09000000-0000-4000-8000-000000000002', 'Garlic sauce','ثومية',       250,  1),
+  ('11111111-1111-4000-8000-000000000001', '09000000-0000-4000-8000-000000000002', 'Pickles',     'مخلل',        0,    2),
+  ('22222222-2222-4000-8000-000000000002', '09000000-0000-4000-8000-000000000003', 'Oat milk',    'حليب الشوفان', 500, 0),
+  ('22222222-2222-4000-8000-000000000002', '09000000-0000-4000-8000-000000000003', 'Lactose-free','خالي من اللاكتوز', 250, 1);
+
+-- Size + Extras on the grills; Milk on the cappuccino.
+insert into public.menu_item_option_groups (restaurant_id, item_id, group_id, sort_order)
+select i.restaurant_id, i.id, g.id, g.sort_order
+from public.menu_items i
+join public.option_groups g on g.restaurant_id = i.restaurant_id
+where (i.name_en in ('Mixed grill', 'Kebab') and g.name_en in ('Size', 'Extras'))
+   or (i.name_en = 'Cappuccino' and g.name_en = 'Milk');
