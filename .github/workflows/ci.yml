@@ -24,6 +24,11 @@ jobs:
             package-lock.json
             package.json
 
+      # Node 22 ships npm 10, but our machines use npm 11. npm 10 rejects lock files written by
+      # npm 11 ("Missing: @swc/helpers from lock file"); npm 11 accepts lock files from both.
+      - name: Use npm 11
+        run: npm install -g npm@11 && npm -v
+
       - name: Install dependencies
         run: |
           if [ -f package-lock.json ]; then npm ci; else npm install; fi

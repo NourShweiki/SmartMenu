@@ -17,6 +17,8 @@ Read this after `PROJECT_SPEC.md` at the start of every session. Update it at th
 - Gotcha: after Docker restarts, `npx supabase start` may say "already running" while containers are stopped ->
   `npx supabase stop` then `npx supabase start` (data is kept in the Docker volume).
 - Menu rules (decided 2026-10-06, Phase 3): hidden = invisible to customers; sold out = visible but not orderable; delete = soft; WAITER/CASHIER read the menu but only OWNER/MANAGER change it.
+- Gotcha: CI uses npm 11 (installed in the workflow). Node 22's bundled npm 10 rejects lock files written by npm 11
+  (CI failed on 76f788e..cb45e37 for this reason). Use npm 11 locally too.
 - Working style: very small iterations, one at a time; Nour approves each. Show every visible change on http://localhost:3000.
 
 ## Done
