@@ -44,7 +44,9 @@
     "addItem": "Add item",
     "edit": "Edit",
     "addCategory": "Add category",
-    "optionGroups": "Option groups"
+    "optionGroups": "Option groups",
+    "moveUp": "Move up",
+    "moveDown": "Move down"
   },
   "ItemForm": {
     "titleNew": "New item",
@@ -152,6 +154,11 @@
       "invalidRule": "“At least” must be 0–{limit}, “at most” 1–{limit}, and at least can't be more than at most.",
       "forbidden": "You don't have permission to edit the menu.",
       "notFound": "This no longer exists."
-    }
+    },
+    "moveUp": "Move up",
+    "moveDown": "Move down"
+  },
+  "Common": {
+    "loading": "Loading…"
   }
 }

@@ -4,12 +4,18 @@ import { getTranslations } from "next-intl/server";
 import { localized } from "@/domain/shared/localized";
 import { menu, menuPhotoUrl, options } from "@/infrastructure/container";
 import { LanguageSwitch } from "@/interface/web/components/language-switch";
+import { MoveButtons } from "@/interface/web/components/move-buttons";
 import { OptimisticToggle } from "@/interface/web/components/optimistic-toggle";
 import { formatPrice } from "@/interface/web/format";
 import { initLocale } from "@/interface/web/i18n/init-locale";
 import { otherLocale } from "@/interface/web/i18n/locales";
 import { setCategoryHiddenAction } from "@/interface/web/staff/category-actions";
-import { setHiddenAction, setSoldOutAction } from "@/interface/web/staff/menu-actions";
+import {
+  moveCategoryAction,
+  moveItemAction,
+  setHiddenAction,
+  setSoldOutAction,
+} from "@/interface/web/staff/menu-actions";
 import { requireStaff } from "@/interface/web/staff/require-staff";
 
 const badge = "rounded-full px-2 py-0.5 text-xs font-semibold";
@@ -62,7 +68,7 @@ export default async function StaffMenuPage({ params }: { params: Promise<{ loca
 
         {sections.length === 0 && <p className="text-gray-500">{t("empty")}</p>}
 
-        {sections.map(({ category, items }) => (
+        {sections.map(({ category, items }, categoryIndex) => (
           <section
             key={category.id}
             className={`rounded-2xl bg-white shadow-sm ring-1 ring-gray-200 ${category.isHidden ? "opacity-70" : ""}`}
@@ -74,6 +80,14 @@ export default async function StaffMenuPage({ params }: { params: Promise<{ loca
               </h2>
               {canManage && (
                 <div className="flex flex-wrap justify-end gap-2">
+                  <MoveButtons
+                    up={moveCategoryAction.bind(null, locale, category.id, "up")}
+                    down={moveCategoryAction.bind(null, locale, category.id, "down")}
+                    isFirst={categoryIndex === 0}
+                    isLast={categoryIndex === sections.length - 1}
+                    upLabel={t("moveUp")}
+                    downLabel={t("moveDown")}
+                  />
                   <Link
                     href={`/${locale}/staff/menu/categories/${category.id}/edit`}
                     className={`${toggle} border-gray-300 text-gray-700 hover:bg-gray-100`}
@@ -101,7 +115,7 @@ export default async function StaffMenuPage({ params }: { params: Promise<{ loca
             {items.length === 0 && <p className="px-5 py-4 text-sm text-gray-500">{t("categoryEmpty")}</p>}
 
             <ul className="divide-y divide-gray-100">
-              {items.map((item) => (
+              {items.map((item, itemIndex) => (
                 <li
                   key={item.id}
                   className={`flex flex-wrap items-center gap-x-4 gap-y-2 px-5 py-4 ${item.isHidden ? "opacity-60" : ""}`}
@@ -143,7 +157,17 @@ export default async function StaffMenuPage({ params }: { params: Promise<{ loca
                     <bdi>{formatPrice(item.priceFils, locale)}</bdi>
                   </p>
 
-                  <div className="flex w-full justify-end gap-2 sm:w-80">
+                  <div className="flex w-full flex-wrap justify-end gap-2 sm:w-96">
+                    {canManage && (
+                      <MoveButtons
+                        up={moveItemAction.bind(null, locale, item.id, "up")}
+                        down={moveItemAction.bind(null, locale, item.id, "down")}
+                        isFirst={itemIndex === 0}
+                        isLast={itemIndex === items.length - 1}
+                        upLabel={t("moveUp")}
+                        downLabel={t("moveDown")}
+                      />
+                    )}
                     {canToggleSoldOut && (
                       <OptimisticToggle
                         on={item.isSoldOut}

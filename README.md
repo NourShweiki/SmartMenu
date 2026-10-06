@@ -11,7 +11,7 @@ One codebase serves every restaurant (multi-tenant). Each restaurant lives on it
 
 ## Status
 
-**Current phase: 3 — Menu & owner portal (in progress)**
+**Current phase: 3 — Menu & owner portal (done except branding, which is waiting on a decision)**
 
 | Phase | What | Status |
 |---|---|---|
@@ -47,6 +47,8 @@ One codebase serves every restaurant (multi-tenant). Each restaurant lives on it
     - Options can add an extra price (in fils) or be free.
     - The rules that will check a customer's picks and compute the final price are already built and tested, ready for ordering in Phase 4.
     - Items on the menu screen show which groups they offer.
+  - **Reordering.** ↑ / ↓ buttons for categories, items (within their category) and options.
+- **Fast staff screens.** Toggles respond instantly (optimistic UI). In a production build, a save takes ~100–140 ms and opening a page ~90 ms. The login check is verified locally (no extra round trip), and forged tokens are rejected (tested).
   - Owner, manager **and waiters** can mark items **sold out / back in stock** during service.
   - Cashiers can view the menu but not change it.
 - **Menu rules.**
@@ -59,7 +61,6 @@ One codebase serves every restaurant (multi-tenant). Each restaurant lives on it
 ### ⬜ Not done yet (next up)
 
 - **Phase 3 (now):**
-  - reorder categories and items
   - restaurant branding (waiting on a decision, see below)
 - **Phase 4+:** everything customer-facing, including:
   - the public customer menu
@@ -117,6 +118,9 @@ npx supabase db reset       # build the database from migrations + demo data
 cp .env.example .env.local  # then fill in the values from `npx supabase status`
 npm run dev
 ```
+
+The dev server is slower than the real app (it compiles pages on demand). To feel the real speed:
+`npm run build` then `npm start`.
 
 Then open:
 - http://demo-dinein.localhost:3000 for the **Demo Grill** restaurant page (Arabic; use the switch for English)

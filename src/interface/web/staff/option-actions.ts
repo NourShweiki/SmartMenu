@@ -124,6 +124,12 @@ export async function saveOptionAction(
   return mode.kind === "new" ? { savedAt: Date.now() } : { values, savedAt: Date.now() };
 }
 
+export async function moveOptionAction(locale: string, optionId: string, dir: string): Promise<void> {
+  const ctx = await context(locale);
+  await options.moveOption(ctx.actor, { optionId: optionId as OptionId, direction: dir === "up" ? "up" : "down" });
+  revalidatePath(`/${ctx.locale}/staff/menu`, "layout");
+}
+
 export async function deleteOptionAction(locale: string, optionId: string): Promise<void> {
   const ctx = await context(locale);
   await options.deleteOption(ctx.actor, { optionId: optionId as OptionId });

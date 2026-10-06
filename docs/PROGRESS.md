@@ -25,6 +25,7 @@ Read this after `PROJECT_SPEC.md` at the start of every session. Update it at th
   `storage.allow_delete_query = 'true'` like the Storage API does.
 - Gotcha: integration tests run against the same local DB you look at — they must leave demo data as they found it.
 - Gotcha: long bash heredocs with curly quotes (“ ” « ») break the Bash tool; write such scripts to a file first.
+- Auth: `getClaims()` verifies JWTs locally; tradeoff: a session ended elsewhere stays valid until token expiry (max 1h).
 - Working style: very small iterations, one at a time; Nour approves each. Show every visible change on http://localhost:3000.
 
 ## Done
@@ -98,12 +99,18 @@ Read this after `PROJECT_SPEC.md` at the start of every session. Update it at th
   group labels on the menu screen. Deleting a group detaches it from items (items unchanged).
     Look at: http://demo-dinein.localhost:3000/ar/staff/menu -> "مجموعات الخيارات".
 
+- Performance (2026-10-06): measured with `DEBUG_SUPABASE=1` (logs every Supabase call). Removed 3 auth round trips
+  per action (`getUser` -> `getClaims`, local ES256 verification; forged / edited / alg:none tokens rejected in
+  integration tests), parallel menu reads, optimistic toggles (`OptimisticToggle`), staff `loading.tsx` skeleton.
+  Production build: toggle feedback ~8 ms, save ~100-140 ms, open edit page ~90 ms (dev server is slower).
+- Phase 3 step 10: reordering — `moveInOrder` (domain/shared/ordering.ts), move category / item / option use cases,
+  ↑/↓ `MoveButtons` on the menu screen and the option group page.
+
 ## In progress / verify first
 - Nothing pending.
 
 ## Next
-- Phase 3 step 10: reordering (categories, items, options, groups on an item).
-- Then: branding (blocked on the open question: exact list of owner-editable elements) -> Phase 3 done.
+- Branding (blocked on the open question: exact list of owner-editable elements) -> then Phase 3 is done.
 - Phase 4 (customer ordering) will need the Open Questions on takeout sessions answered before that part.
 - Later in Phase 3: item photos (Supabase Storage), options/modifiers (size, extras), branding (needs the open question answered).
 

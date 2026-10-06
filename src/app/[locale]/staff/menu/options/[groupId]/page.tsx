@@ -1,10 +1,17 @@
 import { notFound } from "next/navigation";
 import { getTranslations } from "next-intl/server";
 import { ConfirmSubmit } from "@/interface/web/components/confirm-submit";
+import { MoveButtons } from "@/interface/web/components/move-buttons";
 import { initLocale } from "@/interface/web/i18n/init-locale";
 import { filsToPriceInput } from "@/interface/web/price-input";
 import { ItemFormShell } from "@/interface/web/staff/item-form-page";
-import { deleteGroupAction, deleteOptionAction, saveGroupAction, saveOptionAction } from "@/interface/web/staff/option-actions";
+import {
+  deleteGroupAction,
+  deleteOptionAction,
+  moveOptionAction,
+  saveGroupAction,
+  saveOptionAction,
+} from "@/interface/web/staff/option-actions";
 import { OptionGroupForm, OptionRowForm } from "@/interface/web/staff/option-forms";
 import { loadOptionsForEditing } from "@/interface/web/staff/options-page";
 
@@ -44,18 +51,33 @@ export default async function EditOptionGroupPage({
           <p className="text-sm text-gray-500">{t("optionsHint")}</p>
         </div>
         {options.length === 0 && <p className="text-sm text-amber-700">{t("noOptionsYet")}</p>}
-        {options.map((o) => (
-          <OptionRowForm
-            key={o.id}
-            action={saveOptionAction.bind(null, locale, { kind: "edit", optionId: o.id, sortOrder: o.sortOrder })}
-            initial={{ nameAr: o.name.ar, nameEn: o.name.en, price: o.priceDeltaFils ? filsToPriceInput(o.priceDeltaFils) : "" }}
-            submitLabel={t("save")}
-            remove={{
-              action: deleteOptionAction.bind(null, locale, o.id),
-              question: t("deleteOptionConfirm"),
-              label: t("deleteOption"),
-            }}
-          />
+        {options.map((o, index) => (
+          <div key={o.id} className="flex items-start gap-2">
+            <MoveButtons
+              up={moveOptionAction.bind(null, locale, o.id, "up")}
+              down={moveOptionAction.bind(null, locale, o.id, "down")}
+              isFirst={index === 0}
+              isLast={index === options.length - 1}
+              upLabel={t("moveUp")}
+              downLabel={t("moveDown")}
+            />
+            <div className="min-w-0 flex-1">
+              <OptionRowForm
+                action={saveOptionAction.bind(null, locale, { kind: "edit", optionId: o.id, sortOrder: o.sortOrder })}
+                initial={{
+                  nameAr: o.name.ar,
+                  nameEn: o.name.en,
+                  price: o.priceDeltaFils ? filsToPriceInput(o.priceDeltaFils) : "",
+                }}
+                submitLabel={t("save")}
+                remove={{
+                  action: deleteOptionAction.bind(null, locale, o.id),
+                  question: t("deleteOptionConfirm"),
+                  label: t("deleteOption"),
+                }}
+              />
+            </div>
+          </div>
         ))}
         <div className="rounded-xl bg-gray-50 p-3">
           <p className="mb-2 text-sm font-semibold">{t("addOption")}</p>

@@ -11,6 +11,8 @@ import { makeDeleteMenuItem } from "@/application/use-cases/menu/delete-menu-ite
 import { makeEditMenuCategory } from "@/application/use-cases/menu/edit-menu-category";
 import { makeEditMenuItem } from "@/application/use-cases/menu/edit-menu-item";
 import { makeGetStaffMenu } from "@/application/use-cases/menu/get-staff-menu";
+import { makeMoveMenuCategory } from "@/application/use-cases/menu/move-menu-category";
+import { makeMoveMenuItem } from "@/application/use-cases/menu/move-menu-item";
 import { makeSetMenuCategoryHidden } from "@/application/use-cases/menu/set-menu-category-hidden";
 import { makeSetMenuItemHidden } from "@/application/use-cases/menu/set-menu-item-hidden";
 import { makeRemoveMenuItemPhoto, makeSetMenuItemPhoto } from "@/application/use-cases/menu/set-menu-item-photo";
@@ -22,6 +24,7 @@ import { makeDeleteOptionGroup } from "@/application/use-cases/menu/options/dele
 import { makeEditOption } from "@/application/use-cases/menu/options/edit-option";
 import { makeEditOptionGroup } from "@/application/use-cases/menu/options/edit-option-group";
 import { makeGetOptionGroups } from "@/application/use-cases/menu/options/get-option-groups";
+import { makeMoveOption } from "@/application/use-cases/menu/options/move-option";
 import { makeSetItemOptionGroups } from "@/application/use-cases/menu/options/set-item-option-groups";
 import type { MenuActor } from "@/application/use-cases/menu/shared";
 import type { RestaurantId } from "@/domain/restaurant/restaurant";
@@ -107,6 +110,9 @@ export const menu = {
     makeSetMenuItemPhoto(await menuDeps())(...args),
   removeItemPhoto: async (...args: Parameters<ReturnType<typeof makeRemoveMenuItemPhoto>>) =>
     makeRemoveMenuItemPhoto(await menuDeps())(...args),
+  moveCategory: async (...args: Parameters<ReturnType<typeof makeMoveMenuCategory>>) =>
+    makeMoveMenuCategory(await menuDeps())(...args),
+  moveItem: async (...args: Parameters<ReturnType<typeof makeMoveMenuItem>>) => makeMoveMenuItem(await menuDeps())(...args),
 };
 
 // ─── Option groups (staff) ──────────────────────────────────────────────
@@ -123,4 +129,5 @@ export const options = {
   deleteOption: async (...args: Parameters<ReturnType<typeof makeDeleteOption>>) => makeDeleteOption(await menuDeps())(...args),
   setItemGroups: async (...args: Parameters<ReturnType<typeof makeSetItemOptionGroups>>) =>
     makeSetItemOptionGroups(await menuDeps())(...args),
+  moveOption: async (...args: Parameters<ReturnType<typeof makeMoveOption>>) => makeMoveOption(await menuDeps())(...args),
 };
