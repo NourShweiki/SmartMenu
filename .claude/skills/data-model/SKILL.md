@@ -57,3 +57,9 @@ These are decided and expensive to change. Do not deviate without the user's exp
 - Takeout/delivery equivalent of a table session.
 - Loyalty earn/redeem rules.
 - Exact list of owner-editable branding elements.
+
+## 11. Table privileges (learned 2026-10-06)
+New Supabase projects do NOT auto-grant privileges on new tables. Every migration that creates a table must also:
+- `grant` exactly the operations its RLS policies cover to `authenticated` (and to `anon` only if there is a deliberate public policy),
+- `grant all ... to service_role`.
+Missing grants show up as `permission denied for table X` (SQLSTATE 42501) even for rightful users.
