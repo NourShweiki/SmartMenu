@@ -58,14 +58,23 @@ Read this after `PROJECT_SPEC.md` at the start of every session. Update it at th
   (item's category must be in the same restaurant), column grants (restaurant_id can't change), no hard delete, anon no
   access. pgTAP `menu_isolation.test.sql` (20). `npx supabase test db` -> `Tests=40`. Seed: demo menus for both restaurants.
 
+- Phase 3 step 3: `MenuRepository` port + `SupabaseMenuRepository` (insert/update split because of column grants;
+  setItemSoldOut checks the item's restaurant then calls the DB function). Integration tests (`menu.integration.test.ts`).
+- Phase 3 step 4: menu use cases in `src/application/use-cases/menu/` (get staff menu, add category/item, edit item,
+  hide, sold out, delete) — each checks `menu:manage` or `menu:sold-out` for the server-resolved actor. Clock/IdGenerator ports.
+- Phase 3 step 5: staff menu screen `/<locale>/staff/menu` (linked from the staff dashboard): categories + items, both
+  names, prices via `formatPrice` (`src/interface/web/format.ts`, Western digits), sold-out/hidden badges, sold-out toggle
+  (owner/manager/waiter) and hide/show (owner/manager). `requireStaff()` guards every staff page/action.
+    Look at: http://demo-dinein.localhost:3000/ar/staff/menu — sign in as owner (all buttons) or waiter (sold out only).
+- CI fixed (b996db9): workflow installs npm 11 (see gotcha below).
+
 ## In progress / verify first
 - Nothing pending.
 
 ## Next
-- Phase 3 step 3: `MenuRepository` port + Supabase adapter (+ integration test).
-- Step 4: use cases (list menu for staff, create/update category + item, hide, sold out, delete) with role check (menu:manage).
-- Step 5: owner menu screen at `/<locale>/staff/menu` (list by category, add/edit item, toggles, prices via `formatPrice`).
-- Later in Phase 3: item photos (Supabase Storage), options/modifiers (e.g. size, extras), branding (needs the open question answered).
+- Phase 3 step 6: add / edit item form (names, descriptions, price in JD -> fils, category) with translated validation errors.
+- Then: add / rename / hide / delete categories; delete item (with confirm).
+- Later in Phase 3: item photos (Supabase Storage), options/modifiers (size, extras), branding (needs the open question answered).
 
 ## Open questions (do not build without asking) — see spec §12
 - Removing items after order confirmation; takeout/delivery session model; loyalty rules; exact branding elements.

@@ -21,12 +21,25 @@
     "title": "Staff dashboard",
     "yourRole": "Your role",
     "signOut": "Sign out",
-    "comingSoon": "Order and menu screens will appear here soon."
+    "menuLink": "Menu",
+    "menuLinkHint": "Items, prices and availability"
   },
   "Roles": {
     "OWNER": "Owner",
     "MANAGER": "Manager",
     "WAITER": "Waiter",
     "CASHIER": "Cashier"
+  },
+  "StaffMenu": {
+    "title": "Menu",
+    "back": "Staff dashboard",
+    "empty": "There are no categories on the menu yet.",
+    "categoryEmpty": "No items in this category.",
+    "hidden": "Hidden",
+    "soldOut": "Sold out",
+    "markSoldOut": "Mark sold out",
+    "markAvailable": "Back in stock",
+    "hide": "Hide",
+    "show": "Show"
   }
 }
