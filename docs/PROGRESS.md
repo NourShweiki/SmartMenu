@@ -9,6 +9,7 @@ Read this after `PROJECT_SPEC.md` at the start of every session. Update it at th
 - Defaults: Arabic is the default language; Western digits in both languages; only OWNER changes restaurant settings.
 - Tax/service-charge preset values are placeholders and adjustable later (owner setting) — not a blocker.
 - Table session states (planned): `OPEN -> PAYMENT_REQUESTED -> CLOSED`.
+- Public (logged-out) reads go through narrow SECURITY DEFINER functions with an explicit column list, never the service-role key and never direct anon table grants (decided 2026-10-06).
 - Working style: very small iterations, one at a time; Nour approves each. Show every visible change on http://localhost:3000.
 
 ## Done
@@ -20,7 +21,10 @@ Read this after `PROJECT_SPEC.md` at the start of every session. Update it at th
 - Verified 2026-10-06: `npx supabase db reset` + `npx supabase test db` -> `Tests=12`, all pass; `npm run check` green (typecheck, lint, 19 unit tests, build).
 
 ## In progress / verify first
-- Nothing pending.
+- Phase 2 step 3 (connect app to DB) is split into small iterations:
+  - [x] 3a DB: public read path `get_public_restaurant(slug)` (SECURITY DEFINER, fixed safe column list; anon still has no table access) + pgTAP `public_restaurant.test.sql` (8 tests). `npx supabase test db` -> `Tests=20`, all pass.
+  - [ ] 3b `RestaurantRepository` port (application) + Supabase client/adapter (infrastructure, publishable key, calls the RPC) + `.env.example` + `@supabase/supabase-js`.
+  - [ ] 3c use case `getPublicRestaurant`; 3d first page on localhost:3000 showing the demo name (ar/en).
 
 ## Next
 - Phase 2 step 3: connect the app to the database — Supabase client in `src/infrastructure/supabase/`, `.env.example`,
