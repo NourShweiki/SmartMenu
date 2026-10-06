@@ -39,6 +39,7 @@ export type MenuError =
   | { type: "INVALID_PRICE" }
   | { type: "INVALID_SORT_ORDER" }
   | { type: "CATEGORY_NOT_FOUND" }
+  | { type: "CATEGORY_NOT_EMPTY" }
   | { type: "DELETED" };
 
 export const MAX_NAME_LENGTH = 80;
@@ -114,9 +115,17 @@ export function setCategoryHidden(category: MenuCategory, isHidden: boolean): Re
   return ok({ ...category, isHidden });
 }
 
-/** Soft delete. The use case decides what happens to its items (see deleteCategory use case). */
-export function deleteCategory(category: MenuCategory, now: Date): Result<MenuCategory, MenuError> {
+/**
+ * Soft delete. Only an EMPTY category can be deleted (decided 2026-10-06): the owner moves or
+ * deletes its items first, so nothing disappears from the menu by surprise.
+ */
+export function deleteCategory(
+  category: MenuCategory,
+  liveItemCount: number,
+  now: Date,
+): Result<MenuCategory, MenuError> {
   if (category.deletedAt) return err({ type: "DELETED" });
+  if (liveItemCount > 0) return err({ type: "CATEGORY_NOT_EMPTY" });
   return ok({ ...category, deletedAt: now });
 }
 

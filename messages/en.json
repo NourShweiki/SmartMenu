@@ -42,7 +42,8 @@
     "hide": "Hide",
     "show": "Show",
     "addItem": "Add item",
-    "edit": "Edit"
+    "edit": "Edit",
+    "addCategory": "Add category"
   },
   "ItemForm": {
     "titleNew": "New item",
@@ -67,6 +68,26 @@
       "categoryNotFound": "Choose a category from the list.",
       "forbidden": "You don't have permission to edit the menu.",
       "notFound": "This item no longer exists."
+    },
+    "deleteTitle": "Delete item",
+    "deleteHint": "It disappears from the menu. Past orders keep its name and price.",
+    "deleteConfirm": "Delete this item?",
+    "delete": "Delete item"
+  },
+  "CategoryForm": {
+    "titleNew": "New category",
+    "titleEdit": "Edit category",
+    "nameAr": "Name in Arabic",
+    "nameEn": "Name in English",
+    "deleteTitle": "Delete category",
+    "deleteHint": "This category is empty and can be deleted.",
+    "deleteBlocked": "This category still has {count, plural, one {# item} other {# items}}. Move or delete them first.",
+    "deleteConfirm": "Delete this category?",
+    "delete": "Delete category",
+    "errors": {
+      "forbidden": "You don't have permission to edit the menu.",
+      "notFound": "This category no longer exists.",
+      "notEmpty": "This category isn't empty. Move or delete its items first."
     }
   }
 }

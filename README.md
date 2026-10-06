@@ -35,7 +35,9 @@ One codebase serves every restaurant (multi-tenant). Each restaurant lives on it
 - **Roles.** Owner, Manager, Waiter and Cashier, each with its own permissions, enforced both in the app and in the database.
 - **Menu management.** Staff see the menu by category with prices.
   - Owner and manager can **add and edit items**: Arabic + English name and description, price, category. Prices are typed in JD (`4.5`, `4.500`, or Arabic digits `٤٫٥`) and stored exactly as fils. Validation errors are translated and shown next to the right field.
-  - Owner and manager can **hide or show** items.
+  - Owner and manager can **add, rename, hide and delete categories**. A category can only be deleted when it's empty, so nothing disappears by surprise.
+  - Owner and manager can **delete items** (with an "are you sure?" step). Deleting is soft, so past orders keep the item's name and price.
+  - Owner and manager can **hide or show** items. Hiding a category hides everything in it from customers.
   - Owner, manager **and waiters** can mark items **sold out / back in stock** during service.
   - Cashiers can view the menu but not change it.
 - **Menu rules.**
@@ -48,8 +50,7 @@ One codebase serves every restaurant (multi-tenant). Each restaurant lives on it
 ### ⬜ Not done yet (next up)
 
 - **Phase 3 (now):**
-  - manage categories (add, rename, hide, delete)
-  - delete items
+  - reorder categories and items
   - item photos
   - options / modifiers (size, extras)
   - restaurant branding (waiting on a decision, see below)

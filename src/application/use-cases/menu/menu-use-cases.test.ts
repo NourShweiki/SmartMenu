@@ -6,9 +6,12 @@ import type { Role } from "@/domain/restaurant/role";
 import type { Fils } from "@/domain/shared/money";
 import { makeAddMenuCategory } from "./add-menu-category";
 import { makeAddMenuItem } from "./add-menu-item";
+import { makeDeleteMenuCategory } from "./delete-menu-category";
 import { makeDeleteMenuItem } from "./delete-menu-item";
+import { makeEditMenuCategory } from "./edit-menu-category";
 import { makeEditMenuItem } from "./edit-menu-item";
 import { makeGetStaffMenu } from "./get-staff-menu";
+import { makeSetMenuCategoryHidden } from "./set-menu-category-hidden";
 import { makeSetMenuItemHidden } from "./set-menu-item-hidden";
 import { makeSetMenuItemSoldOut } from "./set-menu-item-sold-out";
 
@@ -171,5 +174,52 @@ describe("changing items", () => {
     expect(result.ok && result.value.deletedAt).toEqual(NOW);
     const menu = await makeGetStaffMenu(d)(actor("OWNER"));
     expect(menu.sections[0]?.items).toEqual([]);
+  });
+});
+
+describe("categories", () => {
+  const grills = "grills" as CategoryId;
+  const drinks = "drinks" as CategoryId;
+
+  it("renames and hides a category (owner/manager only)", async () => {
+    const d = deps();
+    const renamed = await makeEditMenuCategory(d)(actor("MANAGER"), {
+      categoryId: grills,
+      name: { en: "BBQ", ar: "شواء" },
+      sortOrder: 0,
+    });
+    expect(renamed.ok && renamed.value.name).toEqual({ en: "BBQ", ar: "شواء" });
+    const hidden = await makeSetMenuCategoryHidden(d)(actor("OWNER"), { categoryId: grills, isHidden: true });
+    expect(hidden.ok && hidden.value.isHidden).toBe(true);
+    expect(await makeSetMenuCategoryHidden(d)(actor("WAITER"), { categoryId: grills, isHidden: false })).toEqual({
+      ok: false,
+      error: { type: "FORBIDDEN" },
+    });
+  });
+
+  it("refuses to delete a category that still has items", async () => {
+    const d = deps();
+    expect(await makeDeleteMenuCategory(d)(actor("OWNER"), { categoryId: grills })).toEqual({
+      ok: false,
+      error: { type: "CATEGORY_NOT_EMPTY" },
+    });
+    expect(d.state.categories.find((c) => c.id === grills)?.deletedAt).toBeNull();
+  });
+
+  it("deletes an empty category, and one whose items were all deleted", async () => {
+    const d = deps();
+    expect((await makeDeleteMenuCategory(d)(actor("OWNER"), { categoryId: drinks })).ok).toBe(true);
+    await makeDeleteMenuItem(d)(actor("OWNER"), { itemId: "kebab" as MenuItemId });
+    const result = await makeDeleteMenuCategory(d)(actor("OWNER"), { categoryId: grills });
+    expect(result.ok && result.value.deletedAt).toEqual(NOW);
+    expect((await makeGetStaffMenu(d)(actor("OWNER"))).sections).toEqual([]);
+  });
+
+  it("cannot touch another restaurant's category", async () => {
+    const d = deps();
+    expect(await makeDeleteMenuCategory(d)(actor("OWNER"), { categoryId: "hot" as CategoryId })).toEqual({
+      ok: false,
+      error: { type: "CATEGORY_NOT_FOUND" },
+    });
   });
 });

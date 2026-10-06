@@ -6,6 +6,7 @@ import { LanguageSwitch } from "@/interface/web/components/language-switch";
 import { formatPrice } from "@/interface/web/format";
 import { initLocale } from "@/interface/web/i18n/init-locale";
 import { otherLocale } from "@/interface/web/i18n/locales";
+import { setCategoryHiddenAction } from "@/interface/web/staff/category-actions";
 import { setHiddenAction, setSoldOutAction } from "@/interface/web/staff/menu-actions";
 import { requireStaff } from "@/interface/web/staff/require-staff";
 
@@ -36,22 +37,49 @@ export default async function StaffMenuPage({ params }: { params: Promise<{ loca
           <LanguageSwitch locale={locale} path="/staff/menu" />
         </header>
 
+        {canManage && (
+          <div>
+            <Link
+              href={`/${locale}/staff/menu/categories/new`}
+              className="inline-block rounded-lg border border-gray-900 bg-white px-4 py-2 text-sm font-semibold hover:bg-gray-100"
+            >
+              + {t("addCategory")}
+            </Link>
+          </div>
+        )}
+
         {sections.length === 0 && <p className="text-gray-500">{t("empty")}</p>}
 
         {sections.map(({ category, items }) => (
-          <section key={category.id} className="rounded-2xl bg-white shadow-sm ring-1 ring-gray-200">
-            <div className="flex items-center justify-between gap-2 border-b border-gray-100 px-5 py-3">
+          <section
+            key={category.id}
+            className={`rounded-2xl bg-white shadow-sm ring-1 ring-gray-200 ${category.isHidden ? "opacity-70" : ""}`}
+          >
+            <div className="flex flex-wrap items-center justify-between gap-2 border-b border-gray-100 px-5 py-3">
               <h2 className="flex items-center gap-2 text-lg font-semibold">
                 {localized(category.name, locale)}
                 {category.isHidden && <span className={`${badge} bg-gray-100 text-gray-600`}>{t("hidden")}</span>}
               </h2>
               {canManage && (
-                <Link
-                  href={`/${locale}/staff/menu/items/new?category=${category.id}`}
-                  className="rounded-lg bg-gray-900 px-3 py-1.5 text-sm font-semibold text-white hover:bg-gray-700"
-                >
-                  + {t("addItem")}
-                </Link>
+                <div className="flex flex-wrap justify-end gap-2">
+                  <Link
+                    href={`/${locale}/staff/menu/categories/${category.id}/edit`}
+                    className={`${toggle} border-gray-300 text-gray-700 hover:bg-gray-100`}
+                  >
+                    {t("edit")}
+                  </Link>
+                  <form action={setCategoryHiddenAction.bind(null, locale, category.id, !category.isHidden)}>
+                    <button type="submit" className={`${toggle} border-gray-300 text-gray-700 hover:bg-gray-100`}>
+                      {category.isHidden ? t("show") : t("hide")}
+                    </button>
+                  </form>
+                  <Link
+                    href={`/${locale}/staff/menu/items/new?category=${category.id}`}
+                    className="rounded-lg bg-gray-900 px-3 py-1.5 text-sm font-semibold text-white hover:bg-gray-700"
+                  >
+                    + {t("addItem")}
+                  </Link>
+                </div>
               )}
             </div>
 

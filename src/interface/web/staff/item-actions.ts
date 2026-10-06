@@ -53,6 +53,7 @@ function toFormState(values: ItemFormValues, error: MenuUseCaseError): ItemFormS
     case "ITEM_NOT_FOUND":
     case "DELETED":
     case "INVALID_SORT_ORDER":
+    case "CATEGORY_NOT_EMPTY": // only from category deletes; can't happen when saving an item
       return { values, formError: "notFound" };
   }
 }
@@ -84,6 +85,15 @@ export async function saveItemAction(
       : await menu.editItem(actor, { ...input, itemId: mode.itemId as MenuItemId });
   if (!result.ok) return toFormState(values, result.error);
 
+  revalidatePath(`/${l}/staff/menu`);
+  redirect(`/${l}/staff/menu`);
+}
+
+/** Soft-deletes an item (asked to confirm in the browser first), then back to the menu. */
+export async function deleteItemAction(locale: string, itemId: string): Promise<void> {
+  const l = isLocale(locale) ? locale : DEFAULT_LOCALE;
+  const { staff } = await requireStaff(l);
+  await menu.deleteItem({ restaurantId: staff.restaurantId, role: staff.role }, { itemId: itemId as MenuItemId });
   revalidatePath(`/${l}/staff/menu`);
   redirect(`/${l}/staff/menu`);
 }

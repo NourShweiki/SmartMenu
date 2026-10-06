@@ -17,7 +17,7 @@ Read this after `PROJECT_SPEC.md` at the start of every session. Update it at th
 - Gotcha: after Docker restarts, `npx supabase start` may say "already running" while containers are stopped ->
   `npx supabase stop` then `npx supabase start` (data is kept in the Docker volume).
 - Menu rules (decided 2026-10-06, Phase 3): hidden = invisible to customers; sold out = visible but not orderable; delete = soft;
-  price 0 allowed; both names required. All staff read the menu; OWNER/MANAGER edit it; WAITER may only toggle sold out
+  price 0 allowed; both names required; only empty categories can be deleted. All staff read the menu; OWNER/MANAGER edit it; WAITER may only toggle sold out
   (`menu:sold-out`, DB function `set_menu_item_sold_out`).
 - Gotcha: CI uses npm 11 (installed in the workflow). Node 22's bundled npm 10 rejects lock files written by npm 11
   (CI failed on 76f788e..cb45e37 for this reason). Use npm 11 locally too.
@@ -74,11 +74,16 @@ Read this after `PROJECT_SPEC.md` at the start of every session. Update it at th
   Adapter returns null for non-UUID ids (was a 500). README.md added and updated every iteration (CLAUDE.md rule).
     Look at: http://demo-dinein.localhost:3000/ar/staff/menu -> "إضافة صنف" / "تعديل" (sign in as owner).
 
+- Phase 3 step 7: categories — add (`/staff/menu/categories/new`), rename + delete (`/categories/<id>/edit`), hide/show on
+  the menu screen; delete item from its edit page. Rule (decided 2026-10-06): only EMPTY categories can be deleted
+  (`CATEGORY_NOT_EMPTY`). Deletes ask "are you sure?" (`ConfirmSubmit`). Use cases: edit / set hidden / delete category.
+
 ## In progress / verify first
 - Nothing pending.
 
 ## Next
-- Phase 3 step 7: categories — add / rename / hide / delete (+ what happens to their items), delete item with confirm.
+- Phase 3 step 8: item photos (Supabase Storage bucket per restaurant folder, RLS on storage, upload on the item form).
+- Then: options / modifiers (size, extras), reordering.
 - Later in Phase 3: item photos (Supabase Storage), options/modifiers (size, extras), branding (needs the open question answered).
 
 ## Open questions (do not build without asking) — see spec §12

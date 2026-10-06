@@ -6,9 +6,12 @@ import { makeGetStaffContext } from "@/application/use-cases/get-staff-context";
 import { makeSignInStaff, type SignInStaffInput } from "@/application/use-cases/sign-in-staff";
 import { makeAddMenuCategory } from "@/application/use-cases/menu/add-menu-category";
 import { makeAddMenuItem } from "@/application/use-cases/menu/add-menu-item";
+import { makeDeleteMenuCategory } from "@/application/use-cases/menu/delete-menu-category";
 import { makeDeleteMenuItem } from "@/application/use-cases/menu/delete-menu-item";
+import { makeEditMenuCategory } from "@/application/use-cases/menu/edit-menu-category";
 import { makeEditMenuItem } from "@/application/use-cases/menu/edit-menu-item";
 import { makeGetStaffMenu } from "@/application/use-cases/menu/get-staff-menu";
+import { makeSetMenuCategoryHidden } from "@/application/use-cases/menu/set-menu-category-hidden";
 import { makeSetMenuItemHidden } from "@/application/use-cases/menu/set-menu-item-hidden";
 import { makeSetMenuItemSoldOut } from "@/application/use-cases/menu/set-menu-item-sold-out";
 import type { MenuActor } from "@/application/use-cases/menu/shared";
@@ -71,4 +74,10 @@ export const menu = {
     makeSetMenuItemSoldOut(await menuDeps())(...args),
   deleteItem: async (...args: Parameters<ReturnType<typeof makeDeleteMenuItem>>) =>
     makeDeleteMenuItem(await menuDeps())(...args),
+  editCategory: async (...args: Parameters<ReturnType<typeof makeEditMenuCategory>>) =>
+    makeEditMenuCategory(await menuDeps())(...args),
+  setCategoryHidden: async (...args: Parameters<ReturnType<typeof makeSetMenuCategoryHidden>>) =>
+    makeSetMenuCategoryHidden(await menuDeps())(...args),
+  deleteCategory: async (...args: Parameters<ReturnType<typeof makeDeleteMenuCategory>>) =>
+    makeDeleteMenuCategory(await menuDeps())(...args),
 };

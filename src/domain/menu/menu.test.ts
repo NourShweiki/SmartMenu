@@ -72,13 +72,18 @@ describe("categories", () => {
     expect(createCategory(GRILL, { name: { en: "A", ar: "أ" }, sortOrder: 1.5 }, deps).ok).toBe(false);
   });
 
+  it("can only be deleted when it has no live items", () => {
+    expect(deleteCategory(grills(), 2, NOW)).toEqual({ ok: false, error: { type: "CATEGORY_NOT_EMPTY" } });
+    expect(deleteCategory(grills(), 0, NOW).ok).toBe(true);
+  });
+
   it("can be hidden, renamed and soft-deleted, but not edited after deletion", () => {
     const c = grills();
     expect(unwrap(setCategoryHidden(c, true)).isHidden).toBe(true);
-    const deleted = unwrap(deleteCategory(c, NOW));
+    const deleted = unwrap(deleteCategory(c, 0, NOW));
     expect(deleted.deletedAt).toEqual(NOW);
     expect(updateCategory(deleted, { name: { en: "X", ar: "س" }, sortOrder: 0 })).toEqual({ ok: false, error: { type: "DELETED" } });
-    expect(deleteCategory(deleted, NOW)).toEqual({ ok: false, error: { type: "DELETED" } });
+    expect(deleteCategory(deleted, 0, NOW)).toEqual({ ok: false, error: { type: "DELETED" } });
   });
 });
 
@@ -96,7 +101,7 @@ describe("menu items", () => {
   });
 
   it("cannot be created in a deleted category", () => {
-    const deleted = unwrap(deleteCategory(grills(), NOW));
+    const deleted = unwrap(deleteCategory(grills(), 0, NOW));
     expect(createMenuItem(deleted, kebabInput, deps)).toEqual({ ok: false, error: { type: "CATEGORY_NOT_FOUND" } });
   });
 

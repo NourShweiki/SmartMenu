@@ -2,7 +2,8 @@ import { notFound } from "next/navigation";
 import { getTranslations } from "next-intl/server";
 import { initLocale } from "@/interface/web/i18n/init-locale";
 import { filsToPriceInput } from "@/interface/web/price-input";
-import { saveItemAction } from "@/interface/web/staff/item-actions";
+import { ConfirmSubmit } from "@/interface/web/components/confirm-submit";
+import { deleteItemAction, saveItemAction } from "@/interface/web/staff/item-actions";
 import { ItemForm } from "@/interface/web/staff/item-form";
 import { categoryOptions, ItemFormShell, loadMenuForEditing } from "@/interface/web/staff/item-form-page";
 
@@ -31,6 +32,20 @@ export default async function EditItemPage({ params }: { params: Promise<{ local
         categories={categoryOptions(staffMenu, locale)}
         cancelHref={`/${locale}/staff/menu`}
       />
+      <hr className="my-6 border-gray-100" />
+      {/* Soft delete: past orders keep their own copy of the name and price. */}
+      <form action={deleteItemAction.bind(null, locale, item.id)} className="flex flex-col gap-2">
+        <h2 className="font-semibold text-red-700">{t("deleteTitle")}</h2>
+        <p className="text-sm text-gray-600">{t("deleteHint")}</p>
+        <div>
+          <ConfirmSubmit
+            question={t("deleteConfirm")}
+            className="rounded-lg border border-red-300 px-4 py-2 text-sm font-semibold text-red-700 hover:bg-red-50"
+          >
+            {t("delete")}
+          </ConfirmSubmit>
+        </div>
+      </form>
     </ItemFormShell>
   );
 }

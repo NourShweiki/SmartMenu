@@ -46,7 +46,7 @@ describe.skipIf(!process.env.NEXT_PUBLIC_SUPABASE_URL)("menu repository against 
 
     const now = new Date();
     const deletedItem = deleteMenuItem(item.value, now);
-    const deletedCat = deleteCategory(cat.value, now);
+    const deletedCat = deleteCategory(cat.value, 0, now) // its only item was deleted above;
     if (!deletedItem.ok || !deletedCat.ok) throw new Error("delete");
     await repo.updateItem(deletedItem.value);
     await repo.updateCategory(deletedCat.value);
