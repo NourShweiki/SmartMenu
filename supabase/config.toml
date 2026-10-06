@@ -12,3 +12,8 @@ sql_paths = ["./seed.sql"]
 [auth]
 site_url = "http://localhost:3000"
 additional_redirect_urls = ["http://localhost:3000"]
+# Staff accounts are created by the founders (seed / setup tool with the service key),
+# never by public sign-up. Mirror these on the hosted project when it exists.
+enable_signup = false
+minimum_password_length = 10
+# Note: do NOT set [auth.email] enable_signup = false — that disables email sign-in entirely.
