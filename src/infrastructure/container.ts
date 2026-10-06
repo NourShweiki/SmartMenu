@@ -15,12 +15,21 @@ import { makeSetMenuCategoryHidden } from "@/application/use-cases/menu/set-menu
 import { makeSetMenuItemHidden } from "@/application/use-cases/menu/set-menu-item-hidden";
 import { makeRemoveMenuItemPhoto, makeSetMenuItemPhoto } from "@/application/use-cases/menu/set-menu-item-photo";
 import { makeSetMenuItemSoldOut } from "@/application/use-cases/menu/set-menu-item-sold-out";
+import { makeAddOption } from "@/application/use-cases/menu/options/add-option";
+import { makeAddOptionGroup } from "@/application/use-cases/menu/options/add-option-group";
+import { makeDeleteOption } from "@/application/use-cases/menu/options/delete-option";
+import { makeDeleteOptionGroup } from "@/application/use-cases/menu/options/delete-option-group";
+import { makeEditOption } from "@/application/use-cases/menu/options/edit-option";
+import { makeEditOptionGroup } from "@/application/use-cases/menu/options/edit-option-group";
+import { makeGetOptionGroups } from "@/application/use-cases/menu/options/get-option-groups";
+import { makeSetItemOptionGroups } from "@/application/use-cases/menu/options/set-item-option-groups";
 import type { MenuActor } from "@/application/use-cases/menu/shared";
 import type { RestaurantId } from "@/domain/restaurant/restaurant";
 import { createPublicClient, createSessionClient } from "./supabase/client";
 import { SupabaseAuthGateway } from "./supabase/supabase-auth-gateway";
 import { SupabaseMembershipRepository } from "./supabase/supabase-membership-repository";
 import { SupabaseMenuRepository } from "./supabase/supabase-menu-repository";
+import { SupabaseOptionsRepository } from "./supabase/supabase-options-repository";
 import { SupabasePhotoStorage } from "./supabase/supabase-photo-storage";
 import { SupabaseRestaurantRepository } from "./supabase/supabase-restaurant-repository";
 
@@ -62,7 +71,13 @@ const uuidIds = { newId: () => crypto.randomUUID() };
 /** Menu use cases run as the signed-in staff user, so RLS applies to every query. */
 async function menuDeps() {
   const db = await createSessionClient();
-  return { menu: new SupabaseMenuRepository(db), photos: new SupabasePhotoStorage(db), ids: uuidIds, clock: systemClock };
+  return {
+    menu: new SupabaseMenuRepository(db),
+    options: new SupabaseOptionsRepository(db),
+    photos: new SupabasePhotoStorage(db),
+    ids: uuidIds,
+    clock: systemClock,
+  };
 }
 
 /** Public URL of a menu photo (no session needed: the bucket is view-only public). */
@@ -92,4 +107,20 @@ export const menu = {
     makeSetMenuItemPhoto(await menuDeps())(...args),
   removeItemPhoto: async (...args: Parameters<ReturnType<typeof makeRemoveMenuItemPhoto>>) =>
     makeRemoveMenuItemPhoto(await menuDeps())(...args),
+};
+
+// ─── Option groups (staff) ──────────────────────────────────────────────
+
+export const options = {
+  getGroups: async (actor: MenuActor) => makeGetOptionGroups(await menuDeps())(actor),
+  addGroup: async (...args: Parameters<ReturnType<typeof makeAddOptionGroup>>) => makeAddOptionGroup(await menuDeps())(...args),
+  editGroup: async (...args: Parameters<ReturnType<typeof makeEditOptionGroup>>) =>
+    makeEditOptionGroup(await menuDeps())(...args),
+  deleteGroup: async (...args: Parameters<ReturnType<typeof makeDeleteOptionGroup>>) =>
+    makeDeleteOptionGroup(await menuDeps())(...args),
+  addOption: async (...args: Parameters<ReturnType<typeof makeAddOption>>) => makeAddOption(await menuDeps())(...args),
+  editOption: async (...args: Parameters<ReturnType<typeof makeEditOption>>) => makeEditOption(await menuDeps())(...args),
+  deleteOption: async (...args: Parameters<ReturnType<typeof makeDeleteOption>>) => makeDeleteOption(await menuDeps())(...args),
+  setItemGroups: async (...args: Parameters<ReturnType<typeof makeSetItemOptionGroups>>) =>
+    makeSetItemOptionGroups(await menuDeps())(...args),
 };

@@ -50,13 +50,8 @@ function toFormState(values: ItemFormValues, error: MenuUseCaseError): ItemFormS
       return { values, errors: { categoryId: "categoryNotFound" } };
     case "FORBIDDEN":
       return { values, formError: "forbidden" };
-    case "ITEM_NOT_FOUND":
-    case "DELETED":
-    case "INVALID_SORT_ORDER":
-    case "CATEGORY_NOT_EMPTY": // only from category deletes; can't happen when saving an item
-    case "PHOTO_EMPTY": // photo errors come from the photo upload, not from this form
-    case "PHOTO_TOO_LARGE":
-    case "PHOTO_TYPE_NOT_ALLOWED":
+    default:
+      // ITEM_NOT_FOUND / DELETED, plus errors only other forms produce (photos, categories, options)
       return { values, formError: "notFound" };
   }
 }
