@@ -40,10 +40,20 @@ export default async function StaffMenuPage({ params }: { params: Promise<{ loca
 
         {sections.map(({ category, items }) => (
           <section key={category.id} className="rounded-2xl bg-white shadow-sm ring-1 ring-gray-200">
-            <h2 className="flex items-center gap-2 border-b border-gray-100 px-5 py-3 text-lg font-semibold">
-              {localized(category.name, locale)}
-              {category.isHidden && <span className={`${badge} bg-gray-100 text-gray-600`}>{t("hidden")}</span>}
-            </h2>
+            <div className="flex items-center justify-between gap-2 border-b border-gray-100 px-5 py-3">
+              <h2 className="flex items-center gap-2 text-lg font-semibold">
+                {localized(category.name, locale)}
+                {category.isHidden && <span className={`${badge} bg-gray-100 text-gray-600`}>{t("hidden")}</span>}
+              </h2>
+              {canManage && (
+                <Link
+                  href={`/${locale}/staff/menu/items/new?category=${category.id}`}
+                  className="rounded-lg bg-gray-900 px-3 py-1.5 text-sm font-semibold text-white hover:bg-gray-700"
+                >
+                  + {t("addItem")}
+                </Link>
+              )}
+            </div>
 
             {items.length === 0 && <p className="px-5 py-4 text-sm text-gray-500">{t("categoryEmpty")}</p>}
 
@@ -68,7 +78,7 @@ export default async function StaffMenuPage({ params }: { params: Promise<{ loca
                     <bdi>{formatPrice(item.priceFils, locale)}</bdi>
                   </p>
 
-                  <div className="flex w-full justify-end gap-2 sm:w-64">
+                  <div className="flex w-full justify-end gap-2 sm:w-80">
                     {canToggleSoldOut && (
                       <form action={setSoldOutAction.bind(null, locale, item.id, !item.isSoldOut)}>
                         <button
@@ -82,6 +92,14 @@ export default async function StaffMenuPage({ params }: { params: Promise<{ loca
                           {item.isSoldOut ? t("markAvailable") : t("markSoldOut")}
                         </button>
                       </form>
+                    )}
+                    {canManage && (
+                      <Link
+                        href={`/${locale}/staff/menu/items/${item.id}/edit`}
+                        className={`${toggle} border-gray-300 text-gray-700 hover:bg-gray-100`}
+                      >
+                        {t("edit")}
+                      </Link>
                     )}
                     {canManage && (
                       <form action={setHiddenAction.bind(null, locale, item.id, !item.isHidden)}>

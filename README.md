@@ -33,7 +33,8 @@ One codebase serves every restaurant (multi-tenant). Each restaurant lives on it
 - **Arabic + English, right-to-left.** URLs are `/ar/...` and `/en/...`. Arabic is the default, the layout is RTL, the font is IBM Plex Sans Arabic, there's a language switch, all text is translated, and prices use Western digits (`4.500 د.أ` / `4.500 JD`).
 - **Staff login.** Email + password, with no public sign-up (the founders create accounts). Staff can only sign in on their own restaurant's site, and their session is separate per restaurant.
 - **Roles.** Owner, Manager, Waiter and Cashier, each with its own permissions, enforced both in the app and in the database.
-- **Menu management (first screen).** Staff see the menu by category with prices.
+- **Menu management.** Staff see the menu by category with prices.
+  - Owner and manager can **add and edit items**: Arabic + English name and description, price, category. Prices are typed in JD (`4.5`, `4.500`, or Arabic digits `٤٫٥`) and stored exactly as fils. Validation errors are translated and shown next to the right field.
   - Owner and manager can **hide or show** items.
   - Owner, manager **and waiters** can mark items **sold out / back in stock** during service.
   - Cashiers can view the menu but not change it.
@@ -47,7 +48,6 @@ One codebase serves every restaurant (multi-tenant). Each restaurant lives on it
 ### ⬜ Not done yet (next up)
 
 - **Phase 3 (now):**
-  - add / edit item form
   - manage categories (add, rename, hide, delete)
   - delete items
   - item photos

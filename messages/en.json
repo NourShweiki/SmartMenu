@@ -40,6 +40,33 @@
     "markSoldOut": "Mark sold out",
     "markAvailable": "Back in stock",
     "hide": "Hide",
-    "show": "Show"
+    "show": "Show",
+    "addItem": "Add item",
+    "edit": "Edit"
+  },
+  "ItemForm": {
+    "titleNew": "New item",
+    "titleEdit": "Edit item",
+    "backToMenu": "Menu",
+    "category": "Category",
+    "nameAr": "Name in Arabic",
+    "nameEn": "Name in English",
+    "descriptionAr": "Description in Arabic",
+    "descriptionEn": "Description in English",
+    "optional": "optional",
+    "price": "Price",
+    "currency": "JD",
+    "priceHint": "In JD, up to 3 decimals, e.g. 4.500",
+    "save": "Save",
+    "saving": "Saving…",
+    "cancel": "Cancel",
+    "errors": {
+      "required": "This field is required.",
+      "tooLong": "Maximum {max} characters.",
+      "invalidPrice": "Enter a valid price in JD, e.g. 4.500.",
+      "categoryNotFound": "Choose a category from the list.",
+      "forbidden": "You don't have permission to edit the menu.",
+      "notFound": "This item no longer exists."
+    }
   }
 }

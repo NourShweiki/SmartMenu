@@ -88,6 +88,9 @@ function editableItemColumns(i: MenuItem) {
   };
 }
 
+/** Ids reach us from forms/URLs; a non-UUID can't match a row and would make Postgres throw. */
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
 function fail(what: string, error: { message: string }): never {
   throw new Error(`${what} failed: ${error.message}`);
 }
@@ -125,6 +128,7 @@ export class SupabaseMenuRepository implements MenuRepository {
   }
 
   async findCategory(restaurantId: RestaurantId, id: CategoryId): Promise<MenuCategory | null> {
+    if (!UUID.test(id)) return null;
     const { data, error } = await this.db
       .from("menu_categories")
       .select(CATEGORY_COLUMNS)
@@ -136,6 +140,7 @@ export class SupabaseMenuRepository implements MenuRepository {
   }
 
   async findItem(restaurantId: RestaurantId, id: MenuItemId): Promise<MenuItem | null> {
+    if (!UUID.test(id)) return null;
     const { data, error } = await this.db
       .from("menu_items")
       .select(ITEM_COLUMNS)

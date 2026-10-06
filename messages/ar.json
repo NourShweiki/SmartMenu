@@ -40,6 +40,33 @@
     "markSoldOut": "تحديد كنفد",
     "markAvailable": "متوفر مجددًا",
     "hide": "إخفاء",
-    "show": "إظهار"
+    "show": "إظهار",
+    "addItem": "إضافة صنف",
+    "edit": "تعديل"
+  },
+  "ItemForm": {
+    "titleNew": "صنف جديد",
+    "titleEdit": "تعديل الصنف",
+    "backToMenu": "القائمة",
+    "category": "الفئة",
+    "nameAr": "الاسم بالعربية",
+    "nameEn": "الاسم بالإنجليزية",
+    "descriptionAr": "الوصف بالعربية",
+    "descriptionEn": "الوصف بالإنجليزية",
+    "optional": "اختياري",
+    "price": "السعر",
+    "currency": "د.أ",
+    "priceHint": "بالدينار، حتى 3 خانات عشرية، مثل 4.500",
+    "save": "حفظ",
+    "saving": "جارٍ الحفظ…",
+    "cancel": "إلغاء",
+    "errors": {
+      "required": "هذا الحقل مطلوب.",
+      "tooLong": "الحد الأقصى {max} حرفًا.",
+      "invalidPrice": "أدخل سعرًا صحيحًا بالدينار، مثل 4.500.",
+      "categoryNotFound": "اختر فئة من القائمة.",
+      "forbidden": "ليست لديك صلاحية تعديل القائمة.",
+      "notFound": "لم يعد هذا الصنف موجودًا."
+    }
   }
 }

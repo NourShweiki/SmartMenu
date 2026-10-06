@@ -68,12 +68,17 @@ Read this after `PROJECT_SPEC.md` at the start of every session. Update it at th
     Look at: http://demo-dinein.localhost:3000/ar/staff/menu — sign in as owner (all buttons) or waiter (sold out only).
 - CI fixed (b996db9): workflow installs npm 11 (see gotcha below).
 
+- Phase 3 step 6: add / edit item form — `/<locale>/staff/menu/items/new?category=…` and `/items/<id>/edit` (OWNER/MANAGER
+  only). Price typed in JD -> fils via `parsePriceInput` (`src/interface/web/price-input.ts`, integer math, accepts ٤٫٥),
+  bilingual field pairs (Arabic inputs dir=rtl), translated per-field errors mapped from domain errors, values kept on error.
+  Adapter returns null for non-UUID ids (was a 500). README.md added and updated every iteration (CLAUDE.md rule).
+    Look at: http://demo-dinein.localhost:3000/ar/staff/menu -> "إضافة صنف" / "تعديل" (sign in as owner).
+
 ## In progress / verify first
 - Nothing pending.
 
 ## Next
-- Phase 3 step 6: add / edit item form (names, descriptions, price in JD -> fils, category) with translated validation errors.
-- Then: add / rename / hide / delete categories; delete item (with confirm).
+- Phase 3 step 7: categories — add / rename / hide / delete (+ what happens to their items), delete item with confirm.
 - Later in Phase 3: item photos (Supabase Storage), options/modifiers (size, extras), branding (needs the open question answered).
 
 ## Open questions (do not build without asking) — see spec §12
