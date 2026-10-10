@@ -23,6 +23,9 @@ export const addTable = async (page: Page, locale: Locale, name: string) => {
 };
 export const removeTable = async (page: Page, site: Site, locale: Locale, name: string) => {
   await page.goto(`${site.origin}/${locale}/staff/tables`);
+  // The list is streamed in after the page shell: wait for it, or `count()` (which does not wait) sees no rows at
+  // all and the table is silently left behind. That happened on every run against a production build.
+  await expect(page.locator("#new-table-label")).toBeVisible();
   const r = tableRow(page, locale, name);
   if (await r.count()) {
     await r.getByRole("button", { name: t(locale, "Tables.delete"), exact: true }).click();

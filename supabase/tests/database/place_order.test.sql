@@ -45,21 +45,22 @@ returns jsonb language sql as $$
 $$;
 
 -- ── A good order ──
+-- Counts are scoped to this test's own restaurant: the local database may hold real orders (demo or browser tests).
 select lives_ok($$ select public.place_order(pg_temp.payload(1, 'aaaaaaaa-2020-4000-8000-000000000002', 6000, 7656)) $$,
   'a valid order is placed');
 select is((select count(*) from public.orders where restaurant_id = 'aaaaaaaa-1010-4000-8000-000000000000'), 1::bigint, 'one order');
-select is((select count(*) from public.order_items), 1::bigint, 'with one line');
-select is((select count(*) from public.order_item_options), 1::bigint, 'and one picked option');
+select is((select count(*) from public.order_items where restaurant_id = 'aaaaaaaa-1010-4000-8000-000000000000'), 1::bigint, 'with one line');
+select is((select count(*) from public.order_item_options where restaurant_id = 'aaaaaaaa-1010-4000-8000-000000000000'), 1::bigint, 'and one picked option');
 
 -- ── Bad orders leave nothing behind (the whole call is one transaction) ──
 select throws_ok($$ select public.place_order(pg_temp.payload(2, 'aaaaaaaa-2020-4000-8000-000000000002', 4000, 7656)) $$,
   '23514', null, 'a line total below unit price x quantity is refused');
-select is((select count(*) from public.orders), 1::bigint, 'the refused order left no order row behind');
+select is((select count(*) from public.orders where restaurant_id = 'aaaaaaaa-1010-4000-8000-000000000000'), 1::bigint, 'the refused order left no order row behind');
 select throws_ok($$ select public.place_order(pg_temp.payload(1, 'aaaaaaaa-2020-4000-8000-000000000002', 6000, 7656)) $$,
   '23505', null, 'an order number cannot be used twice in a restaurant');
 select throws_ok($$ select public.place_order(pg_temp.payload(3, 'bbbbbbbb-2020-4000-8000-000000000002', 6000, 7656)) $$,
   '23503', null, 'an A order cannot contain a B menu item');
-select is((select count(*) from public.orders), 1::bigint, 'still only the one good order');
+select is((select count(*) from public.orders where restaurant_id = 'aaaaaaaa-1010-4000-8000-000000000000'), 1::bigint, 'still only the one good order');
 select throws_ok($$ select public.place_order(pg_temp.payload(4, 'aaaaaaaa-2020-4000-8000-000000000002', 6000, 7656, false)) $$,
   '23514', null, 'an order without lines is refused');
 
