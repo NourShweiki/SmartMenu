@@ -1,7 +1,7 @@
 # SmartMenu — instructions for Claude Code
 
 Read `PROJECT_SPEC.md` at the start of every session. It is the source of truth.
-Then read `docs/PROGRESS.md` to see where work stopped, and update it at the end of every iteration.
+Then read `docs/PROGRESS.md` to see where work stopped (its **START HERE** section at the top says what is done, what the next task is, how to run everything, and the pitfalls), and update it at the end of every iteration.
 
 ## Skills — load before the matching work
 - `architecture-rules` — before creating/editing any code file or deciding where code goes

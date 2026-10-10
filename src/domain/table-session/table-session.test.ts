@@ -3,6 +3,8 @@ import type { RestaurantId } from "@/domain/restaurant/restaurant";
 import { can } from "@/domain/restaurant/role";
 import {
   acceptsOrders,
+  isSessionExpired,
+  SESSION_MAX_AGE_HOURS,
   createTable,
   deleteTable,
   isScannable,
@@ -143,7 +145,18 @@ describe("sessions", () => {
   });
 
   it("accepts new orders only while OPEN", () => {
-    expect(SESSION_STATUSES.filter((status) => acceptsOrders({ status }))).toEqual(["OPEN"]);
+    expect(SESSION_STATUSES.filter((status) => acceptsOrders({ status, startedAt: NOW }, NOW))).toEqual(["OPEN"]);
+  });
+
+  it("runs out 2 hours after it starts (to the millisecond), and then takes no orders", () => {
+    const hours = (h: number) => new Date(NOW.getTime() + h * 60 * 60 * 1000);
+    expect(SESSION_MAX_AGE_HOURS).toBe(2);
+    expect(isSessionExpired(NOW, hours(1.99))).toBe(false);
+    expect(isSessionExpired(NOW, new Date(hours(2).getTime() - 1))).toBe(false);
+    expect(isSessionExpired(NOW, hours(2))).toBe(true);
+    expect(isSessionExpired(NOW, hours(24))).toBe(true);
+    expect(acceptsOrders({ status: "OPEN", startedAt: NOW }, hours(1))).toBe(true);
+    expect(acceptsOrders({ status: "OPEN", startedAt: NOW }, hours(2))).toBe(false); // still flagged OPEN, but out of time
   });
 
   it("splits the work by role as the order flow does: floor signals payment, cashier closes", () => {

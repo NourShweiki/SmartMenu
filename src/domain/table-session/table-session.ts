@@ -124,10 +124,21 @@ export function moveSessionTo(session: TableSession, to: SessionStatus, now: Dat
 }
 
 /**
- * New orders are only accepted while the session is OPEN. ASSUMPTION to confirm: after "ready to pay" is signalled
- * the bill is final, so ordering stops until the table is closed and a new visit starts.
+ * A visit closes by itself this long after it STARTS (decided by Nour, 2026-10-10: "a table session stays open for 2
+ * hours before it closes automatically"). Mirrors `session_ttl()` in the database (migration session_expiry), which
+ * enforces it wherever a session is scanned, looked up or ordered into. Staff can still end a visit earlier.
  */
-export const acceptsOrders = (session: Pick<TableSession, "status">): boolean => session.status === "OPEN";
+export const SESSION_MAX_AGE_HOURS = 2;
+
+export const isSessionExpired = (startedAt: Date, now: Date): boolean =>
+  now.getTime() - startedAt.getTime() >= SESSION_MAX_AGE_HOURS * 60 * 60 * 1000;
+
+/**
+ * New orders are only accepted while the session is OPEN and has not run out of time. ASSUMPTION to confirm: after
+ * "ready to pay" is signalled the bill is final, so ordering stops until the table is closed and a new visit starts.
+ */
+export const acceptsOrders = (session: Pick<TableSession, "status" | "startedAt">, now: Date): boolean =>
+  session.status === "OPEN" && !isSessionExpired(session.startedAt, now);
 
 /**
  * The permission needed to move a session to a status (mirrors the database policy): the floor signals payment
