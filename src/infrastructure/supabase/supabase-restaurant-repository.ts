@@ -1,5 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { PublicRestaurant, RestaurantRepository } from "@/application/ports/restaurant-repository";
+import { brandingFromJson } from "@/domain/restaurant/branding";
 import type { RestaurantId } from "@/domain/restaurant/restaurant";
 
 /** One row of public.get_public_restaurant(slug). */
@@ -14,6 +15,8 @@ export type PublicRestaurantRow = {
   tax_rate_bp: number;
   service_charge_bp: number;
   default_language: string;
+  /** jsonb: read defensively (brandingFromJson), so an odd stored value never breaks the public page. */
+  branding: unknown;
 };
 
 export function toPublicRestaurant(row: PublicRestaurantRow): PublicRestaurant {
@@ -30,6 +33,7 @@ export function toPublicRestaurant(row: PublicRestaurantRow): PublicRestaurant {
       // The DB check constraint only allows 'ar' | 'en'.
       defaultLanguage: row.default_language === "en" ? "en" : "ar",
     },
+    branding: brandingFromJson(row.branding),
   };
 }
 

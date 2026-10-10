@@ -9,19 +9,26 @@ import type { PhotoFormState } from "./photo-actions";
 type UploadAction = (state: PhotoFormState, form: FormData) => Promise<PhotoFormState>;
 type RemoveAction = (state: PhotoFormState) => Promise<PhotoFormState>;
 
-/** Photo section of the edit-item page: preview, upload / replace, remove. */
+/**
+ * Image section: preview, upload / replace, remove. Used for a menu item's photo (default) and for the
+ * restaurant logo (`namespace="Logo"`, `fit="contain"` so a logo is never cropped).
+ */
 export function PhotoUploader({
   imageUrl,
   alt,
   upload,
   remove,
+  namespace = "Photo",
+  fit = "cover",
 }: {
   imageUrl: string | null;
   alt: string;
   upload: UploadAction;
   remove: RemoveAction;
+  namespace?: "Photo" | "Logo";
+  fit?: "cover" | "contain";
 }) {
-  const t = useTranslations("Photo");
+  const t = useTranslations(namespace);
   const [uploadState, uploadAction, uploading] = useActionState(upload, {});
   const [removeState, removeAction, removing] = useActionState(remove, {});
   const error = uploadState.error ?? removeState.error;
@@ -37,7 +44,7 @@ export function PhotoUploader({
         <div className="flex size-32 items-center justify-center overflow-hidden rounded-xl bg-gray-100 text-center text-xs text-gray-500">
           {imageUrl ? (
             // Photos are already sized by the owner; Supabase serves them directly.
-            <Image src={imageUrl} alt={alt} width={128} height={128} unoptimized className="size-32 object-cover" />
+            <Image src={imageUrl} alt={alt} width={128} height={128} unoptimized className={`size-32 ${fit === "contain" ? "object-contain" : "object-cover"}`} />
           ) : (
             <span className="px-2">{t("none")}</span>
           )}

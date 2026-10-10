@@ -30,8 +30,8 @@ export type ItemRow = {
   deleted_at: string | null;
 };
 
-const CATEGORY_COLUMNS = "id, restaurant_id, name_en, name_ar, sort_order, is_hidden, deleted_at";
-const ITEM_COLUMNS =
+export const CATEGORY_COLUMNS = "id, restaurant_id, name_en, name_ar, sort_order, is_hidden, deleted_at";
+export const ITEM_COLUMNS =
   "id, restaurant_id, category_id, name_en, name_ar, description_en, description_ar, price_fils, sort_order, is_hidden, is_sold_out, image_path, deleted_at";
 
 // ─── Mappers ────────────────────────────────────────────────────────────

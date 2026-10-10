@@ -11,15 +11,15 @@ One codebase serves every restaurant (multi-tenant). Each restaurant lives on it
 
 ## Status
 
-**Current phase: 3 — Menu & owner portal (done except branding, which is waiting on a decision)**
+**Current phase: 4 — Customer ordering (Phase 3, the menu and owner portal, is finished except automated browser tests)**
 
 | Phase | What | Status |
 |---|---|---|
 | 0 | Planning, spec, coding rules | ✅ Done |
 | 1 | Foundation: Next.js skeleton, CI on every push | ✅ Done (cloud deploy postponed, running on localhost) |
 | 2 | Core backend: restaurants, roles, staff login, data isolation, settings | ✅ Done |
-| 3 | Menu & owner portal | 🟡 In progress |
-| 4 | Customer ordering (menu, cart, dine-in QR, takeout) | ⬜ Not started |
+| 3 | Menu & owner portal | ✅ Done (browser tests still to add) |
+| 4 | Customer ordering (menu, cart, dine-in QR, takeout) | 🟡 Started (orders work behind the scenes: rules, database, saving and moving them; no customer screens yet) |
 | 5 | Staff order screen (live orders, sound alert, SMS when ready) | ⬜ Not started |
 | 6 | Onboarding tools (presets, bulk/AI menu import, custom domains) | ⬜ Not started |
 | 7 | Installable app (PWA) & push notifications | ⬜ Not started |
@@ -56,15 +56,36 @@ One codebase serves every restaurant (multi-tenant). Each restaurant lives on it
   - "Hidden" means invisible to customers. "Sold out" means visible but not orderable.
   - Deleting is soft, so past orders keep their data.
   - An item can never belong to another restaurant's category; the database itself enforces this.
+- **Order rules (Phase 4, rules only, no screen yet).** The core logic for dine-in orders is built and tested.
+  - An order moves **NEW → CONFIRMED → PREPARING → READY → SERVED → COMPLETED**, one step at a time (no skipping or going back).
+  - Each order **copies the item names, prices and chosen options at the moment of ordering**, so later menu edits never change a past order.
+  - Totals are exact whole fils: service charge on the subtotal, then tax on subtotal + service, each rounded half up. Rates are saved on the order.
+  - Hidden, sold-out or deleted items, other restaurants' items, wrong option picks and bad quantities are rejected.
+  - Ordering more after confirming creates a new order in the same visit, starting again at NEW.
+- **Orders in the database (Phase 4, no screen yet).** Tables for orders, their lines and chosen options now exist, with the same protections as the menu.
+  - Each restaurant gets its own order numbers (1, 2, 3 …), and a restaurant can never see another's orders (database tests prove it).
+  - A placed order is frozen: names, prices, totals and tax rates can't be edited. Staff can only move the status forward one step (NEW → CONFIRMED → PREPARING → READY → SERVED → COMPLETED), and the database itself refuses skipping or going back.
+  - Orders can't be deleted. **Who moves an order:** the owner and manager any step, the waiter up to SERVED, and the cashier only the last step (COMPLETED, after the customer has paid). The database enforces this split, not just the screens.
+  - **Placing and moving orders works behind the scenes now.** The app can take a cart, check every line against the live menu, compute the totals and save the whole order in one all-or-nothing step (a bad cart never uses up an order number). Staff can read the open orders and move them along. Covered by tests against the real database. Customer screens come next.
+- **Database permissions tightened.** A check found that newer Supabase versions hand every table's full rights to logged-in users by default. A new migration pins the older tables to exactly the rights they need (e.g. staff can never hard-delete menu items), and future tables no longer get the extra rights.
+- **Branding (owner only).** The owner uploads a **logo**, picks **one accent colour** from 8 ready-made ones (all stay readable with white text, checked by a test) and writes the **restaurant name, tagline, about text, address, phone and opening hours** in Arabic and English.
+  - It appears right away on the restaurant's public page: coloured header, logo, both names, tagline and details (empty parts are simply left out).
+  - Logos are JPG, PNG or WebP up to 2 MB (checked by the file's real content; SVG is refused because it can carry scripts). Only the owner can change branding, and only for their own restaurant.
+  - Saving the name and the branding together is all-or-nothing.
+- **Restaurant settings (owner only).** The owner chooses which order types are on (dine-in, takeout, delivery), the tax rate, the service charge and the default customer language.
+  - Percentages are typed normally (`16`, `10.5`, even Arabic digits `١٠`) and stored exactly (basis points, no rounding errors).
+  - Only the owner sees the screen. Other staff can't open it, and the database refuses their changes too (tested).
+  - New orders use the new rates; orders already placed keep theirs.
+- **Language switch fixed.** Switching between العربية and English on the staff pages now changes all the text, not only the page direction. (The cause was the loading skeleton forcing Arabic for the whole request.) Menu items still show both language names side by side, by design.
 - **Quality gates.** CI runs typecheck, lint (including architecture-layer import rules), unit tests and a production build on every push. Database security tests (pgTAP) and integration tests run locally.
 
 ### ⬜ Not done yet (next up)
 
-- **Phase 3 (now):**
-  - restaurant branding (waiting on a decision, see below)
+- **Phase 3 (finishing touch):** automated browser (end-to-end) tests of the staff screens, on both demo restaurants.
+- **Phase 4 (next):** the public menu for customers and the cart, table sessions and QR codes, then placing an order from the customer screens (the saving side already works).
 - **Phase 4+:** everything customer-facing, including:
   - the public customer menu
-  - cart and ordering
+  - cart and ordering screens
   - table sessions and QR codes
   - takeout
   - the live staff order screen
@@ -77,8 +98,8 @@ One codebase serves every restaurant (multi-tenant). Each restaurant lives on it
 
 ### Open decisions (blocking specific features only)
 
-- Exact list of **branding elements** owners can edit (blocks the branding part of Phase 3).
-- Can confirmed order items be **removed**, or only added? (Phase 4/5)
+- Can confirmed order items be **removed**, or only added? (Phase 4/5) Also **order cancellation** rules.
+- Is **tax charged on top of the service charge**? (assumed yes for now; one function to change)
 - How **takeout/delivery** maps onto the table-session model. (Phase 4)
 - **Loyalty** earn/redeem rules.
 

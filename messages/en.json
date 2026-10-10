@@ -1,6 +1,10 @@
 {
   "Home": {
-    "platformName": "SmartMenu"
+    "platformName": "SmartMenu",
+    "address": "Address",
+    "phone": "Phone",
+    "hours": "Opening hours",
+    "about": "About us"
   },
   "LanguageSwitch": {
     "label": "العربية"
@@ -22,7 +26,39 @@
     "yourRole": "Your role",
     "signOut": "Sign out",
     "menuLink": "Menu",
-    "menuLinkHint": "Items, prices and availability"
+    "menuLinkHint": "Items, prices and availability",
+    "settingsLink": "Settings",
+    "settingsLinkHint": "Order types, tax, service charge and language",
+    "brandingLink": "Branding",
+    "brandingLinkHint": "Logo, colour, name and contact details"
+  },
+  "Settings": {
+    "title": "Restaurant settings",
+    "backToDashboard": "Staff dashboard",
+    "saved": "Settings saved.",
+    "modesTitle": "Order types",
+    "dineIn": "Dine-in",
+    "dineInHint": "Customers scan the table QR code and order from their seat.",
+    "takeout": "Takeout",
+    "takeoutHint": "Customers order ahead and pick up at the cashier.",
+    "delivery": "Delivery",
+    "deliveryHint": "Only turn this on if you have your own delivery crew.",
+    "chargesTitle": "Tax and service charge",
+    "taxPercent": "Tax rate",
+    "taxPercentHint": "The general sales tax, added on top of the price. Use the rate your accountant gives you.",
+    "servicePercent": "Service charge",
+    "servicePercentHint": "Use 0 for no service charge. Up to 2 decimals, e.g. 10 or 12.5.",
+    "chargesNote": "New orders use these rates. Orders that were already placed keep the rates they were placed with.",
+    "languageTitle": "Language",
+    "defaultLanguage": "Default language for customers",
+    "languageAr": "العربية",
+    "languageEn": "English",
+    "errors": {
+      "invalidRate": "Enter a percentage from 0 to 100, with at most 2 decimals.",
+      "noMode": "Turn on at least one order type.",
+      "forbidden": "Only the owner can change the settings.",
+      "notFound": "The settings could not be saved. Please try again."
+    }
   },
   "Roles": {
     "OWNER": "Owner",
@@ -159,6 +195,68 @@
     "moveDown": "Move down"
   },
   "Common": {
-    "loading": "Loading…"
+    "loading": "Loading…",
+    "save": "Save",
+    "saving": "Saving…",
+    "cancel": "Cancel"
+  },
+  "Branding": {
+    "title": "Branding",
+    "backToDashboard": "Staff dashboard",
+    "saved": "Branding saved.",
+    "logoAlt": "Logo of {name}",
+    "nameTitle": "Restaurant name",
+    "colorTitle": "Accent colour",
+    "colorHint": "Used for the header of your public page. Every colour keeps white text easy to read.",
+    "detailsTitle": "Written details",
+    "fields": {
+      "nameEn": "Name in English",
+      "nameAr": "Name in Arabic",
+      "taglineEn": "Tagline in English",
+      "taglineAr": "Tagline in Arabic",
+      "aboutEn": "About us in English",
+      "aboutAr": "About us in Arabic",
+      "addressEn": "Address in English",
+      "addressAr": "Address in Arabic",
+      "phone": "Phone number",
+      "hoursEn": "Opening hours in English",
+      "hoursAr": "Opening hours in Arabic"
+    },
+    "colors": {
+      "charcoal": "Charcoal",
+      "red": "Red",
+      "orange": "Orange",
+      "green": "Green",
+      "teal": "Teal",
+      "blue": "Blue",
+      "purple": "Purple",
+      "pink": "Pink"
+    },
+    "errors": {
+      "required": "This field is required.",
+      "tooLong": "Too long: at most {max} characters.",
+      "invalid": "This value is not valid. For a phone number use digits, e.g. +962 6 555 0100.",
+      "forbidden": "Only the owner can change the branding.",
+      "notFound": "The branding could not be saved. Please try again."
+    }
+  },
+  "Logo": {
+    "title": "Logo",
+    "none": "No logo yet",
+    "choose": "Choose a logo",
+    "noneChosen": "No file chosen",
+    "upload": "Upload logo",
+    "replace": "Replace logo",
+    "uploading": "Uploading…",
+    "remove": "Remove logo",
+    "removeConfirm": "Remove the logo?",
+    "hint": "JPG, PNG or WebP, up to 2 MB. It is shown on your public page.",
+    "errors": {
+      "empty": "Choose a logo first.",
+      "tooLarge": "The logo is larger than 2 MB.",
+      "notImage": "The logo must be a JPG, PNG or WebP image.",
+      "forbidden": "Only the owner can change the logo.",
+      "notFound": "The logo could not be saved. Please try again."
+    }
   }
 }

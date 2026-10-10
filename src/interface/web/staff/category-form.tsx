@@ -23,7 +23,8 @@ export function CategoryForm({
   cancelHref: string;
 }) {
   const t = useTranslations("CategoryForm");
-  const tItem = useTranslations("ItemForm");
+  const tItem = useTranslations("ItemForm"); // the shared field-error texts (name required / too long)
+  const tCommon = useTranslations("Common");
   const [state, formAction, pending] = useActionState(action, {});
   const values = state.values ?? initial;
 
@@ -71,10 +72,10 @@ export function CategoryForm({
           disabled={pending}
           className="rounded-lg bg-gray-900 px-5 py-2.5 font-semibold text-white hover:bg-gray-700 disabled:opacity-60"
         >
-          {pending ? tItem("saving") : tItem("save")}
+          {pending ? tCommon("saving") : tCommon("save")}
         </button>
         <Link href={cancelHref} className="rounded-lg px-4 py-2.5 text-gray-700 hover:bg-gray-100">
-          {tItem("cancel")}
+          {tCommon("cancel")}
         </Link>
       </div>
     </form>

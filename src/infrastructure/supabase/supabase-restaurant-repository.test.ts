@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { DEFAULT_BRANDING } from "@/domain/restaurant/branding";
 import { toPublicRestaurant, type PublicRestaurantRow } from "./supabase-restaurant-repository";
 
 const row: PublicRestaurantRow = {
@@ -12,6 +13,7 @@ const row: PublicRestaurantRow = {
   tax_rate_bp: 1600,
   service_charge_bp: 1000,
   default_language: "ar",
+  branding: {},
 };
 
 describe("toPublicRestaurant", () => {
@@ -28,7 +30,16 @@ describe("toPublicRestaurant", () => {
         serviceChargeBp: 1000,
         defaultLanguage: "ar",
       },
+      branding: DEFAULT_BRANDING,
     });
+  });
+
+  it("reads the stored branding, and falls back to the defaults when it is odd", () => {
+    const stored = { accent: "teal", logoPath: "r/logo-1.png", tagline: { en: "Hi", ar: "مرحبا" }, phone: "+962 6 555 0100" };
+    expect(toPublicRestaurant({ ...row, branding: stored }).branding).toMatchObject(stored);
+    for (const odd of [null, "x", [], { accent: "chartreuse" }]) {
+      expect(toPublicRestaurant({ ...row, branding: odd }).branding).toEqual(DEFAULT_BRANDING);
+    }
   });
 
   it("keeps English as the default language when set", () => {

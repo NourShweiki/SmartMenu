@@ -1,17 +1,12 @@
+import { normalizeDecimal } from "./digits";
+
 /**
  * Parses what an owner types into a price box ("4.5", "4.500", "12", "٤٫٥") into whole fils
  * using string/integer math only — no floats (data-model skill §3). Returns null if it isn't
  * a plain JD amount with at most 3 decimals. Range checks stay in the domain (toFils).
  */
 export function parsePriceInput(raw: string): number | null {
-  const normalized = raw
-    .trim()
-    // Arabic-Indic (٠-٩) and Persian (۰-۹) digits -> 0-9
-    .replace(/[٠-٩]/g, (d) => String(d.charCodeAt(0) - 0x0660))
-    .replace(/[۰-۹]/g, (d) => String(d.charCodeAt(0) - 0x06f0))
-    // Arabic decimal separator "٫" and a comma typed as decimal point -> "."
-    .replace(/[٫,]/g, ".");
-
+  const normalized = normalizeDecimal(raw.trim());
   const match = /^(\d{1,7})(?:\.(\d{0,3}))?$/.exec(normalized);
   if (!match) return null;
   const jd = Number(match[1]);

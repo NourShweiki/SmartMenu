@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { PublicRestaurant, RestaurantRepository } from "@/application/ports/restaurant-repository";
+import { DEFAULT_BRANDING } from "@/domain/restaurant/branding";
 import type { RestaurantId } from "@/domain/restaurant/restaurant";
 import { presetSettings } from "@/domain/restaurant/settings";
 import { makeGetPublicRestaurant } from "./get-public-restaurant";
@@ -9,6 +10,7 @@ const demo: PublicRestaurant = {
   slug: "demo-dinein",
   name: { en: "Demo Grill", ar: "مشاوي التجربة" },
   settings: presetSettings("dine-in"),
+  branding: DEFAULT_BRANDING,
 };
 
 function fakeRepo(rows: PublicRestaurant[]) {

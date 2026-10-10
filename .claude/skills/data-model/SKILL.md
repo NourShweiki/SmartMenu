@@ -58,8 +58,14 @@ These are decided and expensive to change. Do not deviate without the user's exp
 - Loyalty earn/redeem rules.
 - Exact list of owner-editable branding elements.
 
-## 11. Table privileges (learned 2026-10-06)
-New Supabase projects do NOT auto-grant privileges on new tables. Every migration that creates a table must also:
+## 11. Table privileges (learned 2026-10-06, corrected 2026-10-10)
+Whether a new table gets privileges automatically DEPENDS ON THE SUPABASE VERSION: some give `anon`/`authenticated`
+nothing, newer ones give them ALL (DELETE, TRUNCATE, every column). Never rely on the default. Every migration that
+creates a table must pin its privileges explicitly:
+- `revoke all on <table> from anon, authenticated;` FIRST, then
 - `grant` exactly the operations its RLS policies cover to `authenticated` (and to `anon` only if there is a deliberate public policy),
+  using column-level `grant update (col, ...)` for anything that must stay fixed (restaurant_id, totals, snapshots),
 - `grant all ... to service_role`.
-Missing grants show up as `permission denied for table X` (SQLSTATE 42501) even for rightful users.
+Missing grants show up as `permission denied for table X` (SQLSTATE 42501) even for rightful users; too many grants show up
+only in tests such as "staff cannot hard-delete". Migration `20261010120100_pin_table_privileges.sql` fixed the older tables
+and stops future tables from getting default grants; the pgTAP suites are what catches a regression.

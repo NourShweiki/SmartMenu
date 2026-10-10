@@ -34,6 +34,7 @@ Then read `docs/PROGRESS.md` to see where work stopped, and update it at the end
 
 ## Showing work to Nour (required for every feature)
 - After any change that affects what the app shows, run `npm run dev` and open http://localhost:3000 (the relevant page) so Nour can see it, and say in the report which URL to look at.
+- **Both demo restaurants, always (Nour, 2026-10-10):** Demo Grill (`demo-dinein`) and Demo Coffee (`demo-takeout`) must stay on the same phase. After any change to a staff or customer screen, check it on BOTH hosts (`http://demo-dinein.localhost:3000`, `http://demo-takeout.localhost:3000`), in `/ar` and `/en`, and leave the demo data as you found it. Demo accounts: `supabase/seed.sql`.
 - You run the commands yourself (npm, npx supabase, git) — don't ask Nour to copy-paste output. Ask before anything destructive.
 
 ## Hosting

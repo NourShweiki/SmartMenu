@@ -25,7 +25,9 @@ export default async function LocaleLayout({
   const locale = await initLocale(params);
   return (
     <html lang={locale} dir={dirOf(locale)} className={plexArabic.variable}>
-      <body className="min-h-screen bg-white font-sans text-gray-900 antialiased">
+      {/* suppressHydrationWarning: browser extensions (e.g. Grammarly) add attributes to <body> before React loads;
+          this silences only attribute mismatches on this element, not on its children. */}
+      <body suppressHydrationWarning className="min-h-screen bg-white font-sans text-gray-900 antialiased">
         <NextIntlClientProvider>{children}</NextIntlClientProvider>
       </body>
     </html>

@@ -16,7 +16,7 @@ insert into public.restaurant_settings (restaurant_id, service_charge_bp) values
 select is(
   (select p.proargnames[2:]::text[] from pg_proc p where p.proname = 'get_public_restaurant'),
   array['id', 'slug', 'name_en', 'name_ar', 'dine_in_enabled', 'takeout_enabled',
-        'delivery_enabled', 'tax_rate_bp', 'service_charge_bp', 'default_language'],
+        'delivery_enabled', 'tax_rate_bp', 'service_charge_bp', 'default_language', 'branding'],
   'public function exposes only the agreed columns');
 
 -- ── Act as anonymous visitor ──

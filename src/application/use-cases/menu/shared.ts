@@ -1,24 +1,17 @@
 import type { MenuError } from "@/domain/menu/menu";
 import type { OptionError } from "@/domain/menu/options";
 import type { PhotoError } from "@/domain/menu/photo";
-import type { RestaurantId } from "@/domain/restaurant/restaurant";
-import { can, type Permission, type Role } from "@/domain/restaurant/role";
-import { err, ok, type Result } from "@/domain/shared/result";
+import type { ForbiddenError, StaffActor } from "../permissions";
 
-/**
- * Who is acting, resolved on the server from the session (getStaffContext) — never from
- * the request body. Every menu use case receives it.
- */
-export type MenuActor = { restaurantId: RestaurantId; role: Role };
+export { requirePermission } from "../permissions";
+
+/** The signed-in staff member acting on the menu. */
+export type MenuActor = StaffActor;
 
 export type MenuUseCaseError =
   | MenuError
   | OptionError
   | PhotoError
-  | { type: "FORBIDDEN" }
+  | ForbiddenError
   | { type: "ITEM_NOT_FOUND" }
   | { type: "OPTION_NOT_FOUND" };
-
-export function requirePermission(actor: MenuActor, permission: Permission): Result<true, MenuUseCaseError> {
-  return can(actor.role, permission) ? ok(true) : err({ type: "FORBIDDEN" });
-}

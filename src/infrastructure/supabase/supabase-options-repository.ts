@@ -5,7 +5,7 @@ import type { MenuOption, OptionGroup, OptionGroupId, OptionId } from "@/domain/
 import type { RestaurantId } from "@/domain/restaurant/restaurant";
 import type { Fils } from "@/domain/shared/money";
 
-type GroupRow = {
+export type GroupRow = {
   id: string;
   restaurant_id: string;
   name_en: string;
@@ -15,7 +15,7 @@ type GroupRow = {
   sort_order: number;
   deleted_at: string | null;
 };
-type OptionRow = {
+export type OptionRow = {
   id: string;
   restaurant_id: string;
   group_id: string;
@@ -27,10 +27,10 @@ type OptionRow = {
 };
 type LinkRow = { item_id: string; group_id: string; sort_order: number };
 
-const GROUP_COLUMNS = "id, restaurant_id, name_en, name_ar, min_select, max_select, sort_order, deleted_at";
-const OPTION_COLUMNS = "id, restaurant_id, group_id, name_en, name_ar, price_delta_fils, sort_order, deleted_at";
+export const GROUP_COLUMNS = "id, restaurant_id, name_en, name_ar, min_select, max_select, sort_order, deleted_at";
+export const OPTION_COLUMNS = "id, restaurant_id, group_id, name_en, name_ar, price_delta_fils, sort_order, deleted_at";
 /** Ids reach us from forms/URLs; a non-UUID can't match a row and would make Postgres throw. */
-const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+export const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 const date = (s: string | null) => (s ? new Date(s) : null);
 

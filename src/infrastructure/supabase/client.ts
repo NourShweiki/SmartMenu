@@ -35,6 +35,19 @@ export function createPublicClient(): SupabaseClient {
 }
 
 /**
+ * SERVER-ONLY client with the service-role (secret) key: it bypasses RLS. Use it only for the few operations
+ * that have no signed-in user yet (customers have no accounts): handing out order numbers, placing an order,
+ * reading the live menu to build one. Every caller must scope by a restaurantId resolved from the host.
+ * Never import this from a Client Component, and never prefix the variable with NEXT_PUBLIC_.
+ */
+export function createServiceClient(): SupabaseClient {
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  if (!url || !key) throw new Error("Missing NEXT_PUBLIC_SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY (see .env.example)");
+  return createClient(url, key, { auth: { persistSession: false, autoRefreshToken: false }, ...globalFetch() });
+}
+
+/**
  * Same publishable key, but acting as the signed-in staff user (session in cookies),
  * so RLS applies as that user. For Server Components, Server Actions and Route Handlers.
  */

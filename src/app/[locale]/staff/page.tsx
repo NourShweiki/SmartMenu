@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { getTranslations } from "next-intl/server";
+import { can } from "@/domain/restaurant/role";
 import { localized } from "@/domain/shared/localized";
 import { LanguageSwitch } from "@/interface/web/components/language-switch";
 import { initLocale } from "@/interface/web/i18n/init-locale";
@@ -39,6 +40,32 @@ export default async function StaffHomePage({ params }: { params: Promise<{ loca
           </span>
           <span aria-hidden className="inline-block text-xl text-gray-400 rtl:-scale-x-100">→</span>
         </Link>
+
+        {can(staff.role, "restaurant:settings") && (
+          <Link
+            href={`/${locale}/staff/settings`}
+            className="flex items-center justify-between rounded-2xl bg-white p-6 shadow-sm ring-1 ring-gray-200 hover:ring-gray-400"
+          >
+            <span>
+              <span className="block text-lg font-semibold">{t("settingsLink")}</span>
+              <span className="block text-sm text-gray-500">{t("settingsLinkHint")}</span>
+            </span>
+            <span aria-hidden className="inline-block text-xl text-gray-400 rtl:-scale-x-100">→</span>
+          </Link>
+        )}
+
+        {can(staff.role, "restaurant:settings") && (
+          <Link
+            href={`/${locale}/staff/branding`}
+            className="flex items-center justify-between rounded-2xl bg-white p-6 shadow-sm ring-1 ring-gray-200 hover:ring-gray-400"
+          >
+            <span>
+              <span className="block text-lg font-semibold">{t("brandingLink")}</span>
+              <span className="block text-sm text-gray-500">{t("brandingLinkHint")}</span>
+            </span>
+            <span aria-hidden className="inline-block text-xl text-gray-400 rtl:-scale-x-100">→</span>
+          </Link>
+        )}
 
         <form action={signOutAction.bind(null, locale)}>
           <button type="submit" className="rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm hover:bg-gray-100">
