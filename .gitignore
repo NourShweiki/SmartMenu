@@ -14,3 +14,5 @@ Thumbs.db
 # Supabase local
 supabase/.temp/
 supabase/.branches/
+test-results/
+playwright-report/

@@ -11,14 +11,14 @@ One codebase serves every restaurant (multi-tenant). Each restaurant lives on it
 
 ## Status
 
-**Current phase: 4 — Customer ordering (Phase 3, the menu and owner portal, is finished except automated browser tests)**
+**Current phase: 4 — Customer ordering (Phase 3, the menu and owner portal, is finished)**
 
 | Phase | What | Status |
 |---|---|---|
 | 0 | Planning, spec, coding rules | ✅ Done |
 | 1 | Foundation: Next.js skeleton, CI on every push | ✅ Done (cloud deploy postponed, running on localhost) |
 | 2 | Core backend: restaurants, roles, staff login, data isolation, settings | ✅ Done |
-| 3 | Menu & owner portal | ✅ Done (browser tests still to add) |
+| 3 | Menu & owner portal | ✅ Done |
 | 4 | Customer ordering (menu, cart, dine-in QR, takeout) | 🟡 Started (orders work behind the scenes: rules, database, saving and moving them; no customer screens yet) |
 | 5 | Staff order screen (live orders, sound alert, SMS when ready) | ⬜ Not started |
 | 6 | Onboarding tools (presets, bulk/AI menu import, custom domains) | ⬜ Not started |
@@ -77,11 +77,11 @@ One codebase serves every restaurant (multi-tenant). Each restaurant lives on it
   - Only the owner sees the screen. Other staff can't open it, and the database refuses their changes too (tested).
   - New orders use the new rates; orders already placed keep theirs.
 - **Language switch fixed.** Switching between العربية and English on the staff pages now changes all the text, not only the page direction. (The cause was the loading skeleton forcing Arabic for the whole request.) Menu items still show both language names side by side, by design.
+- **Browser tests.** 66 automated end-to-end tests drive a real browser through the app on both demo restaurants, in English and Arabic: login, language switch, roles, menu, settings and branding. They change data and put it back. Run with `npm run test:e2e` (needs the local database).
 - **Quality gates.** CI runs typecheck, lint (including architecture-layer import rules), unit tests and a production build on every push. Database security tests (pgTAP) and integration tests run locally.
 
 ### ⬜ Not done yet (next up)
 
-- **Phase 3 (finishing touch):** automated browser (end-to-end) tests of the staff screens, on both demo restaurants.
 - **Phase 4 (next):** the public menu for customers and the cart, table sessions and QR codes, then placing an order from the customer screens (the saving side already works).
 - **Phase 4+:** everything customer-facing, including:
   - the public customer menu

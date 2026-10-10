@@ -47,7 +47,7 @@ Then read `docs/PROGRESS.md` to see where work stopped, and update it at the end
 - Lint: `npm run lint` (also enforces layer import rules)
 - Typecheck: `npm run typecheck`
 - Everything before pushing: `npm run check`
-- E2E (Playwright): not set up yet
+- E2E (Playwright, real Chrome + local Supabase): `npm run test:e2e` (needs `npx supabase start` + `npx supabase db reset` first; reuses a running `npm run dev`). Specs in `e2e/`, helpers in `e2e/support/demo.ts`. Every spec loops over BOTH demo restaurants and /en + /ar; tests that change data put it back. NOT part of `npm run check` / CI. When a screen changes, update or add its spec in the same iteration.
 - Local database (needs Docker): `npx supabase start` (Studio: http://localhost:54323), `npx supabase stop`
 - Rebuild DB from migrations + seed: `npx supabase db reset`
 - Database tests (pgTAP, RLS isolation): `npx supabase test db`

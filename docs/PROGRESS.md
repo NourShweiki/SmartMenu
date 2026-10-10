@@ -210,13 +210,16 @@ Read this after `PROJECT_SPEC.md` at the start of every session. Update it at th
   Left for later: only ONE logo (no favicon / cover image), colours are a fixed palette on purpose (owner may ask for a custom colour:
   that needs a contrast check), the accent is used on the public page header only (staff screens are not themed).
 
+- Phase 3 step 13: Playwright E2E (2026-10-10). `@playwright/test` as a devDependency, uses the machine's Chrome (no browser download), `playwright.config.ts`, specs in `e2e/`: public page + language switch (the old text-vs-direction bug), staff login / logout / wrong password / cross-restaurant login, roles (owner / waiter / cashier dashboards, owner pages 404), menu (sold-out toggle and back, waiter / cashier limits), settings (bad rate, at least one order type, real save + restore, Arabic digits), branding (bad phone, save -> public page + colour + tel: link -> restore, logo upload / remove, SVG refused). Texts come from messages/*.json via `t()`, so they follow the translations. 66 tests, ~9 min against `npm run dev` (first compile of each page dominates), all green; demo data verified unchanged afterwards. One worker (shared DB). Gotcha: never run them against a database someone is editing by hand.
+  Maintenance rule (Nour): after each new screen, re-run them and update/add specs; re-check them after customer ordering.
+
 ## In progress / verify first
 - Waiting for approval of: cashier completes orders, Phase 4 step 3 (orders app layer), Phase 3 step 12 (branding). Dev server + local
   Supabase are running for Nour. After `npx supabase db reset` sign in again. NEW env var `SUPABASE_SERVICE_ROLE_KEY` (see `.env.example`): restart `npm run dev` after adding it.
 
 ## Phase 3 audit (2026-10-10): what is still left
 - Branding, settings screen, menu, options, photos, reorder: DONE (see the log above).
-- **E2E tests (Playwright)** — spec §9 wants them alongside each phase; not set up yet. Phase 3 is complete apart from this.
+- E2E tests: DONE (step 13). Phase 3 is complete.
 - Deliberately NOT Phase 3: staff management and tables/QR (Phase 4/5), public customer menu read path (Phase 4).
 
 ## Next
@@ -224,7 +227,6 @@ Read this after `PROJECT_SPEC.md` at the start of every session. Update it at th
   server action that calls `orders.place` with the restaurant from the host + rates from its settings. Needs the table-session domain
   (+ `table_sessions`/`tables` + the FK on `orders.session_id`) for dine-in QR; takeout waits for its open question.
 - Then Phase 5: staff order screen (open queue, status buttons by role, sound alert, READY notification).
-- Playwright E2E setup (both demo restaurants, /ar and /en).
 - Takeout part of Phase 4 needs the takeout-session open question answered first.
 
 ## Open questions (do not build without asking) — see spec §12
