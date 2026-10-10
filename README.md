@@ -88,15 +88,18 @@ One codebase serves every restaurant (multi-tenant). Each restaurant lives on it
   - A guest scans the code, lands on the menu with "Table 7" shown, and everyone at that table joins the same visit. Invalid, switched-off or deleted codes, and restaurants with dine-in turned off, show a friendly "this code is not active" page.
   - A table has one live visit at a time, visits follow a fixed flow (open, payment requested, closed), and orders can only be placed in an open visit of their own restaurant (the database enforces it).
   - **A visit closes by itself 2 hours after it starts**, so guests who left without paying never leave an open visit for the next guests. The next scan starts a fresh one.
-  - Staff screens that move a visit along (waiter: ready to pay, cashier: close) come with the staff order screen. **Placing the order from the cart is the next step.**
-- **Browser tests.** 113 automated end-to-end tests drive a real browser through the app on both demo restaurants, in English and Arabic: login, language switch, roles, menu, settings, branding, the customer menu with its cart, and tables with QR scanning. They change data and put it back. Run with `npm run test:e2e` (needs the local database).
+  - Staff screens that move a visit along (waiter: ready to pay, cashier: close) come with the staff order screen.
+- **Placing an order (Phase 4).** A guest who scanned a table's QR code presses **Place order** in the cart and gets an order number; the cart is emptied and they can keep ordering from the same table.
+  - The phone only sends what is in the cart. The restaurant, the table, the prices and the tax / service rates are all taken by the server from its own side, so none of them can be changed from a phone.
+  - Clear messages, in Arabic and English, explain when an order cannot be placed: no table scanned, the visit ended, the bill was requested, something in the cart sold out or changed.
+  - Without a table the button stays off (takeout ordering is not built yet). Staff do not have a screen for incoming orders yet: that is the next phase.
+- **Browser tests.** 118 automated end-to-end tests drive a real browser through the app on both demo restaurants, in English and Arabic: login, language switch, roles, menu, settings, branding, the customer menu with its cart, tables with QR scanning, and placing an order. They change data and put it back. Run with `npm run test:e2e` (needs the local database).
 - **Quality gates.** CI runs typecheck, lint (including architecture-layer import rules), unit tests and a production build on every push. Database security tests (pgTAP) and integration tests run locally.
 
 ### ⬜ Not done yet (next up)
 
-- **Phase 4 (next):** placing an order from the cart (the menu, cart, tables, QR codes and the saving side already work), then takeout.
+- **Phase 5 (next):** the staff order screen (incoming orders live, status buttons by role, sound alert). Takeout ordering waits for a design decision.
 - **Phase 4+:** everything customer-facing, including:
-  - placing an order from the cart
   - takeout
   - the live staff order screen
   - SMS / push notifications

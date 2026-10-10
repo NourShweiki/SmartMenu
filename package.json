@@ -13,7 +13,7 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "test:watch": "vitest",
-    "test:integration": "node --env-file=.env.local node_modules/vitest/vitest.mjs run integration",
+    "test:integration": "node --env-file=.env.local node_modules/vitest/vitest.mjs run integration --no-file-parallelism",
     "check": "npm run typecheck && npm run lint && npm run test && npm run build",
     "test:e2e": "playwright test"
   },

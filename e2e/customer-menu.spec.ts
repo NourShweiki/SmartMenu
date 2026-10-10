@@ -1,5 +1,6 @@
-import { expect, test, type Locator, type Page } from "@playwright/test";
+import { expect, test, type Page } from "@playwright/test";
 import { ALL_SITES, expectLocale, jd, LOCALES, t, type Locale, type Site } from "./support/demo";
+import { addButton, cartBar, dialog, menuRow as row } from "./support/cart";
 
 // The customer menu and cart: public (nobody is signed in), both restaurants, both languages.
 // Expected totals in e2e/support/demo.ts are computed by hand from the seed, not with the app's own formulas.
@@ -8,11 +9,6 @@ const open = async (page: Page, site: Site, locale: Locale) => {
   await page.goto(`${site.origin}/${locale}/menu`);
   await expect(page.getByRole("heading", { level: 1 })).toHaveText(t(locale, "Menu.title"));
 };
-const row = (page: Page, name: string) =>
-  page.getByRole("listitem").filter({ has: page.getByRole("heading", { level: 3, name, exact: true }) });
-const addButton = (r: Locator, locale: Locale) => r.getByRole("button", { name: new RegExp(`^${t(locale, "Menu.add")}`) });
-const cartBar = (page: Page, locale: Locale) => page.getByRole("button", { name: new RegExp(t(locale, "Menu.cart.view")) });
-const dialog = (page: Page) => page.getByRole("dialog");
 const totalsRow = (page: Page, locale: Locale, key: "subtotal" | "service" | "tax" | "total") =>
   dialog(page).locator("dl > div").filter({ hasText: new RegExp(`^${t(locale, `Menu.cart.${key}`)}`) });
 

@@ -2,6 +2,7 @@
 
 import Image from "next/image";
 import { useLocale, useTranslations } from "next-intl";
+import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import type { CustomerMenuItem, CustomerMenuSection } from "@/application/use-cases/get-public-menu";
 import { cartItemCount, priceCart, type CartCatalogEntry } from "@/domain/cart/cart";
@@ -11,6 +12,8 @@ import { formatPrice } from "@/interface/web/format";
 import type { Locale } from "@/interface/web/i18n/locales";
 import { CartPanel } from "./cart-panel";
 import { OptionPicker } from "./option-picker";
+import { placeOrderAction } from "./order-actions";
+import type { PlaceOrderOutcome, PlaceOrderProblem } from "./place-order-model";
 import { useCart } from "./use-cart";
 
 type Props = {
@@ -24,15 +27,17 @@ type Props = {
   table: { label: string } | null;
 };
 
-/** The customer menu: browse, add to a cart (with option choices), review the cart with a price preview. */
+/** The customer menu: browse, add to a cart (with option choices), review the cart with a price preview, place the order. */
 export function CustomerMenu({ restaurantSlug, sections, rates, imageUrls, table }: Props) {
   const t = useTranslations("Menu");
   const locale = useLocale() as Locale;
   const tTable = useTranslations("Table");
-  const { cart, ready, add, setQuantity, remove } = useCart(restaurantSlug);
+  const router = useRouter();
+  const { cart, ready, add, setQuantity, remove, clear } = useCart(restaurantSlug);
   const [picking, setPicking] = useState<CustomerMenuItem | null>(null);
   const [cartOpen, setCartOpen] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
+  const [placedOrderNumber, setPlacedOrderNumber] = useState<number | null>(null);
 
   const catalog = useMemo(
     () =>
@@ -62,6 +67,24 @@ export function CustomerMenu({ restaurantSlug, sections, rates, imageUrls, table
     return error.type === "CART_FULL"
       ? t("errors.cartFull", { max: error.max })
       : t("errors.tooMany", { max: error.type === "QUANTITY_TOO_HIGH" ? error.max : MAX_LINE_QUANTITY });
+  };
+
+  /** Sends the cart (ids and quantities only: the server takes restaurant, table and prices from its own side). */
+  const placeOrder = async (): Promise<PlaceOrderProblem | null> => {
+    let outcome: PlaceOrderOutcome;
+    try {
+      outcome = await placeOrderAction({ lines: cart.lines });
+    } catch {
+      outcome = { ok: false, problem: "failed" }; // no connection, or the server could not be reached
+    }
+    if (outcome.ok) {
+      clear();
+      setPlacedOrderNumber(outcome.orderNumber);
+      setCartOpen(true); // the confirmation lives in the cart dialog: make sure it is seen
+      return null;
+    }
+    router.refresh(); // the menu or the table changed under the guest: show the current state next to the reason
+    return outcome.problem;
   };
 
   return (
@@ -166,7 +189,13 @@ export function CustomerMenu({ restaurantSlug, sections, rates, imageUrls, table
       <CartPanel
         open={cartOpen}
         priced={priced}
-        onClose={() => setCartOpen(false)}
+        hasTable={table !== null}
+        placedOrderNumber={placedOrderNumber}
+        onPlaceOrder={placeOrder}
+        onClose={() => {
+          setCartOpen(false);
+          setPlacedOrderNumber(null);
+        }}
         onSetQuantity={(key, quantity) => setQuantity(key, quantity)}
         onRemove={(key) => remove(key)}
       />
