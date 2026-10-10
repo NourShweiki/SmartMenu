@@ -1,4 +1,4 @@
-﻿# Progress log
+# Progress log
 
 Read this after `PROJECT_SPEC.md` at the start of every session. Update it at the end of every iteration.
 
@@ -7,10 +7,10 @@ Read this after `PROJECT_SPEC.md` at the start of every session. Update it at th
 - Local database: Supabase CLI in Docker (`npx supabase start`).
 - Tooling: Next.js 15 + React 19 + strict TS, Tailwind v4, Vitest, ESLint layer rules, `next-intl` (planned), pgTAP DB tests.
 - Defaults: Arabic is the default language; Western digits in both languages; only OWNER changes restaurant settings.
-- Tax/service-charge preset values are placeholders and adjustable later (owner setting) â€” not a blocker.
+- Tax/service-charge preset values are placeholders and adjustable later (owner setting) — not a blocker.
 - Table session states (planned): `OPEN -> PAYMENT_REQUESTED -> CLOSED`.
 - Public (logged-out) reads go through narrow SECURITY DEFINER functions with an explicit column list, never the service-role key and never direct anon table grants (decided 2026-10-06).
-- Gotcha: `npm run check` (next build) overwrites `.next` and breaks a running `npm run dev` (500s) â€” restart the dev server after it.
+- Gotcha: `npm run check` (next build) overwrites `.next` and breaks a running `npm run dev` (500s) — restart the dev server after it.
 - Staff auth: email + password; public sign-up OFF; staff accounts created by founders (seed / setup tool) for now, owner invites later (decided 2026-10-06).
 - Gotcha: read the host via `getCurrentSite()` only. After a Server Action redirect, Next re-fetches the page from
   `localhost:3000` internally, so the raw `host` header is wrong there; `x-forwarded-host` keeps the real one.
@@ -23,8 +23,8 @@ Read this after `PROJECT_SPEC.md` at the start of every session. Update it at th
   (CI failed on 76f788e..cb45e37 for this reason). Use npm 11 locally too.
 - Gotcha: Supabase Storage blocks direct SQL DELETE on storage.objects (trigger); DB tests set
   `storage.allow_delete_query = 'true'` like the Storage API does.
-- Gotcha: integration tests run against the same local DB you look at â€” they must leave demo data as they found it.
-- Gotcha: long bash heredocs with curly quotes (â€œ â€ Â« Â») break the Bash tool; write such scripts to a file first.
+- Gotcha: integration tests run against the same local DB you look at — they must leave demo data as they found it.
+- Gotcha: long bash heredocs with curly quotes (“ ” « ») break the Bash tool; write such scripts to a file first.
 - Auth: `getClaims()` verifies JWTs locally; tradeoff: a session ended elsewhere stays valid until token expiry (max 1h).
 - Gotcha (Windows setup, 2026-10-10): Docker Desktop needs the Windows "Virtual Machine Platform" feature (admin
   PowerShell, then reboot) and WSL 2. If the engine hangs on "Starting the Docker Engine...", quit all Docker processes,
@@ -39,12 +39,13 @@ Read this after `PROJECT_SPEC.md` at the start of every session. Update it at th
 - Gotcha (hydration warning, fixed 2026-10-10): "A tree hydrated but some attributes of the server rendered HTML didn't match" with
   `data-new-gr-c-s-check-loaded` / `data-gr-ext-installed` on `<body>` is the Grammarly browser extension, not an app bug.
   `<body suppressHydrationWarning>` in `app/[locale]/layout.tsx` silences it. Any OTHER attribute or text mismatch IS a real bug.
+- Gotcha (file encoding, 2026-10-10): NEVER edit repo text files with PowerShell `Get-Content` / `Set-Content` (Windows PowerShell 5.1 reads UTF-8 as ANSI and writes garbage into Arabic text, dashes, arrows and emoji; it once corrupted README.md and this file). Use the editor tool or node (`fs`, utf8). Check with `grep -c "â€" <file>` (must be 0).
 - Working style: very small iterations, one at a time; Nour approves each. Show every visible change on http://localhost:3000.
 
 ## Done
 - Phase 0: spec, CLAUDE.md, skills (`architecture-rules`, `data-model`, `arabic-rtl`).
 - Phase 1 step 1: Next.js skeleton + layer folders. Step 2: GitHub Actions CI (`npm run check`). Deploy: postponed.
-- Phase 2 step 1: restaurant domain â€” `src/domain/restaurant/` (slug, bilingual name, settings + presets, roles/permissions) with unit tests. Passing.
+- Phase 2 step 1: restaurant domain — `src/domain/restaurant/` (slug, bilingual name, settings + presets, roles/permissions) with unit tests. Passing.
 - Phase 2 step 2: local Supabase + migration for `restaurants`, `restaurant_settings`, `restaurant_members` with RLS; pgTAP isolation test (12 tests); seed with 2 demo restaurants.
 - Fix: migration `20261006000100_grant_table_privileges.sql` (new Supabase doesn't auto-grant table privileges).
 - Verified 2026-10-06: `npx supabase db reset` + `npx supabase test db` -> `Tests=12`, all pass; `npm run check` green (typecheck, lint, 19 unit tests, build).
@@ -68,31 +69,31 @@ Read this after `PROJECT_SPEC.md` at the start of every session. Update it at th
     Verified in browser: wrong password -> error; waiter/owner -> dashboard with role; sign out; Grill owner refused on demo-takeout
     (same error, no session) while their Grill session stays active.
 
-- Phase 3 step 1 (domain): `src/domain/menu/menu.ts` â€” categories + items, bilingual names (both required, max 80),
+- Phase 3 step 1 (domain): `src/domain/menu/menu.ts` — categories + items, bilingual names (both required, max 80),
   optional descriptions (max 500), price as `Fils` (`src/domain/shared/money.ts`, whole fils 0..1,000,000 JD), sort order,
   hidden (customers don't see it) vs sold out (shown, not orderable), soft delete, items only in a live category of the
   same restaurant. `isVisibleToCustomers` / `isOrderable`. Unit tests.
-- Phase 3 step 2 (DB): migration `menu_categories_items` â€” RLS (all staff read; OWNER/MANAGER write), composite FK
+- Phase 3 step 2 (DB): migration `menu_categories_items` — RLS (all staff read; OWNER/MANAGER write), composite FK
   (item's category must be in the same restaurant), column grants (restaurant_id can't change), no hard delete, anon no
   access. pgTAP `menu_isolation.test.sql` (20). `npx supabase test db` -> `Tests=40`. Seed: demo menus for both restaurants.
 
 - Phase 3 step 3: `MenuRepository` port + `SupabaseMenuRepository` (insert/update split because of column grants;
   setItemSoldOut checks the item's restaurant then calls the DB function). Integration tests (`menu.integration.test.ts`).
 - Phase 3 step 4: menu use cases in `src/application/use-cases/menu/` (get staff menu, add category/item, edit item,
-  hide, sold out, delete) â€” each checks `menu:manage` or `menu:sold-out` for the server-resolved actor. Clock/IdGenerator ports.
+  hide, sold out, delete) — each checks `menu:manage` or `menu:sold-out` for the server-resolved actor. Clock/IdGenerator ports.
 - Phase 3 step 5: staff menu screen `/<locale>/staff/menu` (linked from the staff dashboard): categories + items, both
   names, prices via `formatPrice` (`src/interface/web/format.ts`, Western digits), sold-out/hidden badges, sold-out toggle
   (owner/manager/waiter) and hide/show (owner/manager). `requireStaff()` guards every staff page/action.
-    Look at: http://demo-dinein.localhost:3000/ar/staff/menu â€” sign in as owner (all buttons) or waiter (sold out only).
+    Look at: http://demo-dinein.localhost:3000/ar/staff/menu — sign in as owner (all buttons) or waiter (sold out only).
 - CI fixed (b996db9): workflow installs npm 11 (see gotcha below).
 
-- Phase 3 step 6: add / edit item form â€” `/<locale>/staff/menu/items/new?category=â€¦` and `/items/<id>/edit` (OWNER/MANAGER
-  only). Price typed in JD -> fils via `parsePriceInput` (`src/interface/web/price-input.ts`, integer math, accepts Ù¤Ù«Ù¥),
+- Phase 3 step 6: add / edit item form — `/<locale>/staff/menu/items/new?category=…` and `/items/<id>/edit` (OWNER/MANAGER
+  only). Price typed in JD -> fils via `parsePriceInput` (`src/interface/web/price-input.ts`, integer math, accepts ٤٫٥),
   bilingual field pairs (Arabic inputs dir=rtl), translated per-field errors mapped from domain errors, values kept on error.
   Adapter returns null for non-UUID ids (was a 500). README.md added and updated every iteration (CLAUDE.md rule).
-    Look at: http://demo-dinein.localhost:3000/ar/staff/menu -> "Ø¥Ø¶Ø§ÙØ© ØµÙ†Ù" / "ØªØ¹Ø¯ÙŠÙ„" (sign in as owner).
+    Look at: http://demo-dinein.localhost:3000/ar/staff/menu -> "إضافة صنف" / "تعديل" (sign in as owner).
 
-- Phase 3 step 7: categories â€” add (`/staff/menu/categories/new`), rename + delete (`/categories/<id>/edit`), hide/show on
+- Phase 3 step 7: categories — add (`/staff/menu/categories/new`), rename + delete (`/categories/<id>/edit`), hide/show on
   the menu screen; delete item from its edit page. Rule (decided 2026-10-06): only EMPTY categories can be deleted
   (`CATEGORY_NOT_EMPTY`). Deletes ask "are you sure?" (`ConfirmSubmit`). Use cases: edit / set hidden / delete category.
 
@@ -110,16 +111,16 @@ Read this after `PROJECT_SPEC.md` at the start of every session. Update it at th
   (setItemGroups adds before it removes, so a failed change never strips an item's groups). Use cases in
   `use-cases/menu/options/`. UI: `/staff/menu/options` (list, new, edit group + options), item edit page checkboxes,
   group labels on the menu screen. Deleting a group detaches it from items (items unchanged).
-    Look at: http://demo-dinein.localhost:3000/ar/staff/menu -> "Ù…Ø¬Ù…ÙˆØ¹Ø§Øª Ø§Ù„Ø®ÙŠØ§Ø±Ø§Øª".
+    Look at: http://demo-dinein.localhost:3000/ar/staff/menu -> "مجموعات الخيارات".
 
 - Performance (2026-10-06): measured with `DEBUG_SUPABASE=1` (logs every Supabase call). Removed 3 auth round trips
   per action (`getUser` -> `getClaims`, local ES256 verification; forged / edited / alg:none tokens rejected in
   integration tests), parallel menu reads, optimistic toggles (`OptimisticToggle`), staff `loading.tsx` skeleton.
   Production build: toggle feedback ~8 ms, save ~100-140 ms, open edit page ~90 ms (dev server is slower).
-- Phase 3 step 10: reordering â€” `moveInOrder` (domain/shared/ordering.ts), move category / item / option use cases,
-  â†‘/â†“ `MoveButtons` on the menu screen and the option group page.
+- Phase 3 step 10: reordering — `moveInOrder` (domain/shared/ordering.ts), move category / item / option use cases,
+  ↑/↓ `MoveButtons` on the menu screen and the option group page.
 
-- Phase 4 step 1 (domain, 2026-10-10): `src/domain/order/order.ts` â€” `Order`/`OrderItem` with price + option snapshots,
+- Phase 4 step 1 (domain, 2026-10-10): `src/domain/order/order.ts` — `Order`/`OrderItem` with price + option snapshots,
   status flow `NEW -> CONFIRMED -> PREPARING -> READY -> SERVED -> COMPLETED` (`moveOrderTo`, one step, no skip/back),
   `createOrder` (checks orderable items, same restaurant, quantity 1..99, <=50 lines, option picks via `validateSelection`),
   `calculateTotals` (service on subtotal, tax on subtotal+service, round half up per charge, BigInt so no float drift),
@@ -136,14 +137,14 @@ Read this after `PROJECT_SPEC.md` at the start of every session. Update it at th
   longer changes demo data (the pgTAP suite proves writes in rolled-back transactions); one shared `StaffActor` +
   `requirePermission` in `application/use-cases/permissions.ts` (menu + settings use it); `Common.save/saving/cancel` keys;
   form logic moved to `settings-form-model.ts` (7 tests) + `role.test.ts`; tax hint no longer hard-codes 16%.
-- Phase 4 step 2 (DB only, 2026-10-10): migration `20261010120000_orders.sql` â€” `order_status` enum (no CANCELLED: rules
+- Phase 4 step 2 (DB only, 2026-10-10): migration `20261010120000_orders.sql` — `order_status` enum (no CANCELLED: rules
   undecided), `orders` (totals + rates snapshot in fils, `total = subtotal + service + tax` check, `unique (restaurant_id, number)`),
   `order_items` + `order_item_options` (name/price snapshots, composite tenant FKs to menu items / options, line total >= unit x qty),
   `order_counters` + `next_order_number(restaurant)` (service_role only; row-locked counter, rolls back with a failed order),
   trigger `orders_enforce_status_flow` (one step forward only, applies to every role incl. service_role; sets `status_changed_at`).
   RLS: all staff read; OWNER/MANAGER/WAITER may update, and ONLY the `status` column (column grant); nobody inserts/deletes as
   `authenticated` (customer ordering will insert through a SECURITY DEFINER function, step 4c); anon has nothing.
-  `session_id` has NO foreign key yet (table_sessions does not exist) â€” the table-session step must add it with a tenant check.
+  `session_id` has NO foreign key yet (table_sessions does not exist) — the table-session step must add it with a tenant check.
   Cashier cannot move orders yet (decide with the payment / table-session step). pgTAP `orders_isolation.test.sql` (34 tests).
   `npx supabase test db` -> Tests=133 (7 files), all pass.
 - SECURITY finding (2026-10-10, found by the existing pgTAP test "staff cannot hard-delete"): with the current Supabase images,
@@ -177,13 +178,13 @@ Read this after `PROJECT_SPEC.md` at the start of every session. Update it at th
   `use-cases/settings/` (get / update; both need `restaurant:settings`; update runs `validateSettings`), `settings` in
   `container.ts`. UI: `/<locale>/staff/settings` (order types dine-in/takeout/delivery, tax %, service charge %, default
   language) + a card on the staff home shown only to the OWNER (others get 404 on the URL). Percent typed by the owner ->
-  basis points via `parseRateInput` (`src/interface/web/rate-input.ts`, integer math, accepts Ù¡Ù Ù«Ù¥ and "10,5", max 2 decimals).
+  basis points via `parseRateInput` (`src/interface/web/rate-input.ts`, integer math, accepts ١٠٫٥ and "10,5", max 2 decimals).
   No migration (table, RLS "owner updates settings" and grants already existed). Tests: use cases (7), rate input (7),
   row mapping (2), integration against local DB (2: owner saves + restores, waiter/other restaurant refused).
   Verified in the browser as owner in /en and /ar: bad rate -> field error; 12.5% saved ("Settings saved", DB = 1250 bp),
   restored to 10%; the other restaurant untouched.
     Look at: http://demo-dinein.localhost:3000/en/staff/settings (sign in as owner@demo-dinein.test).
-  Not done on purpose: `restaurants.name` (restaurant name) is NOT editable here â€” it belongs with branding / "written details".
+  Not done on purpose: `restaurants.name` (restaurant name) is NOT editable here — it belongs with branding / "written details".
 
 - Phase 3 step 12: branding (2026-10-10, direction from Nour: logo, colours, written details; "do what is best"). Domain
   `domain/restaurant/branding.ts`: ONE accent colour from a fixed palette of 8 (`ACCENT_COLORS`; a unit test COMPUTES that each has
@@ -232,6 +233,6 @@ Read this after `PROJECT_SPEC.md` at the start of every session. Update it at th
 - Then Phase 5: staff order screen (open queue, status buttons by role, sound alert, READY notification).
 - Takeout part of Phase 4 needs the takeout-session open question answered first.
 
-## Open questions (do not build without asking) â€” see spec Â§12
+## Open questions (do not build without asking) — see spec §12
 - Removing items after order confirmation; order cancellation rules; takeout/delivery session model; loyalty rules. (Branding elements: decided 2026-10-10, logo + accent colour + written details; see the log.)
 

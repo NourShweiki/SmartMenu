@@ -76,7 +76,7 @@ On **READY**, push a notification to the customer's session device(s).
 
 ### Staff roles
 - **Waiter (tablet):** confirms orders as they arrive, handles service requests (waiter call, cleaning), tells the cashier when a table is ready to pay. **Does not** hand this off automatically — it's a manual "ready to pay" signal to the cashier.
-- **Cashier:** billing and closing only — confirm payment, generate receipt, close the session. **Does not see service requests** — that's the waiter's screen only.
+- **Cashier:** billing and closing only — confirm payment, generate receipt, close the session. **Does not see service requests** — that's the waiter's screen only. **Decided (Nour, 2026-10-10):** the cashier takes an order from SERVED to COMPLETED after the customer has paid, and may do nothing else to an order; the waiter moves orders up to SERVED but cannot complete them. Owner and manager can do every step. Enforced by the database, not only the screens.
 - **Owner/Manager:** full dashboard — sales, menu/category/modifier management, table & staff management (incl. QR generation, roles/permissions), order & payment history, reports & analytics.
 
 ### Session lifecycle (full loop)
@@ -104,7 +104,7 @@ These are expensive to change later, so they are locked in:
 - **Roles:** Owner, Manager, Waiter, Cashier.
 - **Custom domains:** one codebase resolves the restaurant from the incoming domain. Every client starts on a subdomain (`name.ourapp.com`); custom domain is an upsell. Note: installed PWA + push subscriptions are tied to the domain — changing domains loses them. QR codes must point at a stable URL.
 - **Loyalty points:** customers identified by **phone number only**, no login/account system. (Known tradeoff: no strong verification — flag for a lightweight safeguard like OTP later, not required at launch.)
-- **Menu UI editing (owner-facing):** NOT a fixed theme picker, and NOT fully open design freedom. A constrained branding system — colors, logo, layout/section choices, possibly fonts/images — from a defined set of options. **Needs a concrete, finalized list of exactly which elements are editable before Phase 3 (owner portal) build starts** — do not let this silently expand into full custom design per client.
+- **Menu UI editing (owner-facing):** NOT a fixed theme picker, and NOT fully open design freedom. A constrained branding system — colors, logo, layout/section choices, possibly fonts/images — from a defined set of options. **DECIDED (Nour, 2026-10-10):** the editable elements are a **logo**, **one accent colour from a fixed palette of 8** (each readable with white text), and **written details** (restaurant name, tagline, about, address, phone, opening hours; Arabic + English). Built in Phase 3 step 12. Anything beyond this (fonts, layouts, custom colours, custom CSS) must NOT be added without asking: do not let this silently expand into full custom design per client.
 
 ---
 
@@ -245,7 +245,9 @@ Each phase ends with something demoable.
 - Can confirmed order items be removed, or only added? (blocks Section 4 edge cases)
 - How does takeout/delivery map onto the Table-Session model? (blocks Phase 4/10 delivery work)
 - Loyalty points: exact earn/redeem rules (blocks Phase 6/10 loyalty work)
-- Menu UI editing: exact list of editable elements (blocks Phase 3)
+- ~~Menu UI editing: exact list of editable elements~~ — DECIDED 2026-10-10 (see Section 5)
+- Order cancellation rules (CANCELLED status is deliberately not built yet)
+- Is tax charged on top of the service charge? (assumed yes; kept as is by Nour, 2026-10-10)
 - Pricing model (intentionally deferred — doesn't block building)
 - Who owns finding/talking to the first pilot restaurant (doesn't block building)
 
