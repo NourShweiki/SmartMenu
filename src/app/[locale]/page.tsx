@@ -1,4 +1,5 @@
 import Image from "next/image";
+import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getTranslations } from "next-intl/server";
 import { accentHex } from "@/domain/restaurant/branding";
@@ -56,6 +57,13 @@ export default async function HomePage({ params }: { params: Promise<{ locale: s
       </header>
 
       <div className="mx-auto flex max-w-xl flex-col gap-6 px-6 py-10">
+        <Link
+          href={`/${locale}/menu`}
+          className="rounded-xl px-5 py-3 text-center text-lg font-semibold text-white hover:opacity-90"
+          style={{ backgroundColor: accentHex(branding.accent) }}
+        >
+          {t("viewMenu")}
+        </Link>
         {hasDetails && (
           <dl className="flex flex-col gap-5">
             {about && (

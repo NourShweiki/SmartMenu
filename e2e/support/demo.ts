@@ -21,6 +21,17 @@ export const SITES = {
     cashier: "cashier@demo-dinein.test",
     /** A seeded menu item (shown with both its names on the menu) that tests may toggle and put back. */
     toggleItem: "Hummus",
+    /** Customer-menu facts from the seed, with HAND-computed expectations (fils): 10% service, then 16% tax on subtotal + service. */
+    menu: {
+      simple: { en: "Hummus", ar: "حمص", fils: 1250, one: { sub: 1250, svc: 125, tax: 220, total: 1595 }, two: { sub: 2500, svc: 250, tax: 440, total: 3190 } },
+      withOptions: {
+        en: "Kebab", ar: "كباب", requiredChoice: true,
+        choose: [{ en: "Large", ar: "كبير" }, { en: "Garlic sauce", ar: "ثومية" }], // (4.500 + 2.000 + 0.250) each
+        quantity: 2, expected: { sub: 13500, svc: 1350, tax: 2376, total: 17226 },
+      },
+      soldOut: { en: "Shish tawook", ar: "شيش طاووق" },
+      hiddenOrDeleted: "Test",
+    },
   },
   coffee: {
     key: "coffee",
@@ -30,6 +41,17 @@ export const SITES = {
     waiter: null,
     cashier: null,
     toggleItem: "Cappuccino",
+    /** No service charge at Demo Coffee, 16% tax. */
+    menu: {
+      simple: { en: "Arabic coffee", ar: "قهوة عربية", fils: 1000, one: { sub: 1000, svc: 0, tax: 160, total: 1160 }, two: { sub: 2000, svc: 0, tax: 320, total: 2320 } },
+      withOptions: {
+        en: "Cappuccino", ar: "كابتشينو", requiredChoice: false,
+        choose: [{ en: "Oat milk", ar: "حليب الشوفان" }], // 2.250 + 0.500
+        quantity: 1, expected: { sub: 2750, svc: 0, tax: 440, total: 3190 },
+      },
+      soldOut: null,
+      hiddenOrDeleted: null,
+    },
   },
 } as const;
 export type Site = (typeof SITES)[keyof typeof SITES];
@@ -59,3 +81,6 @@ export async function expectLocale(page: Page, locale: Locale) {
   await expect(page.locator("html")).toHaveAttribute("lang", locale);
   await expect(page.locator("html")).toHaveAttribute("dir", locale === "ar" ? "rtl" : "ltr");
 }
+
+/** Money as the screens show it: Western digits, three decimals, JD / د.أ (an independent check of the app's formatter). */
+export const jd = (fils: number, locale: Locale) => `${(fils / 1000).toFixed(3)} ${locale === "en" ? "JD" : "د.أ"}`;

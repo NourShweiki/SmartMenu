@@ -4,7 +4,8 @@
     "address": "Address",
     "phone": "Phone",
     "hours": "Opening hours",
-    "about": "About us"
+    "about": "About us",
+    "viewMenu": "View menu"
   },
   "LanguageSwitch": {
     "label": "العربية"
@@ -257,6 +258,51 @@
       "notImage": "The logo must be a JPG, PNG or WebP image.",
       "forbidden": "Only the owner can change the logo.",
       "notFound": "The logo could not be saved. Please try again."
+    }
+  },
+  "Menu": {
+    "title": "Menu",
+    "empty": "The menu is not available right now.",
+    "add": "Add",
+    "soldOut": "Sold out",
+    "unavailable": "Not available",
+    "added": "{name} added to your cart.",
+    "close": "Close",
+    "quantity": "Quantity",
+    "increase": "More",
+    "decrease": "Fewer",
+    "addToCart": "Add to cart",
+    "none": "None",
+    "completeChoices": "Make the required choice to continue.",
+    "rule": {
+      "optional": "Optional",
+      "optionalUpTo": "Optional, up to {max}",
+      "exactly": "Choose {count}",
+      "range": "Choose {min} to {max}"
+    },
+    "errors": {
+      "tooMany": "You can order at most {max} of one item.",
+      "cartFull": "The cart is full ({max} different items)."
+    },
+    "cart": {
+      "title": "Your cart",
+      "view": "View cart",
+      "itemCount": "{count, plural, one {# item} other {# items}}",
+      "empty": "Your cart is empty.",
+      "remove": "Remove",
+      "unknownItem": "Item no longer on the menu",
+      "subtotal": "Subtotal",
+      "service": "Service charge",
+      "tax": "Tax",
+      "total": "Total",
+      "estimate": "Estimated total. The final amount is confirmed when you place the order.",
+      "placeOrder": "Place order",
+      "checkoutSoon": "Ordering opens when you scan the QR code on your table. Your cart is saved on this device.",
+      "problems": {
+        "ITEM_UNAVAILABLE": "This item is no longer available. Remove it to continue.",
+        "OPTION_UNAVAILABLE": "One of the choices is no longer available. Remove this item and add it again.",
+        "SELECTION_INVALID": "The choices for this item changed. Remove it and add it again."
+      }
     }
   }
 }

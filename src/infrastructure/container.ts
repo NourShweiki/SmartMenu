@@ -2,6 +2,7 @@
 // Adapters are created per call (lazily) so importing this file never needs env vars,
 // e.g. during `next build` in CI.
 import { makeGetPublicRestaurant, type GetPublicRestaurantInput } from "@/application/use-cases/get-public-restaurant";
+import { makeGetPublicMenu } from "@/application/use-cases/get-public-menu";
 import { makeGetStaffContext } from "@/application/use-cases/get-staff-context";
 import { makeSignInStaff, type SignInStaffInput } from "@/application/use-cases/sign-in-staff";
 import { makeAddMenuCategory } from "@/application/use-cases/menu/add-menu-category";
@@ -48,6 +49,7 @@ import { SupabaseMembershipRepository } from "./supabase/supabase-membership-rep
 import { SupabaseMenuRepository } from "./supabase/supabase-menu-repository";
 import { SupabaseOptionsRepository } from "./supabase/supabase-options-repository";
 import { LOGOS_BUCKET, SupabasePhotoStorage } from "./supabase/supabase-photo-storage";
+import { SupabasePublicMenuRepository } from "./supabase/supabase-public-menu-repository";
 import { SupabaseRestaurantRepository } from "./supabase/supabase-restaurant-repository";
 import { SupabaseSettingsRepository } from "./supabase/supabase-settings-repository";
 
@@ -61,6 +63,11 @@ export function appRootDomain(): string {
 export function getPublicRestaurant(input: GetPublicRestaurantInput) {
   const restaurants = new SupabaseRestaurantRepository(createPublicClient());
   return makeGetPublicRestaurant({ restaurants })(input);
+}
+
+/** The public menu (what a customer sees), read through the narrow public database function: no login, no table access. */
+export function getPublicMenu(restaurant: { id: RestaurantId; slug: string }) {
+  return makeGetPublicMenu({ menu: new SupabasePublicMenuRepository(createPublicClient()) })(restaurant);
 }
 
 /** Auth + membership adapters sharing the signed-in user's cookie session. */
@@ -101,6 +108,12 @@ async function menuDeps() {
 /** Public URL of a menu photo (no session needed: the bucket is view-only public). */
 export function menuPhotoUrl(path: string): string {
   return new SupabasePhotoStorage(createPublicClient()).publicUrl(path);
+}
+
+/** Same, for a whole page of photos: ONE storage client instead of one per photo. */
+export function menuPhotoUrls(paths: readonly string[]): string[] {
+  const photos = new SupabasePhotoStorage(createPublicClient());
+  return paths.map((path) => photos.publicUrl(path));
 }
 
 export const menu = {
