@@ -18,6 +18,12 @@ insert into public.option_groups (id, restaurant_id, name_en, name_ar, min_selec
 insert into public.options (id, restaurant_id, group_id, name_en, name_ar, price_delta_fils) values
   ('aaaaaaaa-2020-4000-8000-000000000004', 'aaaaaaaa-1010-4000-8000-000000000000', 'aaaaaaaa-2020-4000-8000-000000000003', 'Large', 'كبير', 500);
 
+-- The table session the orders belong to (an OPEN one).
+insert into public.restaurant_tables (id, restaurant_id, label, token) values
+  ('aaaaaaaa-3131-4000-8000-000000000001', 'aaaaaaaa-1010-4000-8000-000000000000', '1', 'place-order-test-token-00000001');
+insert into public.table_sessions (id, restaurant_id, table_id) values
+  ('aaaaaaaa-3030-4000-8000-000000000001', 'aaaaaaaa-1010-4000-8000-000000000000', 'aaaaaaaa-3131-4000-8000-000000000001');
+
 -- A payload for restaurant A: 2 x (2.500 + 0.500 Large) = 6.000; service 10% = 0.600; tax 16% of 6.600 = 1.056; total 7.656.
 -- The order id and item id are built from p_n so each call is unique.
 create function pg_temp.payload(p_n int, p_menu_item text, p_line_total bigint, p_total bigint, p_with_items boolean default true)

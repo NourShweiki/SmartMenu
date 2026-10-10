@@ -19,7 +19,7 @@ One codebase serves every restaurant (multi-tenant). Each restaurant lives on it
 | 1 | Foundation: Next.js skeleton, CI on every push | ✅ Done (cloud deploy postponed, running on localhost) |
 | 2 | Core backend: restaurants, roles, staff login, data isolation, settings | ✅ Done |
 | 3 | Menu & owner portal | ✅ Done |
-| 4 | Customer ordering (menu, cart, dine-in QR, takeout) | 🟡 Started (orders work behind the scenes: rules, database, saving and moving them; no customer screens yet) |
+| 4 | Customer ordering (menu, cart, dine-in QR, takeout) | 🟡 In progress (menu, cart, tables and QR codes work; placing the order from the cart is next) |
 | 5 | Staff order screen (live orders, sound alert, SMS when ready) | ⬜ Not started |
 | 6 | Onboarding tools (presets, bulk/AI menu import, custom domains) | ⬜ Not started |
 | 7 | Installable app (PWA) & push notifications | ⬜ Not started |
@@ -82,15 +82,20 @@ One codebase serves every restaurant (multi-tenant). Each restaurant lives on it
   - The cart shows each line, quantities, and an estimate with service charge and tax; it is saved on the customer's device and survives a reload or a language switch. Sold-out items are shown but can't be added.
   - The estimate is computed with the same rules as a real order. **Placing the order comes next**, together with table QR codes.
   - Customers only ever get the visible menu through one narrow database function (hidden and deleted items never leave the database).
-- **Browser tests.** 89 automated end-to-end tests drive a real browser through the app on both demo restaurants, in English and Arabic: login, language switch, roles, menu, settings, branding and the customer menu with its cart. They change data and put it back. Run with `npm run test:e2e` (needs the local database).
+- **Tables and QR codes (Phase 4).** The owner or a manager adds the restaurant's tables, and prints a QR card for each one (or all at once) on A4 paper.
+  - Each card shows the restaurant's name and logo, "Table 7 / طاولة 7" and the QR code, in Arabic and English.
+  - The QR code holds a long random token, **not the table number**. Renaming a table never breaks a printed code, nobody can guess another table's code, and a lost or leaked code is replaced with one click (the old one stops working at once).
+  - A guest scans the code, lands on the menu with "Table 7" shown, and everyone at that table joins the same visit. Invalid, switched-off or deleted codes, and restaurants with dine-in turned off, show a friendly "this code is not active" page.
+  - A table has one live visit at a time, visits follow a fixed flow (open, payment requested, closed), and orders can only be placed in an open visit of their own restaurant (the database enforces it).
+  - Staff screens that move a visit along (waiter: ready to pay, cashier: close) come with the staff order screen. **Placing the order from the cart is the next step.**
+- **Browser tests.** 113 automated end-to-end tests drive a real browser through the app on both demo restaurants, in English and Arabic: login, language switch, roles, menu, settings, branding, the customer menu with its cart, and tables with QR scanning. They change data and put it back. Run with `npm run test:e2e` (needs the local database).
 - **Quality gates.** CI runs typecheck, lint (including architecture-layer import rules), unit tests and a production build on every push. Database security tests (pgTAP) and integration tests run locally.
 
 ### ⬜ Not done yet (next up)
 
-- **Phase 4 (next):** table sessions and QR codes, then placing an order from the cart (the saving side and the menu and cart already work).
+- **Phase 4 (next):** placing an order from the cart (the menu, cart, tables, QR codes and the saving side already work), then takeout.
 - **Phase 4+:** everything customer-facing, including:
   - placing an order from the cart
-  - table sessions and QR codes
   - takeout
   - the live staff order screen
   - SMS / push notifications

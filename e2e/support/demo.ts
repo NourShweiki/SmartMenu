@@ -21,6 +21,8 @@ export const SITES = {
     cashier: "cashier@demo-dinein.test",
     /** A seeded menu item (shown with both its names on the menu) that tests may toggle and put back. */
     toggleItem: "Hummus",
+    /** Seeded tables (supabase/seed.sql): labels in screen order, and one fixed demo QR token. */
+    tables: { labels: ["1", "2", "Terrace"], token: "grill-table-1-demo-token-0001", dineIn: true },
     /** Customer-menu facts from the seed, with HAND-computed expectations (fils): 10% service, then 16% tax on subtotal + service. */
     menu: {
       simple: { en: "Hummus", ar: "حمص", fils: 1250, one: { sub: 1250, svc: 125, tax: 220, total: 1595 }, two: { sub: 2500, svc: 250, tax: 440, total: 3190 } },
@@ -41,6 +43,8 @@ export const SITES = {
     waiter: null,
     cashier: null,
     toggleItem: "Cappuccino",
+    /** Takeout only: dine-in is switched off, so its QR code is not active even though the table exists. */
+    tables: { labels: ["A"], token: "coffee-table-a-demo-token-0001", dineIn: false },
     /** No service charge at Demo Coffee, 16% tax. */
     menu: {
       simple: { en: "Arabic coffee", ar: "قهوة عربية", fils: 1000, one: { sub: 1000, svc: 0, tax: 160, total: 1160 }, two: { sub: 2000, svc: 0, tax: 320, total: 2320 } },

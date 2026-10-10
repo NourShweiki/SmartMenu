@@ -6,3 +6,8 @@ export interface Clock {
 export interface IdGenerator {
   newId(): string;
 }
+
+/** Random, unguessable tokens (table QR codes). 128+ bits from a cryptographically secure source. */
+export interface TokenGenerator {
+  newToken(): string;
+}

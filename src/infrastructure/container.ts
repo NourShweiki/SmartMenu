@@ -3,6 +3,16 @@
 // e.g. during `next build` in CI.
 import { makeGetPublicRestaurant, type GetPublicRestaurantInput } from "@/application/use-cases/get-public-restaurant";
 import { makeGetPublicMenu } from "@/application/use-cases/get-public-menu";
+import { makeGetPublicSession, makeJoinTableSession } from "@/application/use-cases/tables/join-table-session";
+import {
+  makeAddTable,
+  makeDeleteTable,
+  makeListTables,
+  makeRegenerateTableToken,
+  makeRenameTable,
+  makeSetTableActive,
+} from "@/application/use-cases/tables/table-use-cases";
+import type { TableActor } from "@/application/use-cases/tables/shared";
 import { makeGetStaffContext } from "@/application/use-cases/get-staff-context";
 import { makeSignInStaff, type SignInStaffInput } from "@/application/use-cases/sign-in-staff";
 import { makeAddMenuCategory } from "@/application/use-cases/menu/add-menu-category";
@@ -42,6 +52,7 @@ import type { MenuActor } from "@/application/use-cases/menu/shared";
 import type { RestaurantId } from "@/domain/restaurant/restaurant";
 import { createPublicClient, createServiceClient, createSessionClient } from "./supabase/client";
 import { SupabaseBrandingRepository } from "./supabase/supabase-branding-repository";
+import { newTableToken } from "./random-token";
 import { SupabaseOrderRepository } from "./supabase/supabase-order-repository";
 import { SupabaseOrderingCatalog } from "./supabase/supabase-ordering-catalog";
 import { SupabaseAuthGateway } from "./supabase/supabase-auth-gateway";
@@ -50,6 +61,8 @@ import { SupabaseMenuRepository } from "./supabase/supabase-menu-repository";
 import { SupabaseOptionsRepository } from "./supabase/supabase-options-repository";
 import { LOGOS_BUCKET, SupabasePhotoStorage } from "./supabase/supabase-photo-storage";
 import { SupabasePublicMenuRepository } from "./supabase/supabase-public-menu-repository";
+import { SupabaseTableRepository } from "./supabase/supabase-table-repository";
+import { SupabaseTableSessionGateway } from "./supabase/supabase-table-session-gateway";
 import { SupabaseRestaurantRepository } from "./supabase/supabase-restaurant-repository";
 import { SupabaseSettingsRepository } from "./supabase/supabase-settings-repository";
 
@@ -220,4 +233,29 @@ export const branding = {
     makeSetRestaurantLogo(await brandingDeps())(...args),
   removeLogo: async (...args: Parameters<ReturnType<typeof makeRemoveRestaurantLogo>>) =>
     makeRemoveRestaurantLogo(await brandingDeps())(...args),
+};
+
+// ─── Tables and table sessions ──────────────────────────────────────────
+
+/** Staff manage tables as the signed-in user, so RLS decides again: only OWNER and MANAGER change them. */
+async function tableDeps() {
+  return { tables: new SupabaseTableRepository(await createSessionClient()), ids: uuidIds, tokens: { newToken: newTableToken }, clock: systemClock };
+}
+
+export const tables = {
+  list: async (actor: TableActor) => makeListTables(await tableDeps())(actor),
+  add: async (...args: Parameters<ReturnType<typeof makeAddTable>>) => makeAddTable(await tableDeps())(...args),
+  rename: async (...args: Parameters<ReturnType<typeof makeRenameTable>>) => makeRenameTable(await tableDeps())(...args),
+  setActive: async (...args: Parameters<ReturnType<typeof makeSetTableActive>>) => makeSetTableActive(await tableDeps())(...args),
+  regenerateToken: async (...args: Parameters<ReturnType<typeof makeRegenerateTableToken>>) =>
+    makeRegenerateTableToken(await tableDeps())(...args),
+  delete: async (...args: Parameters<ReturnType<typeof makeDeleteTable>>) => makeDeleteTable(await tableDeps())(...args),
+};
+
+/** What a customer's phone does after scanning a table QR code: public, no login (narrow public database functions). */
+export const tableSessions = {
+  join: (input: { slug: string; token: string }) =>
+    makeJoinTableSession({ sessions: new SupabaseTableSessionGateway(createPublicClient()) })(input),
+  find: (input: { slug: string; sessionId: string }) =>
+    makeGetPublicSession({ sessions: new SupabaseTableSessionGateway(createPublicClient()) })(input),
 };

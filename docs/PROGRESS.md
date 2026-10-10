@@ -219,8 +219,29 @@ Read this after `PROJECT_SPEC.md` at the start of every session. Update it at th
     Look at: http://demo-dinein.localhost:3000/en/menu and http://demo-takeout.localhost:3000/ar/menu (no login).
   Not in this step: placing the order (needs table sessions + QR), takeout flow, item search/filters, nutrition/allergen info, per-item notes.
 
+- Phase 4 step 4b: tables, QR codes and table sessions (2026-10-10). QR design approved by Nour: the code carries a RANDOM token, never the table number.
+  Domain `domain/table-session/table-session.ts` (`TableSessionId` moved here, `order.ts` re-exports it): `Table` (label <= 20 chars, tidy, no control chars or markup; token 22-64 URL-safe chars = >= 128 bits; active flag; soft delete),
+  create / rename / switch on-off / regenerate token / delete; sessions OPEN -> PAYMENT_REQUESTED -> CLOSED (or OPEN -> CLOSED by hand), `acceptsOrders` only while OPEN, `permissionToMoveSessionTo`.
+  DB `20261010180000_tables_and_sessions.sql`: `restaurant_tables` (unique label per restaurant ignoring case/spacing, unique token across ALL restaurants, soft delete frees the label), `table_sessions`
+  (ONE live session per table by a partial unique index, status-flow trigger for every role, `ended_at` set by the trigger), the FK `orders.session_id -> table_sessions` (the one that was missing) and a trigger so orders can only be inserted into an OPEN
+  session of their own restaurant. RLS: staff read; OWNER/MANAGER add/change tables (column grants: never id or restaurant_id; no delete); sessions: waiter -> PAYMENT_REQUESTED, cashier -> CLOSED, owner/manager both; nobody inserts sessions as `authenticated`.
+  Public functions (SECURITY DEFINER, anon): `join_table_session(slug, token)` (returns {session_id, table_label, status} or NULL for unknown/foreign token, inactive or deleted table, dine-in off; creates the live session if none, race-safe) and `get_public_session(slug, id)`.
+  Seed: demo tables with FIXED local tokens (Grill: 1, 2, Terrace; Coffee: A, whose restaurant has dine-in off so its code is "not active" on purpose). pgTAP `tables_and_sessions.test.sql` (46) + `table_privileges` extended + the orders/place_order fixtures now use real sessions. `npx supabase test db` -> Tests=230.
+  App: ports `TableRepository`, `TableSessionGateway`, `TokenGenerator`; use cases `use-cases/tables/` (list / add / rename / set active / regenerate token / delete need `tables:manage`; `joinTableSession` refuses implausible tokens WITHOUT touching the DB); adapters; `newTableToken()` uses Web Crypto (NOT node:crypto: it is reachable from the middleware through the composition root).
+  UI: `/<locale>/staff/tables` (add, rename in place, switch off/on, NEW QR code with "are you sure?", delete, scan link shown, warning when dine-in is off in Settings), `/<locale>/staff/tables/print` (A4 cards, ONE or ALL active tables, restaurant name + logo + "Table 7 / طاولة 7" + QR + "Scan to order / امسح للطلب" in BOTH languages), dashboard card for OWNER/MANAGER.
+  QR drawn as plain SVG paths (no HTML injected) and a unit test decodes the rendered pixels with an independent reader (jsqr, dev dependency) back to the exact link.
+  Scan flow, all SERVER-side (first version used client JS and was flaky): printed link `<restaurant address>/t/<token>` (no language) -> `/t/[token]` redirects to the restaurant's DEFAULT language -> `/[locale]/t/[token]` (route handler) joins the session, sets the cookie `smartmenu_table_session`
+  (host-only, HttpOnly, SameSite=Lax, 12 h, Secure on https; value = session id only) and redirects to `/[locale]/menu`; invalid codes -> `/[locale]/scan-invalid` (same page for every reason, reveals nothing). The menu page reads the cookie, asks the database for the session and shows a "Table 7" banner
+  (a CLOSED session shows no table). 4c will read the session from this cookie on the server instead of trusting the browser.
+  Tests: 14 domain, 13 use-case, 5 qr + 1 decode, 4 mappers, 3 form-model, integration `tables.integration.test.ts` (4; sweeps its own `IT-T-` tables and the scanned seeded table's session), E2E `tables.spec.ts` (24). Full suite re-run after this step: 113 tests pass (18 min).
+    Look at: http://demo-dinein.localhost:3000/en/staff/tables (owner), .../staff/tables/print, and scan http://demo-dinein.localhost:3000/t/grill-table-2-demo-token-0002 (no login).
+  Review (high, 5 findings): fixed the domain/DB mismatch on C1 control characters in labels. TO DECIDE (skipped on purpose): (a) sessions never expire by themselves, so yesterday's OPEN session can be joined today: needs an idle time from the founders, then close stale sessions in join_table_session or a scheduled job; (b) the QR link uses the request host: derive it from the restaurant's canonical subdomain / custom domain in the custom-domain step; (c) E2E leaves soft-deleted tables and sessions (db reset clears them); (d) route handler and cookie options are covered by browser tests only.
+  ASSUMPTIONS to confirm with the founders: (1) once "ready to pay" is signalled the session does not reopen and takes no new orders; (2) a table has one live session at a time; (3) the 12-hour cookie lifetime.
+  Cleanup note: E2E soft-deletes the tables it creates (rows stay, invisible) and leaves their sessions; `npx supabase db reset` restores the seed exactly.
+  Not in this step: placing the order (4c), waiter/cashier screens that MOVE sessions (Phase 5; the database rules are ready), session timeout, takeout.
+
 ## In progress / verify first
-- Waiting for approval of: cashier completes orders, Phase 4 step 3 (orders app layer), Phase 3 step 12 (branding). Dev server + local
+- Waiting for approval of: Phase 4 step 4a (public menu + cart) and 4b (tables, QR codes, sessions). Dev server + local
   Supabase are running for Nour. After `npx supabase db reset` sign in again. NEW env var `SUPABASE_SERVICE_ROLE_KEY` (see `.env.example`): restart `npm run dev` after adding it.
 
 ## Phase 3 audit (2026-10-10): what is still left
@@ -229,7 +250,7 @@ Read this after `PROJECT_SPEC.md` at the start of every session. Update it at th
 - Deliberately NOT Phase 3: staff management and tables/QR (Phase 4/5), public customer menu read path (Phase 4).
 
 ## Next
-- Phase 4 step 4b: table sessions + tables + QR codes (domain -> DB incl. the FK on `orders.session_id` -> use cases -> owner screen to create tables / print QR), then step 4c: place the order from the cart (server action calling `orders.place` with restaurant from the host + rates from its settings; enable the cart's Place order button). Takeout waits for its open question.
+- Phase 4 step 4c: place the order from the cart. A server action reads the session from the `smartmenu_table_session` cookie, re-checks it with `tableSessions.find` (must be OPEN: `acceptsOrders`), resolves the restaurant from the host, reads the restaurant's CURRENT rates from its settings, and calls `orders.place`; then enable the cart's Place order button and show a confirmation with the order number. Takeout waits for its open question.
 - Then Phase 5: staff order screen (open queue, status buttons by role, sound alert, READY notification).
 - Takeout part of Phase 4 needs the takeout-session open question answered first.
 

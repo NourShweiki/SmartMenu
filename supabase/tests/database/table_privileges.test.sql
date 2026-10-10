@@ -3,13 +3,14 @@
 -- Run with: npx supabase test db
 begin;
 create extension if not exists pgtap with schema extensions;
-select plan(37);
+select plan(41);
 
 -- ── anon: nothing on any app table ──
 select table_privs_are('public', t, 'anon', array[]::text[], 'anon has no privileges on ' || t)
 from unnest(array['restaurants', 'restaurant_settings', 'restaurant_members', 'menu_categories', 'menu_items',
                   'option_groups', 'options', 'menu_item_option_groups',
-                  'orders', 'order_items', 'order_item_options', 'order_counters']) as t;
+                  'orders', 'order_items', 'order_item_options', 'order_counters',
+                  'restaurant_tables', 'table_sessions']) as t;
 
 -- ── authenticated: exactly what the app needs (column-level UPDATE grants are checked below) ──
 select table_privs_are('public', 'restaurants', 'authenticated', array['SELECT'], 'restaurants: read only');
@@ -24,6 +25,8 @@ select table_privs_are('public', 'orders', 'authenticated', array['SELECT'], 'or
 select table_privs_are('public', 'order_items', 'authenticated', array['SELECT'], 'order_items: read only');
 select table_privs_are('public', 'order_item_options', 'authenticated', array['SELECT'], 'order_item_options: read only');
 select table_privs_are('public', 'order_counters', 'authenticated', array[]::text[], 'order_counters: no access at all');
+select table_privs_are('public', 'restaurant_tables', 'authenticated', array['SELECT', 'INSERT'], 'restaurant_tables: no table-wide UPDATE or DELETE');
+select table_privs_are('public', 'table_sessions', 'authenticated', array['SELECT'], 'table_sessions: read only (status is a column grant)');
 
 -- ── Who may change which column of the original tables ──
 insert into auth.users (id, email) values ('aaaaaaaa-0000-4000-8000-0000000000f1', 'priv-owner@test.local');
@@ -61,6 +64,7 @@ select ok(not has_function_privilege('authenticated', 'public.next_order_number(
 select ok(has_function_privilege('service_role', 'public.next_order_number(uuid)', 'execute'), 'service_role can call next_order_number');
 select ok(not has_function_privilege('anon', 'public.has_restaurant_role(uuid, public.app_role[])', 'execute'), 'anon cannot call has_restaurant_role');
 select ok(has_function_privilege('anon', 'public.get_public_restaurant(text)', 'execute'), 'anon can call get_public_restaurant (the public read path)');
+
 
 select * from finish();
 rollback;

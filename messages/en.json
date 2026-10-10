@@ -31,7 +31,9 @@
     "settingsLink": "Settings",
     "settingsLinkHint": "Order types, tax, service charge and language",
     "brandingLink": "Branding",
-    "brandingLinkHint": "Logo, colour, name and contact details"
+    "brandingLinkHint": "Logo, colour, name and contact details",
+    "tablesLink": "Tables and QR codes",
+    "tablesLinkHint": "Add tables and print their QR codes"
   },
   "Settings": {
     "title": "Restaurant settings",
@@ -304,5 +306,53 @@
         "SELECTION_INVALID": "The choices for this item changed. Remove it and add it again."
       }
     }
+  },
+  "Tables": {
+    "title": "Tables and QR codes",
+    "backToDashboard": "Staff dashboard",
+    "backToTables": "Back to tables",
+    "intro": "Each table has its own QR code. Guests scan it to open your menu and order from their table.",
+    "dineInOff": "Dine-in is switched off in Settings, so scanning a QR code does nothing yet.",
+    "addTitle": "Add a table",
+    "labelField": "Table number or name",
+    "labelHint": "A number (7) or a short name (Terrace 2), up to 20 characters.",
+    "add": "Add table",
+    "empty": "No tables yet. Add your first table above.",
+    "tableName": "Table {label}",
+    "active": "Active",
+    "inactive": "Switched off",
+    "rename": "Rename",
+    "deactivate": "Switch off",
+    "activate": "Switch on",
+    "newQr": "New QR code",
+    "newQrConfirm": "Create a new QR code for this table? The printed one will stop working.",
+    "delete": "Delete",
+    "deleteConfirm": "Delete this table? Its QR code will stop working.",
+    "print": "Print QR code",
+    "printAll": "Print all QR codes",
+    "linkLabel": "Scan link",
+    "printTitle": "Print QR codes",
+    "printHint": "Use your browser's print dialog. Cards are laid out for A4 paper, two per row.",
+    "printButton": "Print",
+    "printNone": "There are no active tables to print.",
+    "errors": {
+      "required": "Enter a table number or name.",
+      "tooLong": "Use at most {max} characters.",
+      "invalid": "This name has characters that are not allowed.",
+      "taken": "A table with this name already exists.",
+      "forbidden": "Only the owner or a manager can change tables.",
+      "notFound": "This table no longer exists."
+    }
+  },
+  "TableCard": {
+    "table": "Table {label}",
+    "scan": "Scan to order",
+    "qrLabel": "QR code for table {label}"
+  },
+  "Table": {
+    "banner": "Table {label}",
+    "invalidTitle": "This QR code is not active",
+    "invalidBody": "Please ask a member of staff for help, or have a look at the menu.",
+    "viewMenu": "View menu"
   }
 }

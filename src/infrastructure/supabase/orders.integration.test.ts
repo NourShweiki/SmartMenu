@@ -17,8 +17,10 @@ import { SupabaseOrderingCatalog } from "./supabase-ordering-catalog";
 
 const GRILL = "11111111-1111-4000-8000-000000000001" as RestaurantId;
 const PASSWORD = "smartmenu-demo-2026"; // supabase/seed.sql
-// Table sessions do not exist yet, so a session is an opaque id. Fixed (not random) so leftovers can be found.
+// Orders belong to a real OPEN table session. The table and session are created by the test with FIXED ids
+// (not random), so leftovers from a killed run can be found and swept.
 const SESSION = "c0ffee00-0000-4000-8000-0000000000aa" as TableSessionId;
+const IT_TABLE = "c0ffee00-0000-4000-8000-0000000000ab";
 const enabled = !!process.env.NEXT_PUBLIC_SUPABASE_URL && !!process.env.SUPABASE_SERVICE_ROLE_KEY;
 
 async function staffRepo(email: string) {
@@ -35,12 +37,16 @@ describe.skipIf(!enabled)("orders against local Supabase", () => {
   /** Deletes every order of the test session and puts the counter back to the highest remaining number. */
   async function sweep() {
     await service.from("orders").delete().eq("restaurant_id", GRILL).eq("session_id", SESSION); // lines + options cascade
+    await service.from("table_sessions").delete().eq("id", SESSION);
+    await service.from("restaurant_tables").delete().eq("id", IT_TABLE);
     const { data } = await service.from("orders").select("number").eq("restaurant_id", GRILL).order("number", { ascending: false }).limit(1);
     await service.from("order_counters").upsert({ restaurant_id: GRILL, last_number: data?.[0]?.number ?? 0 });
   }
 
   beforeAll(async () => {
     await sweep(); // heal a previous run that was killed before its cleanup
+    await service.from("restaurant_tables").insert({ id: IT_TABLE, restaurant_id: GRILL, label: "IT-orders", token: "it-orders-token-00000000000001" });
+    await service.from("table_sessions").insert({ id: SESSION, restaurant_id: GRILL, table_id: IT_TABLE });
   });
 
   afterAll(async () => {

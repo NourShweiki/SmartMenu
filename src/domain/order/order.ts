@@ -13,10 +13,12 @@ import {
 import { MAX_PRICE_FILS, type Fils } from "@/domain/shared/money";
 import { err, ok, type LocalizedText, type Result } from "@/domain/shared/result";
 
+// Defined in the table-session context; re-exported so existing imports keep working.
+import type { TableSessionId } from "@/domain/table-session/table-session";
+export type { TableSessionId };
+
 export type OrderId = string & { readonly __brand: "OrderId" };
 export type OrderItemId = string & { readonly __brand: "OrderItemId" };
-/** One visit at one table (several devices can share it). The table-session context is built later. */
-export type TableSessionId = string & { readonly __brand: "TableSessionId" };
 
 /** Spec §4. Cancellation is NOT modelled yet: its rules need Nour's decision first (data-model skill §8). */
 export const ORDER_FLOW = ["NEW", "CONFIRMED", "PREPARING", "READY", "SERVED", "COMPLETED"] as const;

@@ -89,3 +89,12 @@ from public.menu_items i
 join public.option_groups g on g.restaurant_id = i.restaurant_id
 where (i.name_en in ('Mixed grill', 'Kebab') and g.name_en in ('Size', 'Extras'))
    or (i.name_en = 'Cappuccino' and g.name_en = 'Milk');
+
+-- ─── Demo tables (QR tokens are fixed here so tests and demos can scan them; LOCAL DEMO DATA ONLY) ───
+-- Real restaurants get random tokens from the owner screen. Demo Coffee is takeout-only (dine-in off), so
+-- scanning its table shows "not available": that is on purpose, it exercises the dine-in setting.
+insert into public.restaurant_tables (restaurant_id, label, token) values
+  ('11111111-1111-4000-8000-000000000001', '1',       'grill-table-1-demo-token-0001'),
+  ('11111111-1111-4000-8000-000000000001', '2',       'grill-table-2-demo-token-0002'),
+  ('11111111-1111-4000-8000-000000000001', 'Terrace', 'grill-terrace-demo-token-0003'),
+  ('22222222-2222-4000-8000-000000000002', 'A',       'coffee-table-a-demo-token-0001');

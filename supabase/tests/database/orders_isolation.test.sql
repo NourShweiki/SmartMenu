@@ -31,6 +31,14 @@ insert into public.options (id, restaurant_id, group_id, name_en, name_ar, price
   ('aaaaaaaa-5555-4000-8000-000000000004', 'aaaaaaaa-7777-4000-8000-000000000000', 'aaaaaaaa-5555-4000-8000-000000000003', 'A large', 'كبير أ', 500),
   ('bbbbbbbb-5555-4000-8000-000000000004', 'bbbbbbbb-7777-4000-8000-000000000000', 'bbbbbbbb-5555-4000-8000-000000000003', 'B large', 'كبير ب', 500);
 
+-- Orders belong to a real, OPEN table session of their own restaurant.
+insert into public.restaurant_tables (id, restaurant_id, label, token) values
+  ('aaaaaaaa-3434-4000-8000-000000000001', 'aaaaaaaa-7777-4000-8000-000000000000', '1', 'orders-test-token-a-0000000001'),
+  ('bbbbbbbb-3434-4000-8000-000000000001', 'bbbbbbbb-7777-4000-8000-000000000000', '1', 'orders-test-token-b-0000000001');
+insert into public.table_sessions (id, restaurant_id, table_id) values
+  ('aaaaaaaa-3333-4000-8000-000000000001', 'aaaaaaaa-7777-4000-8000-000000000000', 'aaaaaaaa-3434-4000-8000-000000000001'),
+  ('bbbbbbbb-3333-4000-8000-000000000001', 'bbbbbbbb-7777-4000-8000-000000000000', 'bbbbbbbb-3434-4000-8000-000000000001');
+
 -- ── Order numbers: 1, 2, 3 ... per restaurant ──
 select is(public.next_order_number('aaaaaaaa-7777-4000-8000-000000000000'), 1, 'first order number of A is 1');
 select is(public.next_order_number('aaaaaaaa-7777-4000-8000-000000000000'), 2, 'second order number of A is 2');

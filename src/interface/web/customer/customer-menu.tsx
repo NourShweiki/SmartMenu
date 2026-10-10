@@ -20,12 +20,15 @@ type Props = {
   rates: OrderRates;
   /** Public photo URLs by item id. */
   imageUrls: Record<string, string>;
+  /** The table this guest scanned (read by the server from the session cookie), or null. */
+  table: { label: string } | null;
 };
 
 /** The customer menu: browse, add to a cart (with option choices), review the cart with a price preview. */
-export function CustomerMenu({ restaurantSlug, sections, rates, imageUrls }: Props) {
+export function CustomerMenu({ restaurantSlug, sections, rates, imageUrls, table }: Props) {
   const t = useTranslations("Menu");
   const locale = useLocale() as Locale;
+  const tTable = useTranslations("Table");
   const { cart, ready, add, setQuantity, remove } = useCart(restaurantSlug);
   const [picking, setPicking] = useState<CustomerMenuItem | null>(null);
   const [cartOpen, setCartOpen] = useState(false);
@@ -64,6 +67,11 @@ export function CustomerMenu({ restaurantSlug, sections, rates, imageUrls }: Pro
   return (
     <>
       <div className="mx-auto flex max-w-2xl flex-col gap-8 px-4 py-6 pb-28">
+        {table && (
+          <p role="status" className="rounded-xl bg-white px-4 py-3 text-center font-semibold ring-1 ring-gray-200">
+            {tTable("banner", { label: table.label })}
+          </p>
+        )}
         {sections.length === 0 && <p className="py-10 text-center text-gray-500">{t("empty")}</p>}
 
         {sections.map(({ category, items }) => (
