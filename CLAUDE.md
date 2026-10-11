@@ -5,9 +5,9 @@ Then read `docs/PROGRESS.md` to see where work stopped (its **START HERE** secti
 
 ## Where the project is (update this block in every iteration)
 - **Phase 6, onboarding tools.** Done: step 1 (the team's setup tool: create a restaurant, owner's temporary password, change / replace / reissue passwords) and step 2 (staff accounts managed by the owner and manager: `/staff/team`).
-- **Now: step 3, takeout ordering** (designed in PROJECT_SPEC.md §4 "Takeout design"; nothing built yet). Start with part A: domain rules and database (a pickup visit = a session without a table, with the customer's name and mobile number).
+- **Now: step 3, takeout ordering** (design: PROJECT_SPEC.md §4 "Takeout design"). Part A (domain rules and database: a pickup visit = a session WITHOUT a table, with the customer's name and mobile number) is done. Next is part B (use cases and adapters: place a pickup order; session and order reads that cope with a visit that has no table), then the customer screen (C) and the staff screens (D). No screen offers takeout yet.
 - After that: setup checklist, menu import (spreadsheet, then AI), custom domains.
-- Last verified counts: 417 unit, 40 integration, 375 database (pgTAP), 150 browser tests.
+- Last verified counts: 426 unit, 40 integration, 417 database (pgTAP), 150 browser tests.
 
 ## Skills — load before the matching work
 - `architecture-rules` — before creating/editing any code file or deciding where code goes

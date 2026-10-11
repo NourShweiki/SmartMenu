@@ -45,6 +45,8 @@ These are decided and expensive to change. Do not deviate without the user's exp
 - Order: `NEW -> CONFIRMED -> PREPARING -> READY -> SERVED -> COMPLETED`, plus `CANCELLED` outside the flow (built; staff only, by role, with a reason, final, zero on the bill: PROJECT_SPEC.md §4). The database trigger enforces the flow and the roles.
 - Items added after confirmation create a NEW order/batch in the same session; they do not reopen a confirmed one.
 - Table session: `OPEN -> PAYMENT_REQUESTED -> CLOSED` (built; closes by itself 2 hours after it starts; cannot be closed over unfinished orders). A table has no stored status: it is "occupied" while it has a live session. Confirm extra states with the user before adding.
+- **A session is a TABLE visit or a PICKUP visit** (`table_sessions.kind`; takeout, built 2026-10-12): a pickup visit has NO table (`table_id` null) and carries `customer_name` + `customer_phone` (E.164) instead; a check constraint keeps the two shapes apart. It is created by `place_order` together with its first order (payload key `pickup`), never on its own, and closes itself when its last order is COMPLETED or CANCELLED. Any query that joins sessions to tables must be a LEFT join.
+- Takeout orders carry no service charge (`pickupRates`), and on a PICKUP order the CASHIER may do every status step (not cancel).
 - On READY: notify the session's devices (built as a notice on the guests' open menu page; no SMS for now).
 
 ## 9. Roles
@@ -58,7 +60,8 @@ These are decided and expensive to change. Do not deviate without the user's exp
 
 ## 10. Open questions — stop and ask before building these
 - Removing SINGLE items from a placed order (cancelling the whole order is decided and built).
-- Delivery equivalent of a table session. (Takeout is decided, 2026-10-11: a "pickup visit" = a session without a table, with the customer's name and phone; see PROJECT_SPEC.md §4 "Takeout design".)
+- Delivery equivalent of a table session.
+- May the cashier cancel a takeout order nobody collects? (today: no, owner / manager only) (Takeout is decided, 2026-10-11: a "pickup visit" = a session without a table, with the customer's name and phone; see PROJECT_SPEC.md §4 "Takeout design".)
 - Loyalty earn/redeem rules.
 - (Decided, no longer open: branding elements = logo + one accent colour of 8 + written details; cancellation rules; takeout design.)
 

@@ -102,7 +102,7 @@ Table QR Scan → Create/Join Session → Session Timer Starts → Browse Menu �
 ### AI Feedback Analysis (owner side)
 Categorizes complaints vs. suggestions, groups recurring issues, assigns priority.
 
-### Takeout design (Nour, 2026-10-11: "do what's best with takeout"; these are OUR choices, change them here if they turn out wrong; NOT built yet)
+### Takeout design (Nour, 2026-10-11: "do what's best with takeout"; these are OUR choices, change them here if they turn out wrong; the rules and the database part are built (2026-10-12), the screens are not)
 - A takeout order belongs to a **pickup visit**: the same thing as a table session, without a table. Instead of a table it carries the customer's **name and mobile number**. Everything built around table sessions keeps working unchanged: orders, "your orders" on the customer's phone, the ready notice, the staff order queue.
 - **Customer flow:** open the restaurant's menu (no QR code needed) → fill the cart → give name and mobile number → place the order → see the order number and follow its status on the same phone → get the ready notice → pick up and pay at the cashier.
 - The pickup visit starts when the first order is placed (not when the menu is opened) and ends by itself when its orders are completed or cancelled.
@@ -110,6 +110,11 @@ Categorizes complaints vs. suggestions, groups recurring issues, assigns priorit
 - On a restaurant with both dine-in and takeout: a phone that scanned a table orders for that table; any other phone orders takeout.
 - **Staff:** takeout orders appear in the same Orders queue, marked "Takeout" with the name and number instead of a table. The steps are the same; SERVED means "handed over". Because a takeout counter is often run by the cashier alone, **the cashier may move a takeout order through every step** (on dine-in orders the cashier still only completes).
 - **No service charge on takeout orders** (it is a table-service fee); tax applies as usual.
+- Details fixed while building (2026-10-12, ours):
+  - While a pickup visit is open (its order is still in progress, and for at most 2 hours) the same customer can order again without giving their name a second time; the next order after that starts a new visit.
+  - The customer's own phone learns the name the order is under, never the phone number back. Staff of the restaurant see both.
+  - **The cashier does not cancel**, also not a takeout order: cancelling stays with the owner, the manager and (before the kitchen starts) the waiter. *To confirm with Nour: in a counter run by the cashier alone, an order nobody collects can then only be cancelled by the owner or manager.*
+  - The name is 1 to 60 characters; the number must be a Jordanian mobile (077 / 078 / 079), written any usual way.
 
 ### Open question
 How does **delivery** map onto this model (addresses, fees, driver assignment)? Not designed. Flag this before building delivery.
@@ -265,7 +270,7 @@ Each phase ends with something demoable.
 9. **Pilot** — one real restaurant, real orders, daily feedback and fixes.
 10. **Launch & iterate** — more clients → delivery mode → AI features → eventually the full Super POS.
 
-**Where the build stands (2026-10-11; details in `docs/PROGRESS.md`):** phases 0 to 3 are done. Phase 4 is done for dine-in; takeout is designed (Section 4) and built inside Phase 6. Phase 5 is done except the order-ready SMS, left out for now by decision (guests get the notice on their phone instead). Phase 6 is in progress: the founders' setup tool (create a restaurant, owner's temporary password, issue a new one) and staff passwords are built; and staff accounts managed by the owner and manager (the Staff screen) are built; takeout, the setup checklist, menu import and custom domains are still to come. Everything runs locally; cloud deployment (Phase 1's "deploys") is postponed.
+**Where the build stands (2026-10-11; details in `docs/PROGRESS.md`):** phases 0 to 3 are done. Phase 4 is done for dine-in; takeout is designed (Section 4) and built inside Phase 6. Phase 5 is done except the order-ready SMS, left out for now by decision (guests get the notice on their phone instead). Phase 6 is in progress: the founders' setup tool (create a restaurant, owner's temporary password, issue a new one) and staff passwords are built; and staff accounts managed by the owner and manager (the Staff screen) are built; takeout has its rules and database part (no screen yet); the setup checklist, menu import and custom domains are still to come. Everything runs locally; cloud deployment (Phase 1's "deploys") is postponed.
 
 ---
 

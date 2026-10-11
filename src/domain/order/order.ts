@@ -14,6 +14,7 @@ import { MAX_PRICE_FILS, type Fils } from "@/domain/shared/money";
 import { err, ok, type LocalizedText, type Result } from "@/domain/shared/result";
 
 // Defined in the table-session context; re-exported so existing imports keep working.
+import type { SessionKind } from "@/domain/table-session/pickup";
 import type { TableSessionId } from "@/domain/table-session/table-session";
 export type { TableSessionId };
 
@@ -333,4 +334,23 @@ export const shouldNotifyCustomer = (status: OrderStatus): boolean => status ===
  */
 export function permissionToMoveTo(status: OrderStatus): Extract<Permission, "orders:confirm" | "payments:close"> {
   return status === "COMPLETED" ? "payments:close" : "orders:confirm";
+}
+
+// ─── Takeout (pickup orders) ────────────────────────────────────────────
+
+/**
+ * The rates of a takeout order: no service charge (it is a table-service fee), tax as usual (PROJECT_SPEC.md §4,
+ * "Takeout design"). The order then stores a service-charge rate of 0, like any rate it was placed with.
+ */
+export const pickupRates = (rates: OrderRates): OrderRates => ({ ...rates, serviceChargeBp: 0 });
+
+/**
+ * The permissions that each allow taking an order to this status, for an order of this kind of visit. At a table:
+ * exactly `permissionToMoveTo`. On a PICKUP order the cashier's permission is enough for every step, because a
+ * takeout counter is often run by the cashier alone; completing stays the cashier's (and owner's, manager's) for
+ * both. Mirrors the database policy "staff move orders by role" (migration takeout_pickup_visits).
+ */
+export function permissionsToMoveTo(status: OrderStatus, kind: SessionKind): readonly Extract<Permission, "orders:confirm" | "payments:close">[] {
+  if (status === "COMPLETED") return ["payments:close"];
+  return kind === "PICKUP" ? ["orders:confirm", "payments:close"] : ["orders:confirm"];
 }
