@@ -77,6 +77,8 @@ export function orderProblem(error: OrderUseCaseError): PlaceOrderProblem {
 export type PlaceCustomerOrderDeps = {
   findSession: (input: { slug: string; sessionId: string }) => Promise<PublicSession | null>;
   place: (input: PlaceOrderInput) => Promise<Result<Order, OrderUseCaseError>>;
+  /** The order this submission already produced in this table session, if any (asked only when no new order may be placed). */
+  findPlaced: (input: Pick<PlaceOrderInput, "restaurantId" | "sessionId"> & { requestId: string }) => Promise<Order | null>;
 };
 
 /**
@@ -105,7 +107,13 @@ export async function placeCustomerOrder(
   const session = await find();
   if (!session) return refuse("noTable");
   const closed = sessionProblem(session.status);
-  if (closed) return refuse(closed);
+  if (closed) {
+    // The visit no longer takes orders. But if THIS submission went through before that (its reply was lost and the
+    // guest is pressing again), the honest answer is its order number, not "scan again": otherwise the guest would
+    // scan, send the same cart in the new visit, and the kitchen would get it twice.
+    const earlier = await deps.findPlaced({ restaurantId: restaurant.id, sessionId: session.sessionId, requestId });
+    return earlier ? { ok: true, orderNumber: earlier.number } : refuse(closed);
+  }
 
   try {
     const result = await deps.place({

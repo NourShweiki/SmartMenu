@@ -1,6 +1,7 @@
 import { expect, type Page } from "@playwright/test";
 import ar from "../../messages/ar.json";
 import en from "../../messages/en.json";
+import { originOf } from "./server";
 
 /**
  * The two demo restaurants from supabase/seed.sql. They must always be on the same phase (CLAUDE.md), so every
@@ -14,7 +15,8 @@ export const LOCALES: Locale[] = ["en", "ar"];
 export const SITES = {
   grill: {
     key: "grill",
-    origin: "http://demo-dinein.localhost:3000",
+    slug: "demo-dinein",
+    origin: originOf("demo-dinein"),
     name: { en: "Demo Grill", ar: "مشاوي التجربة" },
     owner: "owner@demo-dinein.test",
     waiter: "waiter@demo-dinein.test",
@@ -37,7 +39,8 @@ export const SITES = {
   },
   coffee: {
     key: "coffee",
-    origin: "http://demo-takeout.localhost:3000",
+    slug: "demo-takeout",
+    origin: originOf("demo-takeout"),
     name: { en: "Demo Coffee", ar: "قهوة التجربة" },
     owner: "owner@demo-takeout.test",
     waiter: null,

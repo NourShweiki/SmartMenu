@@ -94,13 +94,13 @@ One codebase serves every restaurant (multi-tenant). Each restaurant lives on it
   - Clear messages, in Arabic and English, explain when an order cannot be placed: no table scanned, the visit ended, the bill was requested, something in the cart sold out or changed.
   - Pressing **Place order** twice is safe. If the reply gets lost on a weak connection and the guest presses again, they get the number of the order that already went through, not a second order in the kitchen.
   - Without a table the button stays off (takeout ordering is not built yet). Staff do not have a screen for incoming orders yet: that is the next phase.
-- **Browser tests.** 119 automated end-to-end tests drive a real browser through the app on both demo restaurants, in English and Arabic: login, language switch, roles, menu, settings, branding, the customer menu with its cart, tables with QR scanning, and placing an order. They change data and put it back. Run with `npm run test:e2e` (needs the local database).
+- **Browser tests.** 119 automated end-to-end tests drive a real browser through the app on both demo restaurants, in English and Arabic: login, language switch, roles, menu, settings, branding, the customer menu with its cart, tables with QR scanning, and placing an order. They change data and put it back. Run with `npm run test:e2e` (needs the local database): the tests build the app for production and start that build themselves, so they always check the current code in the form users get.
 - **Reliable updates after a save.** In production builds a bug in the React version bundled with our framework could leave a page showing old content after a successful save, until a reload. A small built-in guard now makes the page catch up by itself; the browser tests run against a production build to keep it that way.
 - **Quality gates.** CI runs typecheck, lint (including architecture-layer import rules), unit tests and a production build on every push. Database security tests (pgTAP) and integration tests run locally.
 
 ### ⬜ Not done yet (next up)
 
-- **Phase 5 (next):** the staff order screen (incoming orders live, status buttons by role, sound alert). Takeout ordering waits for a design decision.
+- **Phase 5 (next):** the staff order screen: incoming orders with their table, status buttons by role, staff cancelling an order, live updates with a sound alert, and a "your order is ready" notice on the guests' phones. Takeout ordering waits for a design decision.
 - **Phase 4+:** everything customer-facing, including:
   - takeout
   - the live staff order screen

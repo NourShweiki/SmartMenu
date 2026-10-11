@@ -11,7 +11,7 @@ const frameworks = ["next", "next/*", "react", "react-dom", "@supabase/*"];
 
 const eslintConfig = [
   ...compat.extends("next/core-web-vitals", "next/typescript"),
-  { ignores: ["node_modules/**", ".next/**", "out/**", "next-env.d.ts"] },
+  { ignores: ["node_modules/**", ".next/**", ".next-e2e/**", "out/**", "next-env.d.ts"] },
   {
     files: ["src/domain/**/*.{ts,tsx}"],
     rules: {

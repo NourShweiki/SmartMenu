@@ -1,5 +1,6 @@
 import { expect, test, type Page } from "@playwright/test";
 import { ALL_SITES, expectLocale, LOCALES, signIn, SITES, t, type Locale } from "./support/demo";
+import { hostOf, LOOPBACK_ORIGIN } from "./support/server";
 import { addTable, guest, openTables as open, removeTable, scanUrl, tableLabel as label, tableRow as row } from "./support/tables";
 
 // Owner: tables and QR codes. Guests: scanning. Everything the tests create is a table labelled "E2E ..." and it is
@@ -236,8 +237,8 @@ for (const locale of LOCALES) {
 
 test("the printed link on an address that is not a restaurant is a 404", async ({ page }) => {
   // (page.goto would show Chrome's own error page for a 404, so ask for the status directly.)
-  const response = await page.request.get("http://127.0.0.1:3000/t/anything-at-all-0123456789", {
-    headers: { Host: "no-such-place.localhost:3000" }, // the request client cannot resolve *.localhost names, Chrome can
+  const response = await page.request.get(`${LOOPBACK_ORIGIN}/t/anything-at-all-0123456789`, {
+    headers: { Host: hostOf("no-such-place") }, // the request client cannot resolve *.localhost names, Chrome can
     maxRedirects: 0,
   });
   expect(response.status()).toBe(404);

@@ -27,9 +27,16 @@ const KEY = "66666666-6666-4000-8000-000000000006";
 const CART = { lines: [{ key: "ignored", menuItemId: ITEM, optionIds: [OPTION], quantity: 2 }], requestId: KEY };
 
 /** Fake ports: a session whose status can change between calls, and a use case that records what it was asked. */
-function setup(options: { statuses?: (SessionStatus | null)[]; place?: () => Promise<ReturnType<typeof ok<Order>> | ReturnType<typeof err<OrderUseCaseError>>> } = {}) {
+function setup(
+  options: {
+    statuses?: (SessionStatus | null)[];
+    place?: () => Promise<ReturnType<typeof ok<Order>> | ReturnType<typeof err<OrderUseCaseError>>>;
+    /** Number of the order this submission already produced (its reply was lost), if it did. */
+    alreadyPlaced?: number;
+  } = {},
+) {
   const statuses = [...(options.statuses ?? ["OPEN"])];
-  const seen = { finds: [] as { slug: string; sessionId: string }[], placed: [] as PlaceOrderInput[] };
+  const seen = { finds: [] as { slug: string; sessionId: string }[], placed: [] as PlaceOrderInput[], lookups: [] as unknown[] };
   const deps = {
     findSession: async (input: { slug: string; sessionId: string }): Promise<PublicSession | null> => {
       seen.finds.push(input);
@@ -39,6 +46,10 @@ function setup(options: { statuses?: (SessionStatus | null)[]; place?: () => Pro
     place: async (input: PlaceOrderInput) => {
       seen.placed.push(input);
       return options.place ? options.place() : ok({ number: 42 } as Order);
+    },
+    findPlaced: async (input: { restaurantId: string; sessionId: string; requestId: string }) => {
+      seen.lookups.push(input);
+      return options.alreadyPlaced === undefined ? null : ({ number: options.alreadyPlaced } as Order);
     },
   };
   return { deps, seen };
@@ -164,6 +175,19 @@ describe("placeCustomerOrder", () => {
       expect(await placeCustomerOrder(deps, { restaurant: restaurant(), sessionId: SESSION, cart: CART })).toEqual({ ok: false, problem });
       expect(seen.placed).toHaveLength(0);
     }
+  });
+
+  it("answers a retry with its order even after the visit stopped taking orders, instead of 'scan again'", async () => {
+    for (const status of ["CLOSED", "PAYMENT_REQUESTED"] as const) {
+      const { deps, seen } = setup({ statuses: [status], alreadyPlaced: 17 });
+      expect(await placeCustomerOrder(deps, { restaurant: restaurant(), sessionId: SESSION, cart: CART })).toEqual({ ok: true, orderNumber: 17 });
+      expect(seen.lookups).toEqual([{ restaurantId: R, sessionId: SESSION, requestId: KEY }]); // this key, this table, this restaurant
+      expect(seen.placed).toHaveLength(0); // nothing new is placed in a visit that takes no orders
+    }
+    // While the visit is open the use case does the lookup itself: no extra question here.
+    const open = setup({ alreadyPlaced: 17 });
+    await placeCustomerOrder(open.deps, { restaurant: restaurant(), sessionId: SESSION, cart: CART });
+    expect(open.seen.lookups).toHaveLength(0);
   });
 
   it("passes on the use case's refusal, and logs one that no guest can cause", async () => {

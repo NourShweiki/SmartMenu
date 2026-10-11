@@ -14,7 +14,7 @@ import type { RestaurantId } from "@/domain/restaurant/restaurant";
 import type { Role } from "@/domain/restaurant/role";
 import { makeGetStaffOrders } from "./get-staff-orders";
 import { makeMoveOrderStatus } from "./move-order-status";
-import { makePlaceOrder } from "./place-order";
+import { makeFindPlacedOrder, makePlaceOrder } from "./place-order";
 
 const R = "11111111-1111-4000-8000-000000000001" as RestaurantId;
 const OTHER = "22222222-2222-4000-8000-000000000002" as RestaurantId;
@@ -196,6 +196,11 @@ describe("placeOrder", () => {
     expect(again).toEqual(first);
     expect(state.placed).toBe(1);
     expect(state.counters.get(R)).toBe(1); // the retry did not use up a number
+    // The same question on its own (asked when the visit no longer takes orders): this key, this table, this restaurant.
+    const findPlaced = makeFindPlacedOrder({ orders: repo });
+    expect(await findPlaced({ restaurantId: R, sessionId: SESSION, requestId: "key-1" })).toEqual(first);
+    expect(await findPlaced({ restaurantId: R, sessionId: SESSION, requestId: "key-9" })).toBeNull();
+    expect(await findPlaced({ restaurantId: OTHER, sessionId: SESSION, requestId: "key-1" })).toBeNull();
 
     // A new key (the next thing the guest orders) and no key at all are new orders.
     expect(unwrap(await place({ ...cart, requestId: "key-2" })).number).toBe(2);

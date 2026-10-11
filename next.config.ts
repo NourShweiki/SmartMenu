@@ -10,6 +10,9 @@ import type { NextConfig } from "next";
 const I18N_REQUEST_CONFIG = "./src/interface/web/i18n/request.ts";
 
 const nextConfig: NextConfig = {
+  // The browser tests build into their own folder (e2e/support/server.ts sets NEXT_DIST_DIR), so a test run never
+  // overwrites the dev server's `.next`. Everything else uses the default.
+  distDir: process.env.NEXT_DIST_DIR || ".next",
   reactStrictMode: true,
   experimental: {
     // Menu photos (max 5 MB, enforced in the domain + the storage bucket) are uploaded through a

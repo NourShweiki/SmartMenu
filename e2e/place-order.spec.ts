@@ -1,6 +1,7 @@
 import { expect, test, type Page } from "@playwright/test";
 import { jd, LOCALES, SITES, t, type Locale } from "./support/demo";
 import { addButton, cartBar, dialog, menuRow as row } from "./support/cart";
+import { hostOf, LOOPBACK_ORIGIN } from "./support/server";
 import { addTable, guest, openTables, removeTable, scanUrl, tableLabel, tableRow } from "./support/tables";
 
 // A guest places an order from the cart. Needs a table: each test adds its own ("E2E ...") and deletes it again.
@@ -100,8 +101,8 @@ test("when the reply is lost and the guest presses again, there is ONE order and
         lost++;
         // The server does its work... (sent from the test process, which cannot resolve *.localhost names: go to
         // 127.0.0.1 and name the restaurant in the Host header, with the guest's own cookies and headers)
-        const headers = { ...(await route.request().allHeaders()), host: new URL(site.origin).host };
-        const reply = await route.fetch({ url: route.request().url().replace(new URL(site.origin).hostname, "127.0.0.1"), headers });
+        const headers = { ...(await route.request().allHeaders()), host: hostOf(site.slug) };
+        const reply = await route.fetch({ url: route.request().url().replace(site.origin, LOOPBACK_ORIGIN), headers });
         lostStatus = reply.status(); // checked below: a failed expectation in here would only hang the request
         lostOrderNumber = Number(/"orderNumber":(\d+)/.exec(await reply.text())?.[1]);
         await route.abort("failed"); // ...and its reply gets lost

@@ -23,6 +23,16 @@ export type PlaceOrderInput = {
 };
 
 /**
+ * The order a submission already produced, if it did: the same lookup `placeOrder` starts with, on its own. For
+ * the moment when no NEW order may be placed any more (the table visit stopped taking orders) but the guest's
+ * earlier attempt, whose reply was lost, did go through.
+ */
+export function makeFindPlacedOrder(deps: { orders: OrderRepository }) {
+  return (input: { restaurantId: RestaurantId; sessionId: TableSessionId; requestId: string }): Promise<Order | null> =>
+    deps.orders.findByRequest(input.restaurantId, input.sessionId, input.requestId);
+}
+
+/**
  * Turns a cart into a NEW order: loads the live menu, lets the domain check every line and compute the
  * totals, then stores the order atomically. Ordering more after an earlier order is just another call for
  * the same session (spec §4): it starts again at NEW.

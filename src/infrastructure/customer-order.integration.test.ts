@@ -7,7 +7,7 @@
 // was killed halfway heals on the next one) and the restaurant's order counter is put back.
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { makeGetPublicMenu } from "@/application/use-cases/get-public-menu";
-import { makePlaceOrder } from "@/application/use-cases/orders/place-order";
+import { makeFindPlacedOrder, makePlaceOrder } from "@/application/use-cases/orders/place-order";
 import { makeGetPublicSession, makeJoinTableSession } from "@/application/use-cases/tables/join-table-session";
 import { priceCart, type Cart, type CartCatalogEntry } from "@/domain/cart/cart";
 import type { RestaurantId } from "@/domain/restaurant/restaurant";
@@ -32,6 +32,7 @@ describe.skipIf(!enabled)("a guest places an order, against local Supabase", () 
   // What the server action is given by the container, built here from the same adapters.
   const gateway = () => new SupabaseTableSessionGateway(anon);
   const deps = () => ({
+    findPlaced: makeFindPlacedOrder({ orders: new SupabaseOrderRepository(service, service) }),
     findSession: makeGetPublicSession({ sessions: gateway() }),
     place: makePlaceOrder({
       orders: new SupabaseOrderRepository(service, service),
@@ -114,8 +115,12 @@ describe.skipIf(!enabled)("a guest places an order, against local Supabase", () 
     const session = await scan(); // the same live visit as above
     const { data: hummus } = await service.from("menu_items").select("id").eq("restaurant_id", GRILL).eq("name_en", "Hummus").single();
     const cart = { lines: [{ menuItemId: hummus!.id, optionIds: [], quantity: 1 }], requestId: crypto.randomUUID() };
-    const before = (await ordersOfTable()).orderIds.length;
     const attempt = (restaurant: typeof grill) => placeCustomerOrder(deps(), { restaurant, sessionId: session.sessionId, cart });
+    // One order that DOES go through while the visit is open; pretend its reply was lost (the guest will press again).
+    const lostReply = { lines: cart.lines, requestId: crypto.randomUUID() };
+    const stored = await placeCustomerOrder(deps(), { restaurant: grill, sessionId: session.sessionId, cart: lostReply });
+    if (!stored.ok) throw new Error(stored.problem);
+    const before = (await ordersOfTable()).orderIds.length;
 
     // Demo Coffee has dine-in off; and even if it were on, a Grill session is not Coffee's.
     expect(await attempt(coffee)).toEqual({ ok: false, problem: "orderingOff" });
@@ -125,6 +130,8 @@ describe.skipIf(!enabled)("a guest places an order, against local Supabase", () 
       const { error } = await service.from("table_sessions").update({ status }).eq("id", session.sessionId);
       if (error) throw error;
       expect(await attempt(grill)).toEqual({ ok: false, problem });
+      // ...but the retry of the order that already went through gets its number, not "scan again".
+      expect(await placeCustomerOrder(deps(), { restaurant: grill, sessionId: session.sessionId, cart: lostReply })).toEqual(stored);
     }
     expect((await ordersOfTable()).orderIds).toHaveLength(before);
 

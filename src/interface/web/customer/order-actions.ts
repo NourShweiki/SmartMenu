@@ -13,7 +13,7 @@ export async function placeOrderAction(cart: unknown): Promise<PlaceOrderOutcome
   const site = await getCurrentSite();
   if (site.kind !== "restaurant") return { ok: false, problem: "failed" };
   return placeCustomerOrder(
-    { findSession: tableSessions.find, place: orders.place },
+    { findSession: tableSessions.find, place: orders.place, findPlaced: orders.findPlaced },
     { restaurant: site.restaurant, sessionId: await readSessionId(), cart },
   );
 }

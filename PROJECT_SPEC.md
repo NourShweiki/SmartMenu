@@ -72,8 +72,16 @@ Scan table QR → join/create session → browse digital menu (an AI assistant c
 `NEW → CONFIRMED → PREPARING → READY → SERVED → COMPLETED`
 On **READY**, push a notification to the customer's session device(s).
 **Rule:** when a customer adds items after confirming, the addition re-enters the flow at NEW (kitchen treats it as freshly needed work, not something already done).
-**Decided (Nour, 2026-10-11):** dine-in guests are notified when their order is READY too, not only takeout customers. (Assumed channel for dine-in: a notice on the devices that joined the table session, since no phone number is collected at a table; SMS for dine-in would mean asking the guest for a number first. Confirm before building SMS for dine-in.)
-**Decided (Nour, 2026-10-11): only staff can cancel an order.** A customer cannot cancel an order or remove items from it once it is placed; they ask the staff. Still to settle when it is built: which roles may cancel, up to which status, and how a cancelled order shows on the bill.
+**Decided (Nour, 2026-10-11):** dine-in guests are notified when their order is READY too. The notice shows on the phones that joined the table session (on the menu page they have open) and, where the phone allows it, also as a web notification. No SMS for now. (A web notification needs the guest's permission, and on iPhones the menu must first be added to the home screen, so the on-page notice is the one that always works; the web notification is an extra.)
+**Decided (Nour, 2026-10-11): only staff can cancel an order.** A customer cannot cancel an order or remove items from it once it is placed; they ask the staff.
+**Cancelling rules (Nour left the details to us, 2026-10-11: "choose what's best"; change them here if they turn out wrong):**
+- The **waiter** may cancel an order while it is NEW or CONFIRMED, that is before the kitchen has started on it.
+- The **owner and manager** may cancel any order that is not yet COMPLETED (also one being prepared, ready or served: that is a decision about wasted food or a refund, so it is theirs).
+- The **cashier** cannot cancel.
+- A cancelled order is never deleted. It stays in the list marked CANCELLED, with who cancelled it, when, and a short reason picked from a fixed list (guest changed their mind / item not available / entered by mistake / other).
+- CANCELLED is final: a cancelled order cannot be brought back; the guest orders again.
+- On the bill a cancelled order is shown struck through and counts as zero: it is left out of the visit's total.
+- The guests at the table see on their phones that the order was cancelled.
 **Open question — needs a decision before building this part:** can staff remove single items from a placed order, or only cancel the whole order?
 
 ### Staff roles
@@ -250,7 +258,7 @@ Each phase ends with something demoable.
 - How does takeout/delivery map onto the Table-Session model? (blocks Phase 4/10 delivery work)
 - Loyalty points: exact earn/redeem rules (blocks Phase 6/10 loyalty work)
 - ~~Menu UI editing: exact list of editable elements~~ — DECIDED 2026-10-10 (see Section 5)
-- Order cancellation details: only staff can cancel (decided 2026-10-11); which roles, up to which status, and the effect on the bill are still open (CANCELLED status is not built yet)
+- ~~Order cancellation rules~~: decided 2026-10-11 (see Section 4: staff only, waiter before the kitchen starts, owner/manager until completed, kept and shown at zero on the bill). CANCELLED is not built yet.
 - Is tax charged on top of the service charge? (assumed yes; kept as is by Nour, 2026-10-10)
 - Pricing model (intentionally deferred — doesn't block building)
 - Who owns finding/talking to the first pilot restaurant (doesn't block building)

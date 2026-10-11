@@ -34,7 +34,7 @@ import { makeUpdateBranding } from "@/application/use-cases/branding/update-bran
 import type { BrandingActor } from "@/application/use-cases/branding/shared";
 import { makeGetStaffOrders } from "@/application/use-cases/orders/get-staff-orders";
 import { makeMoveOrderStatus } from "@/application/use-cases/orders/move-order-status";
-import { makePlaceOrder } from "@/application/use-cases/orders/place-order";
+import { makeFindPlacedOrder, makePlaceOrder } from "@/application/use-cases/orders/place-order";
 import type { StaffActor } from "@/application/use-cases/permissions";
 import { makeGetRestaurantSettings } from "@/application/use-cases/settings/get-restaurant-settings";
 import { makeUpdateRestaurantSettings } from "@/application/use-cases/settings/update-restaurant-settings";
@@ -193,20 +193,29 @@ async function staffOrderDeps() {
   return { orders: new SupabaseOrderRepository(await createSessionClient()), clock: systemClock };
 }
 
+/** Customers have no account: their side of ordering runs on the server with the service-role client. */
+function customerOrderRepository() {
+  const service = createServiceClient();
+  return { service, orders: new SupabaseOrderRepository(service, service) };
+}
+
 export const orders = {
   /**
    * Places a customer's order. Customers have no account, so this runs server-side with the service-role
    * client; the restaurantId MUST come from the host and the rates from the restaurant's settings.
    */
   place: (...args: Parameters<ReturnType<typeof makePlaceOrder>>) => {
-    const service = createServiceClient();
+    const { service, orders: repository } = customerOrderRepository();
     return makePlaceOrder({
-      orders: new SupabaseOrderRepository(service, service),
+      orders: repository,
       catalog: new SupabaseOrderingCatalog(service),
       ids: uuidIds,
       clock: systemClock,
     })(...args);
   },
+  /** The order a customer's submission already produced (see makeFindPlacedOrder). Server-side, like `place`. */
+  findPlaced: (...args: Parameters<ReturnType<typeof makeFindPlacedOrder>>) =>
+    makeFindPlacedOrder({ orders: customerOrderRepository().orders })(...args),
   moveStatus: async (...args: Parameters<ReturnType<typeof makeMoveOrderStatus>>) =>
     makeMoveOrderStatus(await staffOrderDeps())(...args),
   getForStaff: async (actor: StaffActor, query?: Parameters<ReturnType<typeof makeGetStaffOrders>>[1]) =>
