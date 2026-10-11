@@ -48,6 +48,7 @@ function world(options: {
       return ok({ userId });
     },
     clearTemporaryPassword: async () => {},
+    setTemporaryPassword: async () => {},
     async remove(userId) {
       log.accounts.delete(userId);
       log.removed.push(userId);
@@ -55,6 +56,7 @@ function world(options: {
   };
   const restaurants: RestaurantDirectory = {
     list: async () => [],
+    owners: async () => [],
     clash: async () => options.clash ?? null,
     async create(actorId, restaurant, ownerId) {
       if (options.store) return options.store();

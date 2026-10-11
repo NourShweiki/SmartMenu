@@ -1,6 +1,12 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { UserId } from "@/application/ports/auth-gateway";
-import type { RestaurantClash, RestaurantDirectory, RestaurantSummary, StoreRestaurantError } from "@/application/ports/restaurant-directory";
+import type {
+  RestaurantClash,
+  RestaurantDirectory,
+  RestaurantOwner,
+  RestaurantSummary,
+  StoreRestaurantError,
+} from "@/application/ports/restaurant-directory";
 import type { Restaurant, RestaurantId } from "@/domain/restaurant/restaurant";
 import { err, ok, type Result } from "@/domain/shared/result";
 
@@ -45,6 +51,13 @@ export class SupabaseRestaurantDirectory implements RestaurantDirectory {
       name: { en: row.name_en, ar: row.name_ar },
       createdAt: new Date(row.created_at),
     }));
+  }
+
+  async owners(actorId: UserId, restaurantId?: RestaurantId): Promise<RestaurantOwner[]> {
+    const { data, error } = await this.service.rpc("list_restaurant_owners", { p_actor_id: actorId, p_restaurant_id: restaurantId ?? null });
+    if (error) throw new Error(`list_restaurant_owners failed: ${error.message}`);
+    const rows = (data ?? []) as { restaurant_id: string; user_id: string; email: string }[];
+    return rows.map((row) => ({ restaurantId: row.restaurant_id as RestaurantId, userId: row.user_id as UserId, email: row.email }));
   }
 
   async clash(id: RestaurantId, slug: string): Promise<RestaurantClash | null> {

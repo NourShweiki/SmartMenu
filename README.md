@@ -21,7 +21,7 @@ One codebase serves every restaurant (multi-tenant). Each restaurant lives on it
 | 3 | Menu & owner portal | ✅ Done |
 | 4 | Customer ordering (menu, cart, dine-in QR, takeout) | ✅ Dine-in done · takeout is designed and gets built inside Phase 6 |
 | 5 | Staff order screen (live orders, sound alert, order-ready notice) | ✅ Done (SMS left out for now, on purpose) |
-| 6 | Onboarding tools (setup tool, staff accounts, takeout, checklist, menu import, custom domains) | 🟡 In progress: setup tool and passwords done |
+| 6 | Onboarding tools (setup tool, staff accounts, takeout, checklist, menu import, custom domains) | 🟡 In progress: step 1 of 7 done (the team's setup tool, with passwords) |
 | 7 | Installable app (PWA) & push notifications | ⬜ Not started |
 | 8 | Hardening (security review, load tests, monitoring, backups) | ⬜ Not started |
 | 9–10 | Pilot restaurant, launch | ⬜ Not started |
@@ -38,6 +38,7 @@ One codebase serves every restaurant (multi-tenant). Each restaurant lives on it
 - **Setup tool** on the platform's own address (`/en/setup`): founders sign in, see every restaurant, and create a new one: names, web address, business type (dine-in or takeout, which sets the starting settings) and the owner's email.
   - The restaurant, its settings and the owner's account are created together or not at all. A form that is sent twice creates nothing the second time.
   - The owner's **temporary password** is shown once, to pass on. Only founders get in: a restaurant's staff are refused like a wrong password, and the tool does not exist on a restaurant's own address.
+  - The list shows each restaurant's owner. If a password was never passed on or the owner forgot it, a founder issues a **new temporary password** with one button: the old password stops working at once.
 
 #### For staff
 - **Login.** Email + password, with no public sign-up. Staff can only sign in on their own restaurant's site, and sessions are separate per restaurant.
@@ -64,15 +65,15 @@ One codebase serves every restaurant (multi-tenant). Each restaurant lives on it
 - The phone only sends what is in the cart. The restaurant, the table, the prices and the rates all come from the server's own side.
 
 #### Quality
-- **Automated tests:** 394 unit tests, 37 integration tests against a real local database, 322 database security tests (tenant isolation, roles, privileges), and 145 end-to-end tests that drive a real browser through both demo restaurants in English and Arabic.
+- **Automated tests:** 397 unit tests, 38 integration tests against a real local database, 333 database security tests (tenant isolation, roles, privileges), and 145 end-to-end tests that drive a real browser through both demo restaurants in English and Arabic.
 - The browser tests build the app for production and start that build themselves, so they check the code in the form users get; they remove everything they create.
 - **CI** runs typecheck, lint (including the architecture-layer import rules), unit tests and a production build on every push. Database, integration and browser tests run locally (CI has no database yet).
 
 ### ⬜ Not done yet
 
 - **Phase 6 (in progress): onboarding a new restaurant in under a day.** In this order:
-  1. ~~the founders' tool to create a restaurant with its first owner~~ ✅, ~~changing passwords and the forced change of a temporary one~~ ✅, then a founder action to issue a new temporary password
-  2. staff accounts managed by the owner (today a restaurant's other staff can only be added in the database)
+  1. ~~the team's setup tool: create a restaurant with its first owner, change passwords, replace a temporary password at first sign-in, issue a new temporary password~~ ✅
+  2. **next:** staff accounts managed by the owner (today a restaurant's other staff can only be added in the database)
   3. **takeout ordering** (designed: a pickup order with the customer's name and mobile number, followed on their phone like a table order). Until then a takeout-only restaurant such as Demo Coffee shows its menu but cannot take orders
   4. a setup checklist for the owner
   5. menu import from a spreadsheet
@@ -139,6 +140,8 @@ Then open:
 - http://demo-dinein.localhost:3000/en/staff/login for **staff login**: orders, open tables, menu, tables and QR codes, settings, branding
 - http://demo-dinein.localhost:3000/en/staff/tables to copy a table's QR link, which is how a customer "scans" a table on a computer
 - http://localhost:3000/en/setup for the **team's setup tool** (note: no restaurant name in front of `localhost`)
+
+Careful on the setup tool: **New temporary password** really replaces that owner's password, also for the demo owners (`npx supabase db reset` brings the demo passwords back).
 
 Demo accounts (local only): `owner@demo-dinein.test`, `waiter@demo-dinein.test`, `cashier@demo-dinein.test`, `owner@demo-takeout.test`, and the founder `founder@demo-platform.test` for the setup tool. The password is in [`supabase/seed.sql`](supabase/seed.sql).
 

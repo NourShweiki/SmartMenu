@@ -26,10 +26,19 @@ function world(signedIn: UserId | null = null) {
     },
   };
   const summary: RestaurantSummary = { id: "r-1" as RestaurantId, slug: "grill", name: { en: "Grill", ar: "مشاوي" }, createdAt: new Date("2026-10-11T10:00:00Z") };
-  const restaurants: Pick<RestaurantDirectory, "list"> = {
+  const restaurants: Pick<RestaurantDirectory, "list" | "owners"> = {
     async list() {
       state.listed++;
       return [summary];
+    },
+    async owners(actorId) {
+      state.listed++;
+      return actorId === FOUNDER
+        ? [
+            { restaurantId: summary.id, userId: OWNER, email: "owner@grill.test" },
+            { restaurantId: "r-other" as RestaurantId, userId: "user-x" as UserId, email: "x@other.test" },
+          ]
+        : [];
     },
   };
   const deps = { auth, admins: { isAdmin: async (userId: UserId) => userId === FOUNDER }, restaurants: restaurants as RestaurantDirectory };
@@ -58,7 +67,8 @@ describe("founder context and the list of restaurants", () => {
   it("lets a founder in and lists the restaurants", async () => {
     const { deps, summary } = world(FOUNDER);
     expect(await makeGetFounderContext(deps)()).toEqual({ ok: true, value: { userId: FOUNDER } });
-    expect(await makeListRestaurants(deps)()).toEqual({ ok: true, value: [summary] });
+    // Each restaurant comes with ITS owners only.
+    expect(await makeListRestaurants(deps)()).toEqual({ ok: true, value: [{ ...summary, owners: [{ userId: OWNER, email: "owner@grill.test" }] }] });
   });
 
   it("keeps everybody else out without touching the list", async () => {

@@ -8,6 +8,7 @@ import { getCurrentSite, restaurantOrigin } from "@/interface/web/current-site";
 import { DEFAULT_LOCALE, isLocale } from "@/interface/web/i18n/locales";
 import type { SignInState } from "@/interface/web/staff/actions";
 import { newRestaurantProblem, readNewRestaurantForm, toCreateRequest, type NewRestaurantState } from "./new-restaurant-model";
+import type { OwnerPasswordState } from "./owner-password";
 import { requireFounder } from "./require-founder";
 
 const MAX_EMAIL = 254;
@@ -55,4 +56,18 @@ export async function createRestaurantAction(locale: string, _prev: NewRestauran
     },
     formId: crypto.randomUUID(),
   };
+}
+
+/**
+ * "New temporary password" for a restaurant's owner. The two ids are bound by the page, but they are only a request:
+ * the use case checks that the signed-in person is a founder and that the account really is an owner of that
+ * restaurant before anything is changed.
+ */
+export async function issueOwnerPasswordAction(locale: string, restaurantId: string, ownerId: string): Promise<OwnerPasswordState> {
+  const l = isLocale(locale) ? locale : DEFAULT_LOCALE;
+  await requireFounder(l);
+
+  const result = await platform.issueTemporaryPassword({ restaurantId, ownerId });
+  if (!result.ok) return { error: result.error.type === "NOT_AN_OWNER" ? "notAnOwner" : "notAllowed" };
+  return { issued: { temporaryPassword: result.value.temporaryPassword } };
 }

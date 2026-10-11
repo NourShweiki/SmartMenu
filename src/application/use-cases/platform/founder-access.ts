@@ -1,6 +1,6 @@
 import type { AuthGateway, SignInError, UserId } from "@/application/ports/auth-gateway";
 import type { PlatformAdminRepository } from "@/application/ports/platform-admin-repository";
-import type { RestaurantDirectory, RestaurantSummary } from "@/application/ports/restaurant-directory";
+import type { RestaurantDirectory, RestaurantOwner, RestaurantSummary } from "@/application/ports/restaurant-directory";
 import { err, ok, type Result } from "@/domain/shared/result";
 
 export type Founder = { userId: UserId };
@@ -38,11 +38,20 @@ export function makeGetFounderContext(deps: AccessDeps) {
   };
 }
 
-/** Every restaurant on the platform, newest first: for founders only. */
+/** A line of the founders' list: the restaurant and who owns it. */
+export type ListedRestaurant = RestaurantSummary & { owners: Pick<RestaurantOwner, "userId" | "email">[] };
+
+/** Every restaurant on the platform with its owners, newest first: for founders only. */
 export function makeListRestaurants(deps: AccessDeps & { restaurants: RestaurantDirectory }) {
-  return async (): Promise<Result<RestaurantSummary[], FounderAccessError>> => {
+  return async (): Promise<Result<ListedRestaurant[], FounderAccessError>> => {
     const founder = await makeGetFounderContext(deps)();
     if (!founder.ok) return founder;
-    return ok(await deps.restaurants.list());
+    const [restaurants, owners] = await Promise.all([deps.restaurants.list(), deps.restaurants.owners(founder.value.userId)]);
+    return ok(
+      restaurants.map((restaurant) => ({
+        ...restaurant,
+        owners: owners.filter((o) => o.restaurantId === restaurant.id).map(({ userId, email }) => ({ userId, email })),
+      })),
+    );
   };
 }

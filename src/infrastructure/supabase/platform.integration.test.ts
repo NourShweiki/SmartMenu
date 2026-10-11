@@ -4,6 +4,8 @@
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import type { UserId } from "@/application/ports/auth-gateway";
 import { makeCreateRestaurant, type CreateRestaurantRequest } from "@/application/use-cases/platform/create-restaurant";
+import { makeListRestaurants } from "@/application/use-cases/platform/founder-access";
+import { makeIssueTemporaryPassword } from "@/application/use-cases/platform/issue-temporary-password";
 import { createRestaurant, type RestaurantId } from "@/domain/restaurant/restaurant";
 import { newTemporaryPassword } from "../random-token";
 import { createPublicClient, createServiceClient } from "./client";
@@ -108,6 +110,60 @@ describe.skipIf(!process.env.SUPABASE_SERVICE_ROLE_KEY)("founders' setup tool ag
     const sameOwner = request({ slug: `itest-${run}-two` });
     expect(await create(sameOwner)).toEqual({ ok: false, error: { type: "EMAIL_TAKEN" } });
     expect(await new SupabaseRestaurantRepository(createPublicClient()).findPublicBySlug(sameOwner.slug)).toBeNull();
+  });
+
+  it("a founder sees each restaurant's owner and gives them a new temporary password; the old one stops working", async () => {
+    const db = createPublicClient();
+    await db.auth.signInWithPassword({ email: "founder@demo-platform.test", password: PASSWORD });
+    const service = createServiceClient();
+    const deps = {
+      auth: new SupabaseAuthGateway(db),
+      admins: new SupabasePlatformAdminRepository(db),
+      accounts: new SupabaseAccountDirectory(service),
+      restaurants: new SupabaseRestaurantDirectory(service),
+      passwords: { newPassword: newTemporaryPassword },
+      clock: { now: () => new Date() },
+    };
+    const made = await makeCreateRestaurant(deps)(request({ slug: `itest-${run}-reset`, ownerEmail: `itest-${run}-reset@test.local` }));
+    if (!made.ok) throw new Error(`expected a restaurant, got ${JSON.stringify(made.error)}`);
+    const { restaurant, ownerEmail, temporaryPassword: first } = made.value;
+
+    // The list knows who owns what: the new restaurant its new owner, Demo Grill its seeded owner.
+    const listed = await makeListRestaurants(deps)();
+    if (!listed.ok) throw new Error("the founder should see the list");
+    const mine = listed.value.find((r) => r.id === restaurant.id);
+    expect(mine?.owners.map((o) => o.email)).toEqual([ownerEmail]);
+    expect(listed.value.find((r) => r.slug === "demo-dinein")?.owners.map((o) => o.email)).toEqual(["owner@demo-dinein.test"]);
+    const ownerId = mine!.owners[0]!.userId;
+
+    // The owner is signed in somewhere with the first password when the founder issues a new one.
+    const ownerSession = createPublicClient();
+    expect((await ownerSession.auth.signInWithPassword({ email: ownerEmail, password: first })).error).toBeNull();
+
+    const issue = makeIssueTemporaryPassword(deps);
+    // Never for an account that is not an owner of that restaurant: Demo Grill's owner, or the founder.
+    expect(await issue({ restaurantId: restaurant.id, ownerId: GRILL_OWNER })).toEqual({ ok: false, error: { type: "NOT_AN_OWNER" } });
+    expect(await issue({ restaurantId: restaurant.id, ownerId: FOUNDER })).toEqual({ ok: false, error: { type: "NOT_AN_OWNER" } });
+    expect((await createPublicClient().auth.signInWithPassword({ email: "owner@demo-dinein.test", password: PASSWORD })).error).toBeNull();
+
+    const issued = await issue({ restaurantId: restaurant.id, ownerId });
+    if (!issued.ok) throw new Error(`expected a new password, got ${JSON.stringify(issued.error)}`);
+    expect(issued.value.ownerEmail).toBe(ownerEmail);
+    expect(issued.value.temporaryPassword).not.toBe(first);
+
+    // The first password is dead, the owner's old session cannot be renewed, and the new password is a temporary one.
+    expect((await createPublicClient().auth.signInWithPassword({ email: ownerEmail, password: first })).error).not.toBeNull();
+    expect((await ownerSession.auth.refreshSession()).error).not.toBeNull();
+    const again = createPublicClient();
+    expect((await again.auth.signInWithPassword({ email: ownerEmail, password: issued.value.temporaryPassword })).error).toBeNull();
+    expect((await new SupabaseAuthGateway(again).currentUser())?.mustChangePassword).toBe(true);
+
+    // Restaurant staff cannot do any of this, and cannot read owners through the directory either.
+    const asOwner = createPublicClient();
+    await asOwner.auth.signInWithPassword({ email: "owner@demo-dinein.test", password: PASSWORD });
+    const ownerDeps = { ...deps, auth: new SupabaseAuthGateway(asOwner), admins: new SupabasePlatformAdminRepository(asOwner) };
+    expect(await makeIssueTemporaryPassword(ownerDeps)({ restaurantId: restaurant.id, ownerId })).toEqual({ ok: false, error: { type: "NOT_A_FOUNDER" } });
+    await expect(deps.restaurants.owners(GRILL_OWNER)).rejects.toThrow(/platform admin/);
   });
 
   it("refuses restaurant staff: nothing is created", async () => {

@@ -506,6 +506,13 @@
     "createdEmail": "Owner's email",
     "createdPassword": "Temporary password",
     "createdNote": "This password is shown only now and cannot be shown again. Pass it on to the owner before you leave this page.",
+    "owner": "Owner:",
+    "noOwner": "This restaurant has no owner account.",
+    "newPassword": "New temporary password",
+    "newPasswordPending": "Working…",
+    "newPasswordConfirm": "Give {email} a new temporary password? Their current password stops working at once.",
+    "newPasswordIssued": "New temporary password for {email}",
+    "newPasswordNote": "Shown only now. Pass it on to the owner: they will be asked to choose their own password when they sign in.",
     "errors": {
       "required": "This field is required.",
       "slugFormat": "Use 3 to 40 lower-case letters, digits or hyphens, starting and ending with a letter or digit.",
@@ -515,7 +522,8 @@
       "emailTaken": "This email already has an account. Use another email.",
       "alreadyCreated": "This restaurant was already created: the form was sent twice. You will find it in the list below.",
       "notAllowed": "You are not allowed to do this. Sign in again.",
-      "failed": "The restaurant could not be created. Reload the page and try again."
+      "failed": "The restaurant could not be created. Reload the page and try again.",
+      "notAnOwner": "This account is not an owner of this restaurant any more. Reload the page."
     }
   },
   "Password": {

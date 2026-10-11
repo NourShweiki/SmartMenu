@@ -25,6 +25,11 @@ export class SupabaseAccountDirectory implements AccountDirectory {
     return ok({ userId: data.user.id as UserId });
   }
 
+  async setTemporaryPassword(userId: UserId, password: string): Promise<void> {
+    const { error } = await this.service.auth.admin.updateUserById(userId, { password, app_metadata: { [TEMPORARY_PASSWORD_FLAG]: true } });
+    if (error) throw new Error(`setting a temporary password failed: ${error.message}`);
+  }
+
   async clearTemporaryPassword(userId: UserId): Promise<void> {
     const { error } = await this.service.auth.admin.updateUserById(userId, { app_metadata: { [TEMPORARY_PASSWORD_FLAG]: false } });
     if (error) throw new Error(`clearing the temporary-password mark failed: ${error.message}`);

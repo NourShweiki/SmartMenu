@@ -42,6 +42,7 @@ import { makeFindPlacedOrder, makePlaceOrder } from "@/application/use-cases/ord
 import type { StaffActor } from "@/application/use-cases/permissions";
 import { makeCreateRestaurant } from "@/application/use-cases/platform/create-restaurant";
 import { makeGetFounderContext, makeListRestaurants, makeSignInFounder } from "@/application/use-cases/platform/founder-access";
+import { makeIssueTemporaryPassword } from "@/application/use-cases/platform/issue-temporary-password";
 import { makeGetRestaurantSettings } from "@/application/use-cases/settings/get-restaurant-settings";
 import { makeUpdateRestaurantSettings } from "@/application/use-cases/settings/update-restaurant-settings";
 import type { SettingsActor } from "@/application/use-cases/settings/shared";
@@ -333,6 +334,9 @@ export const platform = {
   /** The signed-in founder, or why not: every setup page and action starts here. */
   founder: async () => makeGetFounderContext(await platformDeps())(),
   listRestaurants: async () => makeListRestaurants(await platformDeps())(),
+  /** A founder gives a restaurant's owner a new temporary password (see makeIssueTemporaryPassword). */
+  issueTemporaryPassword: async (...args: Parameters<ReturnType<typeof makeIssueTemporaryPassword>>) =>
+    makeIssueTemporaryPassword(await platformDeps())(...args),
   /** A founder creates a restaurant with its first owner (see makeCreateRestaurant). */
   createRestaurant: async (...args: Parameters<ReturnType<typeof makeCreateRestaurant>>) =>
     makeCreateRestaurant(await platformDeps())(...args),

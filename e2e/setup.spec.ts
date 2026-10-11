@@ -20,6 +20,7 @@ const field = (page: Page, locale: Locale, name: "nameEn" | "nameAr" | "slug" | 
 const create = (page: Page, locale: Locale) => page.getByRole("button", { name: t(locale, "Setup.submit"), exact: true });
 const list = (page: Page) => page.locator("section[aria-labelledby=restaurants]");
 const created = (page: Page, locale: Locale) => page.getByRole("status").filter({ hasText: t(locale, "Setup.createdPassword") });
+const PASSWORD_SHAPE = /^[a-hjkmnp-z2-9]{4}-[a-hjkmnp-z2-9]{4}-[a-hjkmnp-z2-9]{4}$/;
 
 for (const locale of LOCALES) {
   test(`setup /${locale}: only founders get in, and only on the platform's own address`, async ({ page }) => {
@@ -97,7 +98,7 @@ for (const locale of LOCALES) {
     await expect(notice.getByRole("link")).toHaveAttribute("href", `${originOf(slug)}/ar/staff/login`); // default language of a new restaurant
     await expect(notice).toContainText(email);
     const password = (await notice.locator("code").innerText()).trim();
-    expect(password).toMatch(/^[a-hjkmnp-z2-9]{4}-[a-hjkmnp-z2-9]{4}-[a-hjkmnp-z2-9]{4}$/);
+    expect(password).toMatch(PASSWORD_SHAPE);
     // The form is empty again and the restaurant is in the list, with its address.
     await expect(field(page, locale, "nameEn")).toHaveValue("");
     await expect(field(page, locale, "slug")).toHaveValue("");
@@ -170,6 +171,35 @@ for (const locale of LOCALES) {
     await expect(ownerPage.getByText(t(locale, "StaffLogin.invalid"))).toBeVisible();
     await signInAt(ownerPage, `${originOf(slug)}/${locale}/staff/login`, locale, email, own);
     await expect(ownerPage).toHaveURL(new RegExp(`/${locale}/staff$`));
+
+    // "The owner forgot their password": the founder's list shows the restaurant with its owner, and gives them a
+    // new temporary password (after an "are you sure?"). Demo Grill's row shows Demo Grill's owner, not this one.
+    await page.reload();
+    const row = list(page).getByRole("listitem", { name: name[locale], exact: true });
+    await expect(row).toContainText(email);
+    await expect(list(page).getByRole("listitem", { name: SITES.grill.name[locale], exact: true })).toContainText(SITES.grill.owner);
+    await expect(list(page).getByRole("listitem", { name: SITES.grill.name[locale], exact: true })).not.toContainText(email);
+    page.once("dialog", (dialog) => dialog.dismiss()); // "are you sure?" -> no: nothing happens
+    await row.getByRole("button", { name: t(locale, "Setup.newPassword"), exact: true }).click();
+    await expect(row.getByRole("status")).toHaveCount(0);
+    page.once("dialog", (dialog) => dialog.accept());
+    await row.getByRole("button", { name: t(locale, "Setup.newPassword"), exact: true }).click();
+    await expect(row.getByRole("status")).toContainText(t(locale, "Setup.newPasswordIssued", { email }));
+    const reissued = (await row.getByRole("status").locator("code").innerText()).trim();
+    expect(reissued).toMatch(PASSWORD_SHAPE);
+    expect(reissued).not.toBe(password);
+
+    // The owner's own password is dead; the new one is temporary again: it opens the change-password page only.
+    const later = await browser.newContext();
+    const laterPage = await later.newPage();
+    await signInAt(laterPage, `${originOf(slug)}/${locale}/staff/login`, locale, email, own);
+    await expect(laterPage.getByText(t(locale, "StaffLogin.invalid"))).toBeVisible();
+    await signInAt(laterPage, `${originOf(slug)}/${locale}/staff/login`, locale, email, reissued);
+    await expect(laterPage).toHaveURL(new RegExp(`/${locale}/staff/password$`));
+    await expect(laterPage.getByText(t(locale, "Password.temporaryNotice"))).toBeVisible();
+    await submitPasswordChange(laterPage, locale, reissued, `${own} again`);
+    await expect(laterPage.getByText(t(locale, "Password.saved"))).toBeVisible();
+    await later.close();
     await owner.close();
   });
 }

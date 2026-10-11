@@ -9,8 +9,9 @@ import { formatDayTime } from "@/interface/web/format";
 import { initLocale } from "@/interface/web/i18n/init-locale";
 import { otherLocale } from "@/interface/web/i18n/locales";
 import { bpToRateInput } from "@/interface/web/rate-input";
-import { createRestaurantAction, signOutFounderAction } from "@/interface/web/setup/actions";
+import { createRestaurantAction, issueOwnerPasswordAction, signOutFounderAction } from "@/interface/web/setup/actions";
 import { NewRestaurantForm } from "@/interface/web/setup/new-restaurant-form";
+import { OwnerPassword } from "@/interface/web/setup/owner-password";
 import { requireFounder } from "@/interface/web/setup/require-founder";
 
 const presetRates = (type: BusinessType) => {
@@ -18,7 +19,8 @@ const presetRates = (type: BusinessType) => {
   return { tax: bpToRateInput(preset.taxRateBp), service: bpToRateInput(preset.serviceChargeBp) };
 };
 
-// The founders' setup tool: every restaurant on the platform, and the form that creates a new one.
+// The founders' setup tool: the form that creates a new restaurant, and every restaurant on the platform with its
+// owner(s), who can be given a new temporary password from here.
 export default async function SetupPage({ params }: { params: Promise<{ locale: string }> }) {
   const locale = await initLocale(params);
   await requireFounder(locale);
@@ -65,21 +67,27 @@ export default async function SetupPage({ params }: { params: Promise<{ locale: 
           </h2>
           <ul className="divide-y divide-gray-100">
             {rows.map((restaurant) => (
-              <li key={restaurant.id} className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1 py-3">
-                <div>
-                  <p className="font-semibold">{localized(restaurant.name, locale)}</p>
-                  <p className="text-sm text-gray-500">
-                    <bdi lang={other}>{localized(restaurant.name, other)}</bdi>
-                  </p>
+              <li key={restaurant.id} aria-label={localized(restaurant.name, locale)} className="flex flex-col gap-2 py-3">
+                <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1">
+                  <div>
+                    <p className="font-semibold">{localized(restaurant.name, locale)}</p>
+                    <p className="text-sm text-gray-500">
+                      <bdi lang={other}>{localized(restaurant.name, other)}</bdi>
+                    </p>
+                  </div>
+                  <div className="text-end text-sm">
+                    <a href={`${restaurant.origin}/${locale}`} target="_blank" rel="noreferrer" className="underline">
+                      <bdi dir="ltr">{restaurant.origin.replace(/^https?:\/\//, "")}</bdi>
+                    </a>
+                    <p className="text-gray-500">
+                      {t("createdOn")} <bdi>{formatDayTime(restaurant.createdAt, locale)}</bdi>
+                    </p>
+                  </div>
                 </div>
-                <div className="text-end text-sm">
-                  <a href={`${restaurant.origin}/${locale}`} target="_blank" rel="noreferrer" className="underline">
-                    <bdi dir="ltr">{restaurant.origin.replace(/^https?:\/\//, "")}</bdi>
-                  </a>
-                  <p className="text-gray-500">
-                    {t("createdOn")} <bdi>{formatDayTime(restaurant.createdAt, locale)}</bdi>
-                  </p>
-                </div>
+                {restaurant.owners.length === 0 && <p className="text-sm text-amber-800">{t("noOwner")}</p>}
+                {restaurant.owners.map((owner) => (
+                  <OwnerPassword key={owner.userId} email={owner.email} action={issueOwnerPasswordAction.bind(null, locale, restaurant.id, owner.userId)} />
+                ))}
               </li>
             ))}
           </ul>
