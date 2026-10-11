@@ -82,9 +82,12 @@ describe.skipIf(!enabled)("a guest places an order, against local Supabase", () 
     // Computed by hand from the seed: (4.500 + 2.000 + 0.250) x 2, 10% service, 16% tax on both.
     expect(preview).toMatchObject({ canCheckout: true, subtotalFils: 13500, serviceChargeFils: 1350, taxFils: 2376, totalFils: 17226 });
 
-    // JSON round trip, as the cart arrives from a browser.
-    const outcome = await placeCustomerOrder(deps(), { restaurant: grill, sessionId: session.sessionId, cart: JSON.parse(JSON.stringify(cart)) });
+    // JSON round trip, as the cart arrives from a browser, with the device's key for this submission.
+    const sent = JSON.parse(JSON.stringify({ ...cart, requestId: crypto.randomUUID() }));
+    const outcome = await placeCustomerOrder(deps(), { restaurant: grill, sessionId: session.sessionId, cart: sent });
     if (!outcome.ok) throw new Error(outcome.problem);
+    // The reply is lost and the guest presses again: the same order number comes back, and (below) there is ONE order.
+    expect(await placeCustomerOrder(deps(), { restaurant: grill, sessionId: session.sessionId, cart: sent })).toEqual(outcome);
 
     // The waiter, signed in, finds it in this table's session exactly as previewed.
     const waiterDb = createPublicClient();
@@ -110,7 +113,7 @@ describe.skipIf(!enabled)("a guest places an order, against local Supabase", () 
     const coffee = await restaurantOf("demo-takeout");
     const session = await scan(); // the same live visit as above
     const { data: hummus } = await service.from("menu_items").select("id").eq("restaurant_id", GRILL).eq("name_en", "Hummus").single();
-    const cart = { lines: [{ menuItemId: hummus!.id, optionIds: [], quantity: 1 }] };
+    const cart = { lines: [{ menuItemId: hummus!.id, optionIds: [], quantity: 1 }], requestId: crypto.randomUUID() };
     const before = (await ordersOfTable()).orderIds.length;
     const attempt = (restaurant: typeof grill) => placeCustomerOrder(deps(), { restaurant, sessionId: session.sessionId, cart });
 
@@ -129,5 +132,7 @@ describe.skipIf(!enabled)("a guest places an order, against local Supabase", () 
     const fresh = await scan();
     expect(fresh.sessionId).not.toBe(session.sessionId);
     expect(await placeCustomerOrder(deps(), { restaurant: grill, sessionId: fresh.sessionId, cart })).toMatchObject({ ok: true });
+    // A cart without a key is refused outright: nothing from the cart may be placed unprotected.
+    expect(await placeCustomerOrder(deps(), { restaurant: grill, sessionId: fresh.sessionId, cart: { lines: cart.lines } })).toEqual({ ok: false, problem: "failed" });
   });
 });

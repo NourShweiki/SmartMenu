@@ -79,7 +79,8 @@ for (const site of ALL_SITES) {
     try {
       await page.goto(`${site.origin}/${locale}`);
       await expect(pageLogo).toBeVisible();
-      expect(await pageLogo.evaluate((img: HTMLImageElement) => img.naturalWidth)).toBeGreaterThan(0);
+      // Visible is not yet loaded: wait until the picture itself has arrived (a broken image stays at width 0).
+      await expect.poll(() => pageLogo.evaluate((img: HTMLImageElement) => img.naturalWidth)).toBeGreaterThan(0);
     } finally {
       await page.goto(`${site.origin}/${locale}/staff/branding`);
       page.once("dialog", (dialog) => dialog.accept());

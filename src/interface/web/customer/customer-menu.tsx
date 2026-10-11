@@ -14,6 +14,7 @@ import { CartPanel } from "./cart-panel";
 import { OptionPicker } from "./option-picker";
 import { placeOrderAction } from "./order-actions";
 import type { PlaceOrderOutcome, PlaceOrderProblem } from "./place-order-model";
+import { forgetRequestKey, requestKeyFor } from "./request-key";
 import { useCart } from "./use-cart";
 
 type Props = {
@@ -69,15 +70,30 @@ export function CustomerMenu({ restaurantSlug, sections, rates, imageUrls, table
       : t("errors.tooMany", { max: error.type === "QUANTITY_TOO_HIGH" ? error.max : MAX_LINE_QUANTITY });
   };
 
-  /** Sends the cart (ids and quantities only: the server takes restaurant, table and prices from its own side). */
+  /** Where the key of the last submission is remembered (next to the cart). Null when the browser refuses storage. */
+  const keyStore = () => {
+    try {
+      return window.localStorage;
+    } catch {
+      return null;
+    }
+  };
+
+  /**
+   * Sends the cart (ids and quantities only: the server takes restaurant, table and prices from its own side),
+   * with a key that stays the same when the same cart is sent again: if the reply was lost and the guest presses
+   * once more, the server answers with the order it already has instead of making a second one.
+   */
   const placeOrder = async (): Promise<PlaceOrderProblem | null> => {
+    const requestId = requestKeyFor(keyStore(), restaurantSlug, cart.lines, Date.now());
     let outcome: PlaceOrderOutcome;
     try {
-      outcome = await placeOrderAction({ lines: cart.lines });
+      outcome = await placeOrderAction({ lines: cart.lines, requestId });
     } catch {
-      outcome = { ok: false, problem: "failed" }; // no connection, or the server could not be reached
+      outcome = { ok: false, problem: "failed" }; // no connection, or the reply never arrived (the order may exist)
     }
     if (outcome.ok) {
+      forgetRequestKey(keyStore(), restaurantSlug); // the next order, even of the same things, is a new one
       clear();
       setPlacedOrderNumber(outcome.orderNumber);
       setCartOpen(true); // the confirmation lives in the cart dialog: make sure it is seen

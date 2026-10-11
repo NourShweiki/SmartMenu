@@ -44,6 +44,15 @@ export function readCartLines(cart: unknown): CartLines | null {
   return lines;
 }
 
+/**
+ * The device's key for this submission (see request-key.ts). Required: every order from the cart must be safe to
+ * send twice. Anything that is not a UUID refuses the request.
+ */
+export function readRequestId(cart: unknown): string | null {
+  const id = typeof cart === "object" && cart !== null ? (cart as { requestId?: unknown }).requestId : undefined;
+  return isId(id) ? id : null;
+}
+
 const sessionProblem = (status: SessionStatus): PlaceOrderProblem | null =>
   status === "OPEN" ? null : status === "PAYMENT_REQUESTED" ? "paymentRequested" : "sessionEnded";
 
@@ -72,7 +81,7 @@ export type PlaceCustomerOrderDeps = {
 
 /**
  * A guest presses "Place order". Nothing the browser says is trusted except WHAT is in the cart (ids and
- * quantities): the restaurant comes from the host, the session from the HttpOnly cookie, the rates from the
+ * quantities) and its key for this submission (which only makes a repeat harmless): the restaurant comes from the host, the session from the HttpOnly cookie, the rates from the
  * restaurant's current settings, names and prices from the live menu (inside the use case).
  *
  * The session's status comes from the database, which already reports a visit older than 2 hours as CLOSED
@@ -88,7 +97,8 @@ export async function placeCustomerOrder(
   if (!restaurant.settings.dineInEnabled) return refuse("orderingOff");
   if (!sessionId) return refuse("noTable");
   const lines = readCartLines(input.cart);
-  if (!lines) return refuse("failed");
+  const requestId = readRequestId(input.cart);
+  if (!lines || !requestId) return refuse("failed");
   if (lines.length === 0) return refuse("empty");
 
   const find = () => deps.findSession({ slug: restaurant.slug, sessionId });
@@ -103,6 +113,7 @@ export async function placeCustomerOrder(
       sessionId: session.sessionId,
       rates: { taxRateBp: restaurant.settings.taxRateBp, serviceChargeBp: restaurant.settings.serviceChargeBp },
       lines,
+      requestId, // a retry of the same submission gets the order that is already there
     });
     if (result.ok) return { ok: true, orderNumber: result.value.number };
     const problem = orderProblem(result.error);

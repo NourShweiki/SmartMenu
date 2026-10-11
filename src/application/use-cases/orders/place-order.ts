@@ -4,7 +4,7 @@ import type { Clock, IdGenerator } from "@/application/ports/system";
 import type { MenuItemId } from "@/domain/menu/menu";
 import { createOrder, type Order, type OrderLineRequest, type OrderRates, type TableSessionId } from "@/domain/order/order";
 import type { RestaurantId } from "@/domain/restaurant/restaurant";
-import { err, type Result } from "@/domain/shared/result";
+import { err, ok, type Result } from "@/domain/shared/result";
 import type { OrderUseCaseError } from "./shared";
 
 export type PlaceOrderInput = {
@@ -15,12 +15,21 @@ export type PlaceOrderInput = {
   rates: OrderRates;
   /** The cart as the customer sent it: ids and quantities only. Names and prices come from the live menu. */
   lines: readonly { menuItemId: string; quantity: number; selectedOptionIds: readonly string[] }[];
+  /**
+   * One random key per submission, made up by the customer's device; a retry sends the same key. With it, placing
+   * is safe to repeat: the second call returns the first order. Without it every call is a new order.
+   */
+  requestId?: string;
 };
 
 /**
  * Turns a cart into a NEW order: loads the live menu, lets the domain check every line and compute the
  * totals, then stores the order atomically. Ordering more after an earlier order is just another call for
  * the same session (spec §4): it starts again at NEW.
+ *
+ * A repeated submission (same `requestId` in the same session, e.g. the reply was lost and the guest pressed again)
+ * returns the order that was already placed: no second order, no new number, and no fresh look at the menu (the
+ * order exists, whatever sold out since).
  */
 export function makePlaceOrder(deps: {
   orders: OrderRepository;
@@ -29,6 +38,11 @@ export function makePlaceOrder(deps: {
   clock: Clock;
 }) {
   return async (input: PlaceOrderInput): Promise<Result<Order, OrderUseCaseError>> => {
+    if (input.requestId) {
+      const earlier = await deps.orders.findByRequest(input.restaurantId, input.sessionId, input.requestId);
+      if (earlier) return ok(earlier);
+    }
+
     const entries = await deps.catalog.findEntries(
       input.restaurantId,
       input.lines.map((l) => l.menuItemId as MenuItemId),
@@ -51,7 +65,11 @@ export function makePlaceOrder(deps: {
     const number = await deps.orders.nextNumber(input.restaurantId);
     const order = createOrder({ ...base, number }, deps.ids, now);
     if (!order.ok) return order;
-    await deps.orders.place(order.value);
-    return order;
+    const storedId = await deps.orders.place(order.value, input.requestId);
+    if (storedId === order.value.id) return order;
+    // The same submission arrived twice at the same moment and the other one was stored first: that is the order.
+    const earlier = await deps.orders.findById(input.restaurantId, storedId);
+    if (!earlier) throw new Error(`place returned order ${storedId}, which cannot be read back`);
+    return ok(earlier);
   };
 }

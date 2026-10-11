@@ -98,10 +98,14 @@ export function toOrder(row: OrderRow): Order {
   };
 }
 
-/** The jsonb payload of public.place_order (see migration 20261010140000). Array order = receipt order. */
-export function toPlaceOrderPayload(order: Order) {
+/**
+ * The jsonb payload of public.place_order (migrations 20261010140000 and 20261011100000). Array order = receipt
+ * order. `requestId` is the device's key for this submission (null = none: every call is a new order).
+ */
+export function toPlaceOrderPayload(order: Order, requestId?: string) {
   return {
     id: order.id,
+    client_request_id: requestId ?? null,
     restaurant_id: order.restaurantId,
     session_id: order.sessionId,
     number: order.number,
@@ -156,9 +160,25 @@ export class SupabaseOrderRepository implements OrderRepository {
     return data as number;
   }
 
-  async place(order: Order): Promise<void> {
-    const { error } = await this.server().rpc("place_order", { p_order: toPlaceOrderPayload(order) });
+  async place(order: Order, requestId?: string): Promise<OrderId> {
+    const { data, error } = await this.server().rpc("place_order", { p_order: toPlaceOrderPayload(order, requestId) });
     if (error) throw new Error(`place_order failed: ${error.message}`);
+    // The function names the order now stored for this request: ours, or an earlier one with the same key.
+    if (typeof data !== "string") throw new Error("place_order returned no order id");
+    return data as OrderId;
+  }
+
+  async findByRequest(restaurantId: RestaurantId, sessionId: TableSessionId, requestId: string): Promise<Order | null> {
+    if (!UUID.test(sessionId) || !UUID.test(requestId)) return null;
+    const { data, error } = await this.db
+      .from("orders")
+      .select(ORDER_COLUMNS)
+      .eq("restaurant_id", restaurantId)
+      .eq("session_id", sessionId)
+      .eq("client_request_id", requestId)
+      .maybeSingle();
+    if (error) throw new Error(`read order by request failed: ${error.message}`);
+    return data ? toOrder(data as unknown as OrderRow) : null;
   }
 
   async findById(restaurantId: RestaurantId, orderId: OrderId): Promise<Order | null> {

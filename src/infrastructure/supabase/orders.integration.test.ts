@@ -114,6 +114,47 @@ describe.skipIf(!enabled)("orders against local Supabase", () => {
     expect(await cashierRepo.updateStatus(GRILL, order.id, "COMPLETED", "NEW")).toBe(false); // cannot go back
   });
 
+  it("a repeated submission (same request key) returns the first order and stores nothing new", async () => {
+    const serverRepo = new SupabaseOrderRepository(service, service);
+    const catalog = new SupabaseOrderingCatalog(service);
+    const { data } = await service.from("menu_items").select("id").eq("restaurant_id", GRILL).eq("name_en", "Hummus").single();
+    const place = makePlaceOrder({ orders: serverRepo, catalog, ids: { newId: () => crypto.randomUUID() }, clock: { now: () => new Date() } });
+    const cart = {
+      restaurantId: GRILL,
+      sessionId: SESSION,
+      rates: { taxRateBp: 1600, serviceChargeBp: 1000 },
+      lines: [{ menuItemId: data!.id as MenuItemId, quantity: 1, selectedOptionIds: [] }],
+    };
+    const key = crypto.randomUUID();
+    const countInSession = async () => (await serverRepo.listBySession(GRILL, SESSION)).length;
+    const before = await countInSession();
+    const counter = async () => (await service.from("order_counters").select("last_number").eq("restaurant_id", GRILL).single()).data!.last_number as number;
+
+    const first = await place({ ...cart, requestId: key });
+    if (!first.ok) throw new Error(JSON.stringify(first.error));
+    const numbersUsed = await counter();
+
+    // The retry: same key. Same order back, no new row, no order number used up.
+    const retry = await place({ ...cart, requestId: key });
+    expect(retry).toEqual(first);
+    expect(await countInSession()).toBe(before + 1);
+    expect(await counter()).toBe(numbersUsed);
+    expect(await serverRepo.findByRequest(GRILL, SESSION, key)).toEqual(first.value);
+
+    // Two copies arriving together (neither sees the other when it looks first): the database keeps one.
+    const key2 = crypto.randomUUID();
+    const [a, b] = await Promise.all([place({ ...cart, requestId: key2 }), place({ ...cart, requestId: key2 })]);
+    if (!a.ok || !b.ok) throw new Error("parallel placing failed");
+    expect(a.value.id).toBe(b.value.id);
+    expect(await countInSession()).toBe(before + 2);
+
+    // A new key is a new order; a key that is not a real id finds nothing.
+    const next = await place({ ...cart, requestId: crypto.randomUUID() });
+    if (!next.ok) throw new Error(JSON.stringify(next.error));
+    expect(next.value.id).not.toBe(first.value.id);
+    expect(await serverRepo.findByRequest(GRILL, SESSION, "not-a-key")).toBeNull();
+  });
+
   it("keeps orders away from other restaurants and refuses a second move from a stale status", async () => {
     const serverRepo = new SupabaseOrderRepository(service, service);
     const catalog = new SupabaseOrderingCatalog(service);

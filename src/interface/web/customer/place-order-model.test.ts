@@ -7,7 +7,7 @@ import type { Order } from "@/domain/order/order";
 import type { RestaurantId } from "@/domain/restaurant/restaurant";
 import { err, ok } from "@/domain/shared/result";
 import type { SessionStatus, TableSessionId } from "@/domain/table-session/table-session";
-import { orderProblem, placeCustomerOrder, readCartLines } from "./place-order-model";
+import { orderProblem, placeCustomerOrder, readCartLines, readRequestId } from "./place-order-model";
 
 const R = "11111111-1111-4000-8000-000000000001" as RestaurantId;
 const SESSION = "33333333-3333-4000-8000-000000000003" as TableSessionId;
@@ -23,7 +23,8 @@ const restaurant = (dineInEnabled = true) =>
     branding: {},
   }) as unknown as PublicRestaurant;
 
-const CART = { lines: [{ key: "ignored", menuItemId: ITEM, optionIds: [OPTION], quantity: 2 }] };
+const KEY = "66666666-6666-4000-8000-000000000006";
+const CART = { lines: [{ key: "ignored", menuItemId: ITEM, optionIds: [OPTION], quantity: 2 }], requestId: KEY };
 
 /** Fake ports: a session whose status can change between calls, and a use case that records what it was asked. */
 function setup(options: { statuses?: (SessionStatus | null)[]; place?: () => Promise<ReturnType<typeof ok<Order>> | ReturnType<typeof err<OrderUseCaseError>>> } = {}) {
@@ -75,6 +76,15 @@ describe("readCartLines", () => {
   });
 });
 
+describe("readRequestId", () => {
+  it("accepts a UUID and nothing else", () => {
+    expect(readRequestId(CART)).toBe(KEY);
+    for (const cart of [null, "x", {}, { requestId: "" }, { requestId: 7 }, { requestId: "1 or 1=1" }, { requestId: [KEY] }]) {
+      expect(readRequestId(cart)).toBeNull();
+    }
+  });
+});
+
 describe("orderProblem", () => {
   it("maps every use-case failure to what the cart shows", () => {
     expect(orderProblem({ type: "EMPTY_ORDER" })).toBe("empty");
@@ -102,6 +112,7 @@ describe("placeCustomerOrder", () => {
         sessionId: SESSION,
         rates: { taxRateBp: 1600, serviceChargeBp: 1000 },
         lines: [{ menuItemId: ITEM, quantity: 2, selectedOptionIds: [OPTION] }],
+        requestId: KEY,
       },
     ]);
   });
@@ -113,6 +124,7 @@ describe("placeCustomerOrder", () => {
       sessionId: "99999999-9999-4000-8000-000000000009",
       rates: { taxRateBp: 0, serviceChargeBp: 0 },
       lines: [{ ...CART.lines[0], priceFils: 1, unitPriceFils: 1 }],
+      requestId: KEY,
     };
     await placeCustomerOrder(deps, { restaurant: restaurant(), sessionId: SESSION, cart });
     expect(seen.placed[0]).toEqual({
@@ -120,15 +132,18 @@ describe("placeCustomerOrder", () => {
       sessionId: SESSION,
       rates: { taxRateBp: 1600, serviceChargeBp: 1000 },
       lines: [{ menuItemId: ITEM, quantity: 2, selectedOptionIds: [OPTION] }],
+      requestId: KEY,
     });
   });
 
-  it("refuses before touching the database: dine-in off, no table, bad or empty cart", async () => {
+  it("refuses before touching the database: dine-in off, no table, bad or empty cart, no submission key", async () => {
     const cases = [
       [{ restaurant: restaurant(false), sessionId: SESSION, cart: CART }, "orderingOff"],
       [{ restaurant: restaurant(), sessionId: null, cart: CART }, "noTable"],
       [{ restaurant: restaurant(), sessionId: SESSION, cart: { lines: "x" } }, "failed"],
-      [{ restaurant: restaurant(), sessionId: SESSION, cart: { lines: [] } }, "empty"],
+      [{ restaurant: restaurant(), sessionId: SESSION, cart: { lines: [], requestId: KEY } }, "empty"],
+      [{ restaurant: restaurant(), sessionId: SESSION, cart: { lines: CART.lines } }, "failed"],
+      [{ restaurant: restaurant(), sessionId: SESSION, cart: { lines: CART.lines, requestId: "again" } }, "failed"],
     ] as const;
     for (const [input, problem] of cases) {
       const { deps, seen } = setup();

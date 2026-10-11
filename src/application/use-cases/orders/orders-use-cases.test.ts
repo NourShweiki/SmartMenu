@@ -34,17 +34,36 @@ function unwrap<T>(r: { ok: true; value: T } | { ok: false; error: unknown }): T
 // ─── Fakes ──────────────────────────────────────────────────────────────
 
 function fakeOrders(initial: Order[] = []) {
-  const state = { orders: [...initial], counters: new Map<string, number>(), placed: 0, statusWrites: 0, refuseStatus: false };
+  const state = {
+    orders: [...initial],
+    counters: new Map<string, number>(),
+    placed: 0,
+    statusWrites: 0,
+    refuseStatus: false,
+    /** Request key each stored order was placed with. */
+    keys: new Map<string, string>(),
+    /** Pretend the key is not there yet when asked: the moment before a parallel submission is stored. */
+    hideKeys: false,
+  };
+  const byKey = (restaurantId: string, sessionId: string, requestId: string) =>
+    state.orders.find((o) => o.restaurantId === restaurantId && o.sessionId === sessionId && state.keys.get(o.id) === requestId);
   const repo: OrderRepository = {
     nextNumber: async (restaurantId) => {
       const next = (state.counters.get(restaurantId) ?? 0) + 1;
       state.counters.set(restaurantId, next);
       return next;
     },
-    place: async (order) => {
+    // Like the database function: a key already used in the session stores nothing and names the earlier order.
+    place: async (order, requestId) => {
+      const earlier = requestId ? byKey(order.restaurantId, order.sessionId, requestId) : undefined;
+      if (earlier) return earlier.id;
       state.placed++;
       state.orders.push(order);
+      if (requestId) state.keys.set(order.id, requestId);
+      return order.id;
     },
+    findByRequest: async (restaurantId, sessionId, requestId) =>
+      state.hideKeys ? null : (byKey(restaurantId, sessionId, requestId) ?? null),
     findById: async (restaurantId, orderId) => state.orders.find((o) => o.restaurantId === restaurantId && o.id === orderId) ?? null,
     listOpen: async (restaurantId) =>
       state.orders.filter((o) => o.restaurantId === restaurantId && o.status !== "COMPLETED"),
@@ -164,6 +183,54 @@ describe("placeOrder", () => {
 
     expect(state.counters.size).toBe(0); // no number was handed out
     expect(state.placed).toBe(0);
+  });
+
+  it("treats a repeated submission (same request key) as the same order: no second order, no new number", async () => {
+    const { entry, kebab, small } = menu(R);
+    const { repo, state } = fakeOrders();
+    const place = makePlaceOrder(placeDeps(repo, fakeCatalog([entry])));
+    const cart = { restaurantId: R, sessionId: SESSION, rates: RATES, lines: [{ menuItemId: kebab.id, quantity: 1, selectedOptionIds: [small.id] }] };
+
+    const first = unwrap(await place({ ...cart, requestId: "key-1" }));
+    const again = unwrap(await place({ ...cart, requestId: "key-1" })); // the reply was lost, the guest pressed again
+    expect(again).toEqual(first);
+    expect(state.placed).toBe(1);
+    expect(state.counters.get(R)).toBe(1); // the retry did not use up a number
+
+    // A new key (the next thing the guest orders) and no key at all are new orders.
+    expect(unwrap(await place({ ...cart, requestId: "key-2" })).number).toBe(2);
+    expect(unwrap(await place(cart)).number).toBe(3);
+    expect(unwrap(await place(cart)).number).toBe(4);
+    // The same key at another table is somebody else's submission.
+    const otherTable = "44444444-4444-4000-8000-000000000004" as TableSessionId;
+    expect(unwrap(await place({ ...cart, sessionId: otherTable, requestId: "key-1" })).number).toBe(5);
+    expect(state.placed).toBe(5);
+  });
+
+  it("returns the order already placed even if the item sold out before the retry", async () => {
+    const { entry, kebab, small } = menu(R);
+    const { repo, state } = fakeOrders();
+    const cart = { restaurantId: R, sessionId: SESSION, rates: RATES, requestId: "key-1", lines: [{ menuItemId: kebab.id, quantity: 1, selectedOptionIds: [small.id] }] };
+    const first = unwrap(await makePlaceOrder(placeDeps(repo, fakeCatalog([entry])))(cart));
+
+    const soldOut: CatalogEntry = { ...entry, item: unwrap(setItemSoldOut(kebab, true)) };
+    const retry = await makePlaceOrder(placeDeps(repo, fakeCatalog([soldOut])))(cart);
+    expect(retry).toEqual({ ok: true, value: first });
+    expect(state.placed).toBe(1);
+  });
+
+  it("when the same submission arrives twice at once, both get the one order that was stored", async () => {
+    const { entry, kebab, small } = menu(R);
+    const { repo, state } = fakeOrders();
+    const place = makePlaceOrder(placeDeps(repo, fakeCatalog([entry])));
+    const cart = { restaurantId: R, sessionId: SESSION, rates: RATES, requestId: "key-1", lines: [{ menuItemId: kebab.id, quantity: 1, selectedOptionIds: [small.id] }] };
+
+    const first = unwrap(await place(cart));
+    state.hideKeys = true; // the second call looked before the first was stored, so it goes on to store its own
+    const second = unwrap(await place(cart));
+    expect(second).toEqual(first); // ...and the store names the earlier order instead
+    expect(state.placed).toBe(1);
+    expect(state.orders).toHaveLength(1);
   });
 
   it("uses the live menu price, not anything the customer sent", async () => {

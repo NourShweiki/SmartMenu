@@ -104,6 +104,11 @@ describe("toPlaceOrderPayload", () => {
     });
   });
 
+  it("sends the device's request key, or null when there is none", () => {
+    expect(payload.client_request_id).toBeNull();
+    expect(toPlaceOrderPayload(order, "cccccccc-7070-4000-8000-000000000001").client_request_id).toBe("cccccccc-7070-4000-8000-000000000001");
+  });
+
   it("keeps the array order of lines and options (it becomes their position)", () => {
     expect(payload.items.map((i) => i.name_en)).toEqual(["Kebab", "Hummus"]);
     expect(payload.items[0]!.options.map((o) => o.name_en)).toEqual(["Large", "Cheese"]);

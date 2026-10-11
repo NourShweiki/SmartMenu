@@ -2,7 +2,7 @@
 -- Run with: npx supabase test db
 begin;
 create extension if not exists pgtap with schema extensions;
-select plan(12);
+select plan(19);
 
 insert into public.restaurants (id, slug, name_en, name_ar) values
   ('aaaaaaaa-1010-4000-8000-000000000000', 'po-a', 'PO A', 'أ'),
@@ -23,6 +23,11 @@ insert into public.restaurant_tables (id, restaurant_id, label, token) values
   ('aaaaaaaa-3131-4000-8000-000000000001', 'aaaaaaaa-1010-4000-8000-000000000000', '1', 'place-order-test-token-00000001');
 insert into public.table_sessions (id, restaurant_id, table_id) values
   ('aaaaaaaa-3030-4000-8000-000000000001', 'aaaaaaaa-1010-4000-8000-000000000000', 'aaaaaaaa-3131-4000-8000-000000000001');
+-- A second table with its own OPEN session (for "the same key at another table is another request").
+insert into public.restaurant_tables (id, restaurant_id, label, token) values
+  ('aaaaaaaa-3131-4000-8000-000000000002', 'aaaaaaaa-1010-4000-8000-000000000000', '2', 'place-order-test-token-00000002');
+insert into public.table_sessions (id, restaurant_id, table_id) values
+  ('aaaaaaaa-3030-4000-8000-000000000002', 'aaaaaaaa-1010-4000-8000-000000000000', 'aaaaaaaa-3131-4000-8000-000000000002');
 
 -- A payload for restaurant A: 2 x (2.500 + 0.500 Large) = 6.000; service 10% = 0.600; tax 16% of 6.600 = 1.056; total 7.656.
 -- The order id and item id are built from p_n so each call is unique.
@@ -63,6 +68,29 @@ select throws_ok($$ select public.place_order(pg_temp.payload(3, 'bbbbbbbb-2020-
 select is((select count(*) from public.orders where restaurant_id = 'aaaaaaaa-1010-4000-8000-000000000000'), 1::bigint, 'still only the one good order');
 select throws_ok($$ select public.place_order(pg_temp.payload(4, 'aaaaaaaa-2020-4000-8000-000000000002', 6000, 7656, false)) $$,
   '23514', null, 'an order without lines is refused');
+
+-- ── A repeated submission (same request key) is the same order, not a second one ──
+-- The device sends one random key per submission and the same key again when it retries after a lost reply.
+create function pg_temp.with_key(p_n int, p_session text default 'aaaaaaaa-3030-4000-8000-000000000001')
+returns jsonb language sql as $$
+  select pg_temp.payload(p_n, 'aaaaaaaa-2020-4000-8000-000000000002', 6000, 7656)
+    || jsonb_build_object('client_request_id', 'cccccccc-7070-4000-8000-000000000001', 'session_id', p_session);
+$$;
+select is(public.place_order(pg_temp.with_key(5)), 'aaaaaaaa-5050-4000-8000-000000000005'::uuid,
+  'an order with a request key is placed and its own id comes back');
+select is((select client_request_id from public.orders where id = 'aaaaaaaa-5050-4000-8000-000000000005'),
+  'cccccccc-7070-4000-8000-000000000001'::uuid, 'the key is stored on the order');
+select is(public.place_order(pg_temp.with_key(6)), 'aaaaaaaa-5050-4000-8000-000000000005'::uuid,
+  'the same key again hands back the FIRST order');
+select is((select count(*) from public.orders where restaurant_id = 'aaaaaaaa-1010-4000-8000-000000000000'), 2::bigint,
+  'and stores no second order');
+select is((select count(*) from public.order_items where restaurant_id = 'aaaaaaaa-1010-4000-8000-000000000000'), 2::bigint,
+  'nor any of its lines');
+select is(public.place_order(pg_temp.with_key(7, 'aaaaaaaa-3030-4000-8000-000000000002')), 'aaaaaaaa-5050-4000-8000-000000000007'::uuid,
+  'the same key at another table is a different request');
+-- A repeated key forgives only itself: a clashing order NUMBER is still an error.
+select throws_ok($$ select public.place_order(pg_temp.with_key(5) || jsonb_build_object('client_request_id', 'cccccccc-7070-4000-8000-000000000002')) $$,
+  '23505', null, 'a new key does not excuse reusing an order number');
 
 -- ── Only the server may call it ──
 set local role authenticated;

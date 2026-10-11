@@ -9,8 +9,15 @@ import type { RestaurantId } from "@/domain/restaurant/restaurant";
 export interface OrderRepository {
   /** Next human-friendly order number for the restaurant (1, 2, 3 ...). A failed order may leave a gap. */
   nextNumber(restaurantId: RestaurantId): Promise<number>;
-  /** Writes the order, its lines and picked options atomically (all or nothing). */
-  place(order: Order): Promise<void>;
+  /**
+   * Writes the order, its lines and picked options atomically (all or nothing), remembering the request key it
+   * was placed with (if any). Returns the id of the order that is now stored for this request: `order.id`, or
+   * the id of the EARLIER order when the same key was already used in this table session. In that case nothing
+   * was written: a repeated submission is the same order, not a second one.
+   */
+  place(order: Order, requestId?: string): Promise<OrderId>;
+  /** The order already placed in this table session with this request key, or null. */
+  findByRequest(restaurantId: RestaurantId, sessionId: TableSessionId, requestId: string): Promise<Order | null>;
   findById(restaurantId: RestaurantId, orderId: OrderId): Promise<Order | null>;
   /** Orders not yet COMPLETED, oldest first: the kitchen / floor queue. */
   listOpen(restaurantId: RestaurantId): Promise<Order[]>;

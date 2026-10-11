@@ -11,12 +11,8 @@ import { addTable, guest, openTables, removeTable, scanUrl, tableLabel, tableRow
 const placeButton = (page: Page, locale: Locale) => dialog(page).getByRole("button", { name: t(locale, "Menu.cart.placeOrder") });
 const banner = (page: Page, locale: Locale, name: string) => page.getByRole("status").filter({ hasText: t(locale, "Table.banner", { label: name }) });
 
-/** Adds the simple item, opens the cart, places the order and returns the number the confirmation shows. */
-async function order(page: Page, locale: Locale, itemName: string): Promise<number> {
-  await addButton(row(page, itemName), locale).click();
-  await cartBar(page, locale).click();
-  await expect(placeButton(page, locale)).toBeEnabled();
-  await placeButton(page, locale).click();
+/** Reads the order number off the confirmation and closes it. */
+async function confirmation(page: Page, locale: Locale): Promise<number> {
   await expect(dialog(page).getByRole("heading", { name: t(locale, "Menu.order.title") })).toBeVisible();
   await expect(dialog(page)).toContainText(t(locale, "Menu.order.numberLabel"));
   const number = Number((await dialog(page).locator("bdi").innerText()).trim());
@@ -24,6 +20,14 @@ async function order(page: Page, locale: Locale, itemName: string): Promise<numb
   await dialog(page).getByRole("button", { name: t(locale, "Menu.order.done") }).click();
   await expect(dialog(page)).toHaveCount(0);
   return number;
+}
+/** Adds the simple item, opens the cart, places the order and returns the number the confirmation shows. */
+async function order(page: Page, locale: Locale, itemName: string): Promise<number> {
+  await addButton(row(page, itemName), locale).click();
+  await cartBar(page, locale).click();
+  await expect(placeButton(page, locale)).toBeEnabled();
+  await placeButton(page, locale).click();
+  return confirmation(page, locale);
 }
 
 for (const locale of LOCALES) {
@@ -73,6 +77,59 @@ for (const locale of LOCALES) {
     await expect(dialog(page).getByText(t(locale, "Menu.cart.checkoutSoon"))).toBeVisible();
   });
 }
+
+test("when the reply is lost and the guest presses again, there is ONE order and the retry shows its number", async ({ page, browser }) => {
+  const site = SITES.grill;
+  const m = site.menu.simple;
+  const name = tableLabel();
+  await openTables(page, site, "en");
+  try {
+    await addTable(page, "en", name);
+    const g = await guest(browser);
+    await g.page.goto(await scanUrl(tableRow(page, "en", name)));
+    await g.page.goto(`${site.origin}/en/menu`);
+    await addButton(row(g.page, m.en), "en").click();
+    await cartBar(g.page, "en").click();
+
+    // Weak Wi-Fi: the request reaches the server, which stores the order, but the answer never reaches the phone.
+    let lost = 0;
+    let lostOrderNumber = 0; // what the server answered, which the phone never saw
+    let lostStatus = 0;
+    await g.page.route("**/en/menu", async (route) => {
+      if (route.request().method() === "POST" && lost === 0) {
+        lost++;
+        // The server does its work... (sent from the test process, which cannot resolve *.localhost names: go to
+        // 127.0.0.1 and name the restaurant in the Host header, with the guest's own cookies and headers)
+        const headers = { ...(await route.request().allHeaders()), host: new URL(site.origin).host };
+        const reply = await route.fetch({ url: route.request().url().replace(new URL(site.origin).hostname, "127.0.0.1"), headers });
+        lostStatus = reply.status(); // checked below: a failed expectation in here would only hang the request
+        lostOrderNumber = Number(/"orderNumber":(\d+)/.exec(await reply.text())?.[1]);
+        await route.abort("failed"); // ...and its reply gets lost
+      } else {
+        await route.continue();
+      }
+    });
+    await placeButton(g.page, "en").click();
+    await expect(dialog(g.page).getByText(t("en", "Menu.order.errors.failed"))).toBeVisible();
+    expect(lost).toBe(1);
+    expect(lostStatus).toBe(200);
+    expect(lostOrderNumber).toBeGreaterThanOrEqual(1); // the order WAS stored
+    await expect(dialog(g.page)).toContainText(m.en); // the cart is kept, so the guest can simply press again
+
+    await expect(placeButton(g.page, "en")).toBeEnabled();
+    await placeButton(g.page, "en").click();
+    // The second press shows the number of the order that was already stored, not a new one...
+    expect(await confirmation(g.page, "en")).toBe(lostOrderNumber);
+    await expect(cartBar(g.page, "en")).toHaveCount(0);
+
+    // ...and no second copy was made behind the scenes: the next thing the guest orders (the same item again, on
+    // purpose: a second round IS a new order) gets exactly the next number.
+    expect(await order(g.page, "en", m.en)).toBe(lostOrderNumber + 1);
+    await g.context.close();
+  } finally {
+    await removeTable(page, site, "en", name);
+  }
+});
 
 test("a line that can no longer be ordered switches Place order off until it is removed; the cart is frozen while sending", async ({ page, browser }) => {
   const site = SITES.grill;
