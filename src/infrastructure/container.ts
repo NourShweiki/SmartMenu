@@ -4,7 +4,7 @@
 import { makeGetPublicRestaurant, type GetPublicRestaurantInput } from "@/application/use-cases/get-public-restaurant";
 import { makeGetPublicMenu } from "@/application/use-cases/get-public-menu";
 import { makeGetOpenVisits } from "@/application/use-cases/tables/get-open-visits";
-import { makeGetPublicSession, makeJoinTableSession } from "@/application/use-cases/tables/join-table-session";
+import { makeGetPublicSession, makeGetSessionOrders, makeJoinTableSession } from "@/application/use-cases/tables/join-table-session";
 import { makeMoveTableSession } from "@/application/use-cases/tables/move-table-session";
 import {
   makeAddTable,
@@ -279,6 +279,9 @@ export const tableSessions = {
     makeJoinTableSession({ sessions: new SupabaseTableSessionGateway(createPublicClient()) })(input),
   find: (input: { slug: string; sessionId: string }) =>
     makeGetPublicSession({ sessions: new SupabaseTableSessionGateway(createPublicClient()) })(input),
+  /** The orders of the table visit a guest's device belongs to (public, like `find`). */
+  orders: (input: { slug: string; sessionId: string }) =>
+    makeGetSessionOrders({ sessions: new SupabaseTableSessionGateway(createPublicClient()) })(input),
   listOpen: async (actor: StaffActor) => makeGetOpenVisits(await staffOrderDeps())(actor),
   move: async (...args: Parameters<ReturnType<typeof makeMoveTableSession>>) => makeMoveTableSession(await staffOrderDeps())(...args),
 };

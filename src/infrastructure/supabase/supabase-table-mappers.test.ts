@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { newTableToken } from "../random-token";
-import { toPublicSession } from "./supabase-table-session-gateway";
+import { toPublicOrders, toPublicSession } from "./supabase-table-session-gateway";
 import { toTable, type TableRow } from "./supabase-table-repository";
 import { toSessionAtTable, type SessionAtTableRow } from "./supabase-table-session-repository";
 import { TOKEN_PATTERN } from "@/domain/table-session/table-session";
@@ -86,5 +86,42 @@ describe("toSessionAtTable", () => {
 
   it("gives nothing for a visit that came without its table", () => {
     expect(toSessionAtTable({ ...sessionRow, restaurant_tables: null })).toBeNull();
+  });
+});
+
+describe("toPublicOrders", () => {
+  const entry = {
+    number: 12,
+    status: "READY",
+    placed_at: "2026-10-11T18:00:00+00:00",
+    total_fils: 13079,
+    items: [
+      { name_en: "Kebab", name_ar: "كباب", quantity: 2 },
+      { name_en: "Hummus", name_ar: "حمص", quantity: 1 },
+    ],
+  };
+
+  it("maps what the public function returns", () => {
+    expect(toPublicOrders([entry, { ...entry, number: 13, status: "CANCELLED", items: [] }])).toEqual([
+      {
+        number: 12,
+        status: "READY",
+        placedAt: new Date("2026-10-11T18:00:00Z"),
+        totalFils: 13079,
+        lines: [
+          { name: { en: "Kebab", ar: "كباب" }, quantity: 2 },
+          { name: { en: "Hummus", ar: "حمص" }, quantity: 1 },
+        ],
+      },
+      { number: 13, status: "CANCELLED", placedAt: new Date("2026-10-11T18:00:00Z"), totalFils: 13079, lines: [] },
+    ]);
+  });
+
+  it("never throws on anything unexpected: no list is no orders, a broken entry or line is left out", () => {
+    for (const nothing of [null, undefined, "x", {}, 7]) expect(toPublicOrders(nothing)).toEqual([]);
+    const odd = [null, "x", { ...entry, number: "12" }, { ...entry, status: "EATEN" }, { ...entry, placed_at: "never" }, { ...entry, total_fils: null }];
+    expect(toPublicOrders(odd)).toEqual([]);
+    expect(toPublicOrders([{ ...entry, items: [{ name_en: "Kebab" }, null, entry.items[1]] }])[0]?.lines).toEqual([{ name: { en: "Hummus", ar: "حمص" }, quantity: 1 }]);
+    expect(toPublicOrders([{ ...entry, items: "x" }])[0]?.lines).toEqual([]);
   });
 });

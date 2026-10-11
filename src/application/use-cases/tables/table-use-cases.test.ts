@@ -1,10 +1,10 @@
 import { describe, expect, it } from "vitest";
 import type { TableRepository } from "@/application/ports/table-repository";
-import type { PublicSession, TableSessionGateway } from "@/application/ports/table-session-gateway";
+import type { PublicOrder, PublicSession, TableSessionGateway } from "@/application/ports/table-session-gateway";
 import type { RestaurantId } from "@/domain/restaurant/restaurant";
 import { ROLES } from "@/domain/restaurant/role";
 import { labelKey, type Table, type TableId, type TableSessionId } from "@/domain/table-session/table-session";
-import { makeGetPublicSession, makeJoinTableSession } from "./join-table-session";
+import { makeGetPublicSession, makeJoinTableSession, makeGetSessionOrders } from "./join-table-session";
 import {
   makeAddTable,
   makeDeleteTable,
@@ -152,15 +152,26 @@ describe("change a table", () => {
 
 describe("scanning a QR code", () => {
   const session: PublicSession = { sessionId: "s-1" as TableSessionId, tableLabel: "7", status: "OPEN" };
+  const order = { number: 12, status: "READY", placedAt: new Date("2026-10-11T18:00:00Z"), totalFils: 1595, lines: [{ name: { en: "Hummus", ar: "حمص" }, quantity: 1 }] } as unknown as PublicOrder;
   const gateway = () => {
     const calls: string[] = [];
     const sessions: TableSessionGateway = {
       join: async (slug, token) => (calls.push(`join ${slug} ${token}`), token.startsWith("good") ? session : null),
       find: async (slug, id) => (calls.push(`find ${slug} ${id}`), id === "11111111-1111-4000-8000-000000000009" ? session : null),
+      orders: async (slug, id) => (calls.push(`orders ${slug} ${id}`), id === "11111111-1111-4000-8000-000000000009" ? [order] : []),
     };
     return { sessions, calls };
   };
   const goodToken = "good0000000000000000000000";
+
+  it("reads the orders of the visit a device holds, and asks nothing for an id that cannot be one", async () => {
+    const { sessions, calls } = gateway();
+    const get = makeGetSessionOrders({ sessions });
+    expect(await get({ slug: "demo", sessionId: "11111111-1111-4000-8000-000000000009" })).toEqual([order]);
+    expect(await get({ slug: "demo", sessionId: "22222222-2222-4000-8000-000000000009" })).toEqual([]); // not this device's
+    expect(await get({ slug: "demo", sessionId: "' or 1=1" })).toEqual([]);
+    expect(calls).toEqual(["orders demo 11111111-1111-4000-8000-000000000009", "orders demo 22222222-2222-4000-8000-000000000009"]);
+  });
 
   it("joins with a plausible token and returns what the gateway says", async () => {
     const { sessions, calls } = gateway();

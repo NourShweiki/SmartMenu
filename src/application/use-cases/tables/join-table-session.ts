@@ -1,4 +1,4 @@
-import type { PublicSession, TableSessionGateway } from "@/application/ports/table-session-gateway";
+import type { PublicOrder, PublicSession, TableSessionGateway } from "@/application/ports/table-session-gateway";
 import { TOKEN_PATTERN } from "@/domain/table-session/table-session";
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -17,4 +17,13 @@ export function makeJoinTableSession(deps: { sessions: TableSessionGateway }) {
 export function makeGetPublicSession(deps: { sessions: TableSessionGateway }) {
   return async (input: { slug: string; sessionId: string }): Promise<PublicSession | null> =>
     UUID.test(input.sessionId) ? deps.sessions.find(input.slug, input.sessionId) : null;
+}
+
+/**
+ * The orders of the table visit a device belongs to: what the guests see on their phones ("your orders", and the
+ * notice when one is ready). Public like the two above; the session id is what proves the device sits at that table.
+ */
+export function makeGetSessionOrders(deps: { sessions: TableSessionGateway }) {
+  return async (input: { slug: string; sessionId: string }): Promise<PublicOrder[]> =>
+    UUID.test(input.sessionId) ? deps.sessions.orders(input.slug, input.sessionId) : [];
 }

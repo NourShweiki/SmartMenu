@@ -107,6 +107,15 @@ describe.skipIf(!enabled)("a guest places an order, against local Supabase", () 
     });
     expect(order!.items.map((i) => [i.name.en, i.quantity, i.lineTotalFils])).toEqual([["Kebab", 2, preview.lines[0]!.lineTotalFils]]);
     expect(order!.items[0]!.options.map((o) => o.name.en).sort()).toEqual(["Garlic sauce", "Large"]);
+
+    // The guests read it back on their phone (anonymous client, their session id): the same order, as much of it
+    // as they may see. Another restaurant's address, or an id that is not theirs, shows nothing.
+    const mine = await gateway().orders("demo-dinein", session.sessionId);
+    expect(mine).toHaveLength(1);
+    expect(mine[0]).toMatchObject({ number: outcome.orderNumber, status: "NEW", totalFils: preview.totalFils, lines: [{ name: { en: "Kebab" }, quantity: 2 }] });
+    expect(mine[0]!.placedAt).toBeInstanceOf(Date);
+    expect(await gateway().orders("demo-takeout", session.sessionId)).toEqual([]);
+    expect(await gateway().orders("demo-dinein", crypto.randomUUID())).toEqual([]);
   });
 
   it("refuses another restaurant's session, a visit waiting for the bill and a closed one, storing nothing", async () => {
