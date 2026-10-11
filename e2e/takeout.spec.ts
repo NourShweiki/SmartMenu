@@ -1,7 +1,7 @@
-import { expect, test, type Page } from "@playwright/test";
-import { addButton, cartBar, confirmation, dialog, menuRow, placeButton } from "./support/cart";
+import { expect, test, type Browser, type Page } from "@playwright/test";
+import { addButton, cartBar, confirmation, dialog, menuRow, placeAnOrder, placeButton } from "./support/cart";
 import { ALL_SITES, jd, LOCALES, signIn, SITES, t, type Locale, type Site } from "./support/demo";
-import { cancelOrderOn } from "./support/staff";
+import { cancelOrderOn, orderCard, ORDERS, staffAt, tableCard } from "./support/staff";
 import { addTable, guest, openTables, removeTable, scanUrl, tableLabel, tableRow } from "./support/tables";
 
 // Takeout from the customer's side: no table, a name and a mobile number, an order number, and the order followed on
@@ -86,6 +86,103 @@ for (const site of ALL_SITES) {
     });
   }
 }
+
+/** A customer (a fresh phone) places one takeout order of the simple item; returns its number and the phone. */
+async function takeoutOrder(browser: Browser, site: Site, locale: Locale, customer: string) {
+  const g = await guest(browser);
+  await g.page.goto(`${site.origin}/${locale}/menu`);
+  await addButton(menuRow(g.page, site.menu.simple[locale]), locale).click();
+  await cartBar(g.page, locale).click();
+  await nameField(g.page, locale).fill(customer);
+  await phoneField(g.page, locale).fill("0791234567");
+  await placeButton(g.page, locale).click();
+  return { number: await confirmation(g.page, locale), phone: g };
+}
+
+/** On the staff order screen: a takeout order from new to completed, with the takeout wording for "served". */
+async function takeTakeoutThrough(page: Page, locale: Locale, number: number) {
+  const card = orderCard(page, locale, number);
+  const press = (label: string) => card.getByRole("button", { name: label, exact: true }).click();
+  await press(t(locale, "StaffOrders.action.CONFIRMED"));
+  await expect(card).toContainText(t(locale, "StaffOrders.status.CONFIRMED"));
+  await press(t(locale, "StaffOrders.action.PREPARING"));
+  await expect(card).toContainText(t(locale, "StaffOrders.status.PREPARING"));
+  await press(t(locale, "StaffOrders.action.READY"));
+  await expect(card).toContainText(t(locale, "StaffOrders.status.READY"));
+  await press(t(locale, "StaffOrders.pickup.handOver"));
+  await expect(card).toContainText(t(locale, "StaffOrders.pickup.served"));
+  await press(t(locale, "StaffOrders.action.COMPLETED"));
+  await expect(card).toHaveCount(0);
+}
+
+for (const locale of LOCALES) {
+  test(`coffee /${locale}: staff see a takeout order with the customer's name and number and take it to completed; the customer is told it is ready`, async ({ page, browser }) => {
+    const site = SITES.coffee;
+    const customer = `E2E ${Math.floor(1000 + Math.random() * 9000)}`;
+    const { number, phone } = await takeoutOrder(browser, site, locale, customer);
+
+    await signIn(page, site, site.owner, locale);
+    await page.goto(`${site.origin}/${locale}/staff/orders`);
+    const card = orderCard(page, locale, number);
+    await expect(card).toContainText(t(locale, "StaffOrders.pickup.badge"));
+    await expect(card).toContainText(customer);
+    await expect(card.getByRole("link", { name: "+962791234567" })).toHaveAttribute("href", "tel:+962791234567");
+    await expect(card).not.toContainText(t(locale, "StaffOrders.noTable"));
+    await expect(card).toContainText(jd(site.menu.simple.pickupOne.total, locale));
+
+    // Ready: the customer's phone says so by itself.
+    for (const step of ["CONFIRMED", "PREPARING", "READY"] as const) {
+      await card.getByRole("button", { name: t(locale, `StaffOrders.action.${step}`), exact: true }).click();
+      await expect(card).toContainText(t(locale, `StaffOrders.status.${step}`));
+    }
+    await expect(phone.page.getByRole("alert").filter({ hasText: t(locale, "Menu.orders.readyNotice", { number }) })).toBeVisible();
+
+    // Handed over, paid: the order leaves the queue and the customer's pickup order is over.
+    await card.getByRole("button", { name: t(locale, "StaffOrders.pickup.handOver"), exact: true }).click();
+    await expect(card).toContainText(t(locale, "StaffOrders.pickup.served"));
+    await card.getByRole("button", { name: t(locale, "StaffOrders.action.COMPLETED"), exact: true }).click();
+    await expect(card).toHaveCount(0);
+    await phone.page.reload();
+    await expect(phone.page.getByRole("status").filter({ hasText: customer })).toHaveCount(0);
+    // A takeout order is not a table: the open tables screen never listed it.
+    await page.goto(`${site.origin}/${locale}/staff/open-tables`);
+    await expect(page.getByText(customer)).toHaveCount(0);
+    await phone.context.close();
+  });
+}
+
+test("grill: the cashier alone takes a takeout order through every step, and still cannot confirm an order at a table", async ({ page, browser }) => {
+  const site = SITES.grill;
+  const customer = `E2E ${Math.floor(1000 + Math.random() * 9000)}`;
+  const name = tableLabel();
+  await openTables(page, site, "en"); // the owner, to make a table for the comparison
+  try {
+    await addTable(page, "en", name);
+    const atTable = await guest(browser);
+    await atTable.page.goto(await scanUrl(tableRow(page, "en", name)));
+    await atTable.page.goto(`${site.origin}/en/menu`);
+    const tableOrder = await placeAnOrder(atTable.page, "en", site.menu.simple.en);
+    const { number, phone } = await takeoutOrder(browser, site, "en", customer);
+
+    const till = await staffAt(browser, site, site.cashier, "en", ORDERS);
+    // The table order waits for the floor staff: no button for the cashier. The takeout order has one for every step.
+    await expect(orderCard(till.page, "en", tableOrder).getByRole("button", { name: t("en", "StaffOrders.action.CONFIRMED"), exact: true })).toHaveCount(0);
+    await expect(orderCard(till.page, "en", tableOrder)).toContainText(t("en", "StaffOrders.waiting.floor"));
+    await takeTakeoutThrough(till.page, "en", number);
+    await till.context.close();
+    await phone.context.close();
+
+    // Tidy up: the owner cancels the table order and closes the table.
+    await page.goto(`${site.origin}/en/staff/orders`);
+    await cancelOrderOn(page, "en", tableOrder, "OTHER");
+    await page.goto(`${site.origin}/en/staff/open-tables`);
+    await tableCard(page, "en", name).getByRole("button", { name: t("en", "OpenTables.close"), exact: true }).click();
+    await expect(tableCard(page, "en", name)).toHaveCount(0);
+    await atTable.context.close();
+  } finally {
+    await removeTable(page, site, "en", name);
+  }
+});
 
 test("where both are offered, a phone that scanned a table orders for the table, with the service charge and no takeout form", async ({ page, browser }) => {
   const site = SITES.grill;

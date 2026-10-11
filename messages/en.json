@@ -467,6 +467,12 @@
       "turnSoundOff": "Sound is on: turn off",
       "soundBlocked": "Tap anywhere on the page once so the browser lets the sound play.",
       "newOrders": "{count, plural, one {New order} other {# new orders}}"
+    },
+    "pickup": {
+      "badge": "Takeout",
+      "for": "For",
+      "served": "Handed over",
+      "handOver": "Mark handed over"
     }
   },
   "OpenTables": {

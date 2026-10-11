@@ -11,7 +11,7 @@ One codebase serves every restaurant (multi-tenant). Each restaurant lives on it
 
 ## Status
 
-**Current phase: 6 — Onboarding tools.** Takeout works for customers (order without a table, with a name and mobile number). Dine-in works end to end: a guest scans a table, orders, follows the order on their phone; staff run the orders and the tables; the owner manages menu, branding and settings; the SmartMenu team can create a new restaurant with its owner in a minute. Everything runs on a developer machine for now (no cloud deployment yet).
+**Current phase: 6 — Onboarding tools.** Dine-in and takeout both work end to end: a guest scans a table, orders, follows the order on their phone; staff run the orders and the tables; the owner manages menu, branding and settings; the SmartMenu team can create a new restaurant with its owner in a minute. Everything runs on a developer machine for now (no cloud deployment yet).
 
 | Phase | What | Status |
 |---|---|---|
@@ -21,7 +21,7 @@ One codebase serves every restaurant (multi-tenant). Each restaurant lives on it
 | 3 | Menu & owner portal | ✅ Done |
 | 4 | Customer ordering (menu, cart, dine-in QR, takeout) | ✅ Dine-in done · takeout is designed and gets built inside Phase 6 |
 | 5 | Staff order screen (live orders, sound alert, order-ready notice) | ✅ Done (SMS left out for now, on purpose) |
-| 6 | Onboarding tools (setup tool, staff accounts, takeout, checklist, menu import) | 🟡 In progress: step 1 of 7 done (the team's setup tool, with passwords); steps 1 and 2 of 6 done (the team's setup tool; staff accounts managed by the owner); step 3 (takeout): customers can order takeout; the staff screens get their takeout wording next |
+| 6 | Onboarding tools (setup tool, staff accounts, takeout, checklist, menu import) | 🟡 In progress: step 1 of 7 done (the team's setup tool, with passwords); steps 1 to 3 of 6 done (the team's setup tool; staff accounts; takeout); the setup checklist is next |
 | 7 | Installable app (PWA) & push notifications, custom domains | ⬜ Not started |
 | 8 | Hardening (security review, load tests, monitoring, backups) | ⬜ Not started |
 | 9–10 | Pilot restaurant, launch | ⬜ Not started |
@@ -48,6 +48,7 @@ One codebase serves every restaurant (multi-tenant). Each restaurant lives on it
   - Each order has one button for the next step that person may take: the waiter moves an order from new to confirmed, preparing, ready and served; the cashier completes it after payment; the owner and manager can do every step.
   - **Cancelling** asks for a reason. The waiter may cancel before the kitchen starts, the owner and manager any order that is not completed, the cashier never. A cancelled order is kept, crossed out at zero on the bill.
   - The screen keeps itself up to date: a new order appears within about 5 seconds, with a notice and (once switched on) a sound.
+- **Takeout orders** appear in the same Orders screen, marked **Takeout** with the customer's name and a number to call. The steps are the same, with "handed over" instead of "served"; the cashier can do every step of a takeout order (a takeout counter is often one person). When the last order is completed or cancelled, the customer's pickup order ends by itself.
 - **Open tables screen.** Every table that has guests, with its orders and running bill. The waiter marks a table **ready to pay** (its guests can then no longer order); the cashier **closes the table** after payment. A table cannot be closed while an order is unfinished. A visit closes by itself after 2 hours.
 - **Sold out.** Owner, manager and waiters mark items sold out / back in stock during service.
 
@@ -73,7 +74,7 @@ One codebase serves every restaurant (multi-tenant). Each restaurant lives on it
 - The phone only sends what is in the cart. The restaurant, the table, the prices and the rates all come from the server's own side.
 
 #### Quality
-- **Automated tests:** 445 unit tests, 42 integration tests against a real local database, 417 database security tests (tenant isolation, roles, privileges), and 155 end-to-end tests that drive a real browser through both demo restaurants in English and Arabic.
+- **Automated tests:** 445 unit tests, 42 integration tests against a real local database, 417 database security tests (tenant isolation, roles, privileges), and 158 end-to-end tests that drive a real browser through both demo restaurants in English and Arabic.
 - The browser tests build the app for production and start that build themselves, so they check the code in the form users get; they remove everything they create.
 - **CI** runs typecheck, lint (including the architecture-layer import rules), unit tests and a production build on every push. Database, integration and browser tests run locally (CI has no database yet).
 
@@ -82,8 +83,8 @@ One codebase serves every restaurant (multi-tenant). Each restaurant lives on it
 - **Phase 6 (in progress): onboarding a new restaurant in under a day.** In this order:
   1. ~~the team's setup tool: create a restaurant with its first owner, change passwords, replace a temporary password at first sign-in, issue a new temporary password~~ ✅
   2. ~~staff accounts managed by the owner and the manager~~ ✅
-  3. **in progress: takeout ordering.** Customers can order takeout on both demo restaurants (Demo Coffee finally takes orders). Still to come: the staff order screen's wording for a takeout order (today its card says "no table" instead of the customer's name and number; the steps already work, and the cashier can already do every one of them).
-  4. a setup checklist for the owner
+  3. ~~takeout ordering~~ ✅
+  4. **next:** a setup checklist for the owner
   5. menu import from a spreadsheet
   6. menu import by AI from a photo or PDF
 - **After that:** custom domains (moved to the next phase), the installable app with push notifications that reach a locked phone, SMS, reports, loyalty points, the AI ordering assistant, delivery, and cloud deployment (Vercel + Supabase).

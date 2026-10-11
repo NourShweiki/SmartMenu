@@ -5,10 +5,11 @@ Then read `docs/PROGRESS.md` to see where work stopped (its **START HERE** secti
 
 ## Where the project is (update this block in every iteration)
 - **Phase 6, onboarding tools.** Done: step 1 (the team's setup tool: create a restaurant, owner's temporary password, change / replace / reissue passwords) and step 2 (staff accounts managed by the owner and manager: `/staff/team`).
-- **Now: step 3, takeout ordering** (design: PROJECT_SPEC.md §4 "Takeout design"). Parts A (domain rules and database: a pickup visit = a session WITHOUT a table, with the customer's name and mobile number) and B (use cases and adapters: `orders.placePickup`, session and order reads that know both kinds of visit, the cashier's steps on a pickup order) and C (the customer screen: without a table the cart asks for name + mobile and places a takeout order; the phone then holds the pickup visit like a scanned table) are done. Next is part D (staff screens: "Takeout" with name and number in the queue instead of "no table"). Then the setup checklist.
-- After that: setup checklist, menu import (spreadsheet, then AI). **Custom domains are postponed to Phase 7 (Nour, 2026-10-12).**
+- Step 3 (takeout: a pickup visit = a session WITHOUT a table, with the customer's name and mobile number; customers order without a table, staff see "Takeout" in the queue, the cashier does every step) is done too.
+- **Now: step 4, the setup checklist for the owner** (what is still missing before the restaurant can take its first order: menu, tables and QR codes where dine-in is on, branding, staff, a test order).
+- After that: menu import from a spreadsheet, then by AI (needs an AI key and a cost decision from Nour: build up to it, then ask). **Custom domains are postponed to Phase 7 (Nour, 2026-10-12).**
 - **Standing instruction for the rest of Phase 6 (Nour, 2026-10-12):** work through the remaining steps part after part WITHOUT waiting for approval between them; after EACH part update the md files, commit and push; keep using mock menu items and prices (no real restaurant yet); when the whole phase is finished, write Nour a summary of everything done and every change, step by step. Still stop and ask for: anything destructive, anything under "Open Questions", and the AI menu import's key and cost.
-- Last verified counts: 445 unit, 42 integration, 417 database (pgTAP), 155 browser tests (full suite last run at 150; the 34 tests of the three specs touched since passed).
+- Last verified counts: 445 unit, 42 integration, 417 database (pgTAP), 158 browser tests.
 
 ## Skills — load before the matching work
 - `architecture-rules` — before creating/editing any code file or deciding where code goes

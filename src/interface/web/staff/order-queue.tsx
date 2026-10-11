@@ -29,6 +29,10 @@ export async function OrderQueueView({ locale, queue }: { locale: Locale; queue:
   const cancelLabels = { open: t("cancel.open"), reason: t("cancel.reasonLabel"), confirm: t("cancel.confirm"), keep: t("cancel.keep"), working: common("saving") };
   const cancelReasons = CANCEL_REASONS.map((value) => ({ value, label: t(`cancel.reasons.${value}`) }));
 
+  // A takeout order is "handed over" at the counter, not "served" at a table.
+  const statusLabel = (order: QueueOrder) => (order.pickup && order.status === "SERVED" ? t("pickup.served") : t(`status.${order.status}`));
+  const actionLabel = (order: QueueOrder, next: OrderStatus) => (order.pickup && next === "SERVED" ? t("pickup.handOver") : t(`action.${next}`));
+
   const card = (order: QueueOrder) => (
     <li key={order.id} className="flex flex-col gap-3 p-4" aria-label={t("order", { number: order.number })}>
       <div className="flex flex-wrap items-center justify-between gap-2">
@@ -37,9 +41,9 @@ export async function OrderQueueView({ locale, queue }: { locale: Locale; queue:
             <bdi>{t("order", { number: order.number })}</bdi>
           </h3>
           <span className={`${pill} bg-gray-900 text-white ring-gray-900`}>
-            <bdi>{order.tableLabel === null ? t("noTable") : t("table", { label: order.tableLabel })}</bdi>
+            <bdi>{order.pickup ? t("pickup.badge") : order.tableLabel === null ? t("noTable") : t("table", { label: order.tableLabel })}</bdi>
           </span>
-          <span className={`${pill} ${STATUS_STYLE[order.status]}`}>{t(`status.${order.status}`)}</span>
+          <span className={`${pill} ${STATUS_STYLE[order.status]}`}>{statusLabel(order)}</span>
           {order.visit && <span className={`${pill} bg-white text-gray-700 ring-gray-300`}>{t(`visit.${order.visit}`)}</span>}
         </div>
         <p className="text-sm text-gray-500">
@@ -47,6 +51,16 @@ export async function OrderQueueView({ locale, queue }: { locale: Locale; queue:
           {t.rich("placedAt", { time: () => <bdi>{order.visit === "ended" ? formatDayTime(order.placedAt, locale) : formatTime(order.placedAt, locale)}</bdi> })}
         </p>
       </div>
+
+      {order.pickup && (
+        // Who collects it, and the number to call if there is a question (always left-to-right).
+        <p className="text-sm">
+          <span className="text-gray-500">{t("pickup.for")}</span> <bdi className="font-semibold">{order.pickup.name}</bdi>{" "}
+          <a href={`tel:${order.pickup.phone}`} className="underline">
+            <bdi dir="ltr">{order.pickup.phone}</bdi>
+          </a>
+        </p>
+      )}
 
       <ul className="flex flex-col gap-1">
         {order.lines.map((line, i) => (
@@ -72,7 +86,7 @@ export async function OrderQueueView({ locale, queue }: { locale: Locale; queue:
               pendingLabel={common("saving")}
               className="rounded-lg bg-gray-900 px-4 py-2 font-semibold text-white hover:bg-gray-700 disabled:opacity-50"
             >
-              {t(`action.${order.next}`)}
+              {actionLabel(order, order.next)}
             </PendingSubmit>
           </form>
         ) : (
