@@ -1,5 +1,5 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
-import type { OrderRepository } from "@/application/ports/order-repository";
+import type { OrderHistory, OrderRepository } from "@/application/ports/order-repository";
 import type { MenuItemId } from "@/domain/menu/menu";
 import type { OptionId } from "@/domain/menu/options";
 import type {
@@ -149,7 +149,7 @@ export function toPlaceOrderPayload(order: Order, requestId?: string, pickup?: P
   };
 }
 
-export class SupabaseOrderRepository implements OrderRepository {
+export class SupabaseOrderRepository implements OrderRepository, OrderHistory {
   /**
    * @param db         the signed-in staff user's client (reads and status changes, RLS applies)
    * @param privileged service-role client, only needed for `nextNumber` and `place` (server-side ordering)
@@ -201,6 +201,12 @@ export class SupabaseOrderRepository implements OrderRepository {
       .maybeSingle();
     if (error) throw new Error(`read order failed: ${error.message}`);
     return data ? toOrder(data as unknown as OrderRow) : null;
+  }
+
+  async hasAny(restaurantId: RestaurantId): Promise<boolean> {
+    const { data, error } = await this.db.from("orders").select("id").eq("restaurant_id", restaurantId).limit(1);
+    if (error) throw new Error(`looking for an order failed: ${error.message}`);
+    return (data ?? []).length > 0;
   }
 
   async listOpen(restaurantId: RestaurantId): Promise<Order[]> {

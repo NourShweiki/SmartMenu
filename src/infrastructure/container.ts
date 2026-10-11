@@ -44,6 +44,7 @@ import { makeCreateRestaurant } from "@/application/use-cases/platform/create-re
 import { makeGetFounderContext, makeListRestaurants, makeSignInFounder } from "@/application/use-cases/platform/founder-access";
 import { makeIssueTemporaryPassword } from "@/application/use-cases/platform/issue-temporary-password";
 import { makeGetRestaurantSettings } from "@/application/use-cases/settings/get-restaurant-settings";
+import { makeGetSetupChecklist } from "@/application/use-cases/setup/get-setup-checklist";
 import {
   makeAddStaffMember,
   makeChangeStaffRole,
@@ -330,6 +331,20 @@ export const tableSessions = {
   listOpen: async (actor: StaffActor) => makeGetOpenVisits(await staffOrderDeps())(actor),
   move: async (...args: Parameters<ReturnType<typeof makeMoveTableSession>>) => makeMoveTableSession(await staffOrderDeps())(...args),
 };
+
+// ─── Setup checklist (owner) ────────────────────────────────────────────
+
+/** What the restaurant still needs before its first order (see makeGetSetupChecklist). Read as the signed-in owner. */
+export async function getSetupChecklist(...args: Parameters<ReturnType<typeof makeGetSetupChecklist>>) {
+  const db = await createSessionClient();
+  return makeGetSetupChecklist({
+    menu: new SupabaseMenuRepository(db),
+    tables: new SupabaseTableRepository(db),
+    branding: new SupabaseBrandingRepository(db),
+    staff: new SupabaseStaffRepository(db),
+    orders: new SupabaseOrderRepository(db),
+  })(...args);
+}
 
 // ─── Staff accounts (owner and manager) ─────────────────────────────────
 

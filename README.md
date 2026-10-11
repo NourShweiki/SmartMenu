@@ -21,7 +21,7 @@ One codebase serves every restaurant (multi-tenant). Each restaurant lives on it
 | 3 | Menu & owner portal | ✅ Done |
 | 4 | Customer ordering (menu, cart, dine-in QR, takeout) | ✅ Dine-in done · takeout is designed and gets built inside Phase 6 |
 | 5 | Staff order screen (live orders, sound alert, order-ready notice) | ✅ Done (SMS left out for now, on purpose) |
-| 6 | Onboarding tools (setup tool, staff accounts, takeout, checklist, menu import) | 🟡 In progress: step 1 of 7 done (the team's setup tool, with passwords); steps 1 to 3 of 6 done (the team's setup tool; staff accounts; takeout); the setup checklist is next |
+| 6 | Onboarding tools (setup tool, staff accounts, takeout, checklist, menu import) | 🟡 In progress: step 1 of 7 done (the team's setup tool, with passwords); steps 1 to 4 of 6 done (the team's setup tool; staff accounts; takeout; the owner's setup checklist); menu import is next |
 | 7 | Installable app (PWA) & push notifications, custom domains | ⬜ Not started |
 | 8 | Hardening (security review, load tests, monitoring, backups) | ⬜ Not started |
 | 9–10 | Pilot restaurant, launch | ⬜ Not started |
@@ -53,6 +53,7 @@ One codebase serves every restaurant (multi-tenant). Each restaurant lives on it
 - **Sold out.** Owner, manager and waiters mark items sold out / back in stock during service.
 
 #### For the owner (and manager)
+- **Setup checklist (owner).** While the restaurant is being set up, the dashboard lists what is still missing before the first order, each line with a link to the screen that fixes it: an item on the menu, tables with QR codes (only where there is table ordering), a logo or written details, staff (optional), a test order. Each line ticks itself when the thing exists; the list disappears once the restaurant is ready.
 - **Menu.** Categories and items with Arabic + English names and descriptions, prices, photos, hide / show, soft delete, reorder. Prices are typed in JD (`4.5`, `4.500`, or Arabic digits `٤٫٥`).
 - **Option groups.** Reusable groups like "Size" or "Extras" (required or optional, with extra prices), attached to any items.
 - **Staff.** The owner and the manager open **Staff** on the dashboard: who works here, with role and email.
@@ -74,7 +75,7 @@ One codebase serves every restaurant (multi-tenant). Each restaurant lives on it
 - The phone only sends what is in the cart. The restaurant, the table, the prices and the rates all come from the server's own side.
 
 #### Quality
-- **Automated tests:** 445 unit tests, 42 integration tests against a real local database, 417 database security tests (tenant isolation, roles, privileges), and 158 end-to-end tests that drive a real browser through both demo restaurants in English and Arabic.
+- **Automated tests:** 454 unit tests, 42 integration tests against a real local database, 417 database security tests (tenant isolation, roles, privileges), and 163 end-to-end tests that drive a real browser through both demo restaurants in English and Arabic.
 - The browser tests build the app for production and start that build themselves, so they check the code in the form users get; they remove everything they create.
 - **CI** runs typecheck, lint (including the architecture-layer import rules), unit tests and a production build on every push. Database, integration and browser tests run locally (CI has no database yet).
 
@@ -84,8 +85,8 @@ One codebase serves every restaurant (multi-tenant). Each restaurant lives on it
   1. ~~the team's setup tool: create a restaurant with its first owner, change passwords, replace a temporary password at first sign-in, issue a new temporary password~~ ✅
   2. ~~staff accounts managed by the owner and the manager~~ ✅
   3. ~~takeout ordering~~ ✅
-  4. **next:** a setup checklist for the owner
-  5. menu import from a spreadsheet
+  4. ~~a setup checklist for the owner~~ ✅
+  5. **next:** menu import from a spreadsheet
   6. menu import by AI from a photo or PDF
 - **After that:** custom domains (moved to the next phase), the installable app with push notifications that reach a locked phone, SMS, reports, loyalty points, the AI ordering assistant, delivery, and cloud deployment (Vercel + Supabase).
 

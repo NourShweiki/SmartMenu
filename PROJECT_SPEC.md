@@ -173,7 +173,7 @@ This means Phase 3 (menu & owner portal) and Phase 6 (onboarding/reports) carry 
   - The owner or manager can give a member a new temporary password; an owner's password is only reset by the founders.
 - **Bulk menu import** — spreadsheet upload, or AI reading a photo/PDF of an existing menu to draft items for review.
 - **Simple branding only** — logo, colors, name via settings, within the constraints from Section 5.
-- **Setup checklist** — menu, tables & QR codes, domain, test order, staff training.
+- **Setup checklist** — menu, tables & QR codes, domain, test order, staff training. *Built 2026-10-12 on the owner's dashboard as: an orderable item on the menu, tables with QR codes (only where dine-in is on), a logo or written details, staff (optional), a test order. Worked out from the restaurant's data, never stored; it disappears when everything required is done. "Domain" waits for custom domains (Phase 7); "staff training" cannot be measured and is left out.*
 - **Rule:** "Configure, don't customize." A one-off client request becomes a real feature only if the pattern repeats across multiple clients — it never becomes custom code for one client.
 
 ---

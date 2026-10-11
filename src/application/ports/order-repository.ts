@@ -38,3 +38,8 @@ export interface OrderRepository {
    */
   cancel(restaurantId: RestaurantId, orderId: OrderId, from: OrderStatus, reason: CancelReason): Promise<boolean>;
 }
+
+/** Whether a restaurant has ever taken an order (the setup checklist's "place a test order"). One cheap question. */
+export interface OrderHistory {
+  hasAny(restaurantId: RestaurantId): Promise<boolean>;
+}

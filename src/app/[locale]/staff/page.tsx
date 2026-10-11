@@ -2,6 +2,7 @@ import Link from "next/link";
 import { getTranslations } from "next-intl/server";
 import { can } from "@/domain/restaurant/role";
 import { localized } from "@/domain/shared/localized";
+import { getSetupChecklist } from "@/infrastructure/container";
 import { LanguageSwitch } from "@/interface/web/components/language-switch";
 import { initLocale } from "@/interface/web/i18n/init-locale";
 import { signOutAction } from "@/interface/web/staff/actions";
@@ -13,6 +14,10 @@ export default async function StaffHomePage({ params }: { params: Promise<{ loca
   const { restaurant, staff } = await requireStaff(locale);
   const t = await getTranslations("StaffHome");
   const roles = await getTranslations("Roles");
+  // The owner's to-do list while the restaurant is being set up; gone once it is ready.
+  const setup = can(staff.role, "restaurant:settings") ? await getSetupChecklist({ restaurantId: staff.restaurantId, role: staff.role }, { dineInEnabled: restaurant.settings.dineInEnabled }) : null;
+  const checklist = setup?.ok && !setup.value.ready ? setup.value : null;
+  const setupLink = { menu: "/staff/menu", tables: "/staff/tables", branding: "/staff/branding", staff: "/staff/team", testOrder: "/menu" } as const;
 
   return (
     <main className="min-h-screen bg-gray-50">
@@ -29,6 +34,36 @@ export default async function StaffHomePage({ params }: { params: Promise<{ loca
           <p className="text-sm text-gray-500">{t("yourRole")}</p>
           <p className="text-xl font-semibold">{roles(staff.role)}</p>
         </section>
+
+        {checklist && (
+          <section aria-labelledby="setup-title" className="rounded-2xl bg-amber-50 p-6 ring-1 ring-amber-200">
+            <h2 id="setup-title" className="text-lg font-semibold">
+              {t("setup.title")}
+            </h2>
+            <p className="text-sm text-gray-700">{t("setup.intro")}</p>
+            <ul className="mt-3 flex flex-col gap-2">
+              {checklist.items.map((item) => (
+                <li key={item.id} className="flex items-start gap-3">
+                  <span aria-hidden className={`mt-0.5 flex size-5 shrink-0 items-center justify-center rounded-full text-xs font-bold ${item.done ? "bg-green-600 text-white" : "bg-white ring-1 ring-gray-400"}`}>
+                    {item.done ? "✓" : ""}
+                  </span>
+                  <span>
+                    {item.done ? (
+                      <span className="text-gray-600 line-through">{t(`setup.items.${item.id}`)}</span>
+                    ) : (
+                      <Link href={`/${locale}${setupLink[item.id]}`} className="font-semibold underline">
+                        {t(`setup.items.${item.id}`)}
+                      </Link>
+                    )}{" "}
+                    <span className="text-sm text-gray-600">
+                      ({item.done ? t("setup.done") : item.optional ? t("setup.optional") : t("setup.todo")})
+                    </span>
+                  </span>
+                </li>
+              ))}
+            </ul>
+          </section>
+        )}
 
         <Link
           href={`/${locale}/staff/orders`}

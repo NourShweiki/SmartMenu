@@ -40,7 +40,21 @@
     "openTablesLinkHint": "Bills, ready to pay, and closing a table",
     "passwordLink": "Change password",
     "teamLink": "Staff",
-    "teamLinkHint": "Add staff, change roles, new passwords"
+    "teamLinkHint": "Add staff, change roles, new passwords",
+    "setup": {
+      "title": "Getting your restaurant ready",
+      "intro": "A few things are still missing before your first order. Each line ticks itself when it is done.",
+      "done": "done",
+      "todo": "to do",
+      "optional": "optional",
+      "items": {
+        "menu": "Put at least one item on the menu",
+        "tables": "Add your tables and print their QR codes",
+        "branding": "Add your logo or your details",
+        "staff": "Add your staff",
+        "testOrder": "Place a test order from the menu"
+      }
+    }
   },
   "Settings": {
     "title": "Restaurant settings",
