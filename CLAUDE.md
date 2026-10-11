@@ -4,10 +4,10 @@ Read `PROJECT_SPEC.md` at the start of every session. It is the source of truth.
 Then read `docs/PROGRESS.md` to see where work stopped (its **START HERE** section at the top says what is done, what the next task is, how to run everything, and the pitfalls), and update it at the end of every iteration.
 
 ## Where the project is (update this block in every iteration)
-- **Phase 6, onboarding tools.** Step 1 (the team's setup tool: create a restaurant, owner's temporary password, change / replace / reissue passwords) is done.
-- **Now: step 2, staff accounts managed by the owner and manager.** Parts A (database rules) and B (use cases and adapters: `team.*` in the container) are done; next is part C (the screen `/staff/team` with browser tests).
-- After that: takeout ordering (designed in PROJECT_SPEC.md §4), setup checklist, menu import (spreadsheet, then AI), custom domains.
-- Last verified counts: 413 unit, 40 integration, 375 database (pgTAP), 145 browser tests.
+- **Phase 6, onboarding tools.** Done: step 1 (the team's setup tool: create a restaurant, owner's temporary password, change / replace / reissue passwords) and step 2 (staff accounts managed by the owner and manager: `/staff/team`).
+- **Now: step 3, takeout ordering** (designed in PROJECT_SPEC.md §4 "Takeout design"; nothing built yet). Start with part A: domain rules and database (a pickup visit = a session without a table, with the customer's name and mobile number).
+- After that: setup checklist, menu import (spreadsheet, then AI), custom domains.
+- Last verified counts: 417 unit, 40 integration, 375 database (pgTAP), 150 browser tests.
 
 ## Skills — load before the matching work
 - `architecture-rules` — before creating/editing any code file or deciding where code goes
@@ -41,7 +41,7 @@ Then read `docs/PROGRESS.md` to see where work stopped (its **START HERE** secti
 ## Showing work to Nour (required for every feature)
 - After any change that affects what the app shows, run `npm run dev` and open http://localhost:3000 (the relevant page) so Nour can see it, and say in the report which URL to look at.
 - **Both demo restaurants, always (Nour, 2026-10-10):** Demo Grill (`demo-dinein`) and Demo Coffee (`demo-takeout`) must stay on the same phase. After any change to a staff or customer screen, check it on BOTH hosts (`http://demo-dinein.localhost:3000`, `http://demo-takeout.localhost:3000`), in `/ar` and `/en`, and leave the demo data as you found it. Demo accounts: `supabase/seed.sql`.
-- **The team's setup tool** lives on the address WITHOUT a restaurant in front: `http://localhost:3000/en/setup` (demo founder account in `supabase/seed.sql`). It must NOT exist on a restaurant's address (404 there). NEVER press "New temporary password" for a seeded demo owner when checking by hand: it replaces the demo password every test and demo depends on (try it on a restaurant you created, named `e2e-...` so the test cleanup removes it).
+- **The team's setup tool** lives on the address WITHOUT a restaurant in front: `http://localhost:3000/en/setup` (demo founder account in `supabase/seed.sql`). It must NOT exist on a restaurant's address (404 there). The same goes for the Staff screen (`/staff/team`): never press "Save role", "New temporary password" or "Remove" on a seeded demo member; add an `e2e-...@test.local` member and try it on that one. NEVER press "New temporary password" for a seeded demo owner when checking by hand: it replaces the demo password every test and demo depends on (try it on a restaurant you created, named `e2e-...` so the test cleanup removes it).
 - Accounts the app creates (a new restaurant's owner) start with a temporary password: the first sign-in lands on `/staff/password` and nothing else opens until it is replaced. The seeded demo accounts are not affected.
 - You run the commands yourself (npm, npx supabase, git) — don't ask Nour to copy-paste output. Ask before anything destructive.
 - Docs are part of every iteration: `README.md` (for the team and visitors: what works, what does not, how to run it) and `docs/PROGRESS.md` (START HERE handoff + the log). When a phase, a count of tests or a decision changes, fix every place that states it, not only the newest entry; `PROJECT_SPEC.md` and the skills get the decision itself.

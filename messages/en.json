@@ -38,7 +38,9 @@
     "ordersLinkHint": "Incoming orders and their status",
     "openTablesLink": "Open tables",
     "openTablesLinkHint": "Bills, ready to pay, and closing a table",
-    "passwordLink": "Change password"
+    "passwordLink": "Change password",
+    "teamLink": "Staff",
+    "teamLinkHint": "Add staff, change roles, new passwords"
   },
   "Settings": {
     "title": "Restaurant settings",
@@ -545,6 +547,43 @@
       "refused": "This password is not accepted. Choose a different one.",
       "mismatch": "The two entries of the new password are not the same.",
       "notSignedIn": "You are no longer signed in. Sign in and try again."
+    }
+  },
+  "Team": {
+    "title": "Staff",
+    "backToDashboard": "Staff dashboard",
+    "addTitle": "Add a member",
+    "email": "Email",
+    "emailHint": "They sign in with this email. You get a temporary password to pass on to them.",
+    "role": "Role",
+    "add": "Add member",
+    "adding": "Adding…",
+    "addedTitle": "{email} was added as {role}. Temporary password:",
+    "passwordNote": "Shown only now. Pass it on: they will be asked to choose their own password when they sign in.",
+    "listTitle": "Who works here ({count})",
+    "you": "You",
+    "joined": "since",
+    "ownerNote": "Owners are managed by the SmartMenu team.",
+    "selfNote": "You cannot change or remove yourself. For your own password, use Change password on the dashboard.",
+    "roleOf": "Role of {email}",
+    "saveRole": "Save role",
+    "saving": "Saving…",
+    "newPassword": "New temporary password",
+    "newPasswordConfirm": "Give {email} a new temporary password? Their current password stops working at once.",
+    "newPasswordIssued": "New temporary password for {email}",
+    "remove": "Remove",
+    "removeConfirm": "Remove {email} from the staff? They will no longer be able to sign in here.",
+    "working": "Working…",
+    "errors": {
+      "invalid": "Enter a valid email address.",
+      "taken": "This email already has an account that cannot be added here: it is in use at another restaurant.",
+      "alreadyMember": "This person already works here.",
+      "invalidRole": "Choose manager, waiter or cashier.",
+      "forbidden": "You are not allowed to do this.",
+      "notFound": "This person no longer works here. The list has been refreshed.",
+      "self": "You cannot change or remove yourself.",
+      "owner": "Owners cannot be changed from this screen.",
+      "notResettable": "This person's password cannot be reset from here."
     }
   }
 }

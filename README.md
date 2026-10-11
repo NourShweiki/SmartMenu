@@ -21,7 +21,7 @@ One codebase serves every restaurant (multi-tenant). Each restaurant lives on it
 | 3 | Menu & owner portal | ✅ Done |
 | 4 | Customer ordering (menu, cart, dine-in QR, takeout) | ✅ Dine-in done · takeout is designed and gets built inside Phase 6 |
 | 5 | Staff order screen (live orders, sound alert, order-ready notice) | ✅ Done (SMS left out for now, on purpose) |
-| 6 | Onboarding tools (setup tool, staff accounts, takeout, checklist, menu import, custom domains) | 🟡 In progress: step 1 of 7 done (the team's setup tool, with passwords); step 2 (staff accounts): rules and logic built and tested, the screen is next |
+| 6 | Onboarding tools (setup tool, staff accounts, takeout, checklist, menu import, custom domains) | 🟡 In progress: step 1 of 7 done (the team's setup tool, with passwords); steps 1 and 2 of 7 done (the team's setup tool; staff accounts managed by the owner); takeout is next |
 | 7 | Installable app (PWA) & push notifications | ⬜ Not started |
 | 8 | Hardening (security review, load tests, monitoring, backups) | ⬜ Not started |
 | 9–10 | Pilot restaurant, launch | ⬜ Not started |
@@ -54,6 +54,10 @@ One codebase serves every restaurant (multi-tenant). Each restaurant lives on it
 #### For the owner (and manager)
 - **Menu.** Categories and items with Arabic + English names and descriptions, prices, photos, hide / show, soft delete, reorder. Prices are typed in JD (`4.5`, `4.500`, or Arabic digits `٤٫٥`).
 - **Option groups.** Reusable groups like "Size" or "Extras" (required or optional, with extra prices), attached to any items.
+- **Staff.** The owner and the manager open **Staff** on the dashboard: who works here, with role and email.
+  - **Add a member** by email as manager, waiter or cashier: they get an account with a temporary password, shown once to pass on, and must choose their own at first sign-in.
+  - Change a member's role, give them a **new temporary password**, or **remove** them (their account is kept, so past orders still know who handled them; they can be hired again).
+  - Nobody can change or remove themselves, owners are managed by the SmartMenu team only, and an email in use at another restaurant is refused.
 - **Tables and QR codes.** Add tables and print a QR card for each. The code holds a long random token, not the table number: renaming never breaks a printed code, and a lost code is replaced with one click.
 - **Branding (owner only).** Logo, one accent colour from 8, and the restaurant's name, tagline, about text, address, phone and opening hours in both languages. It shows at once on the public page.
 - **Settings (owner only).** Which order types are on, tax rate, service charge, default customer language.
@@ -65,7 +69,7 @@ One codebase serves every restaurant (multi-tenant). Each restaurant lives on it
 - The phone only sends what is in the cart. The restaurant, the table, the prices and the rates all come from the server's own side.
 
 #### Quality
-- **Automated tests:** 413 unit tests, 40 integration tests against a real local database, 375 database security tests (tenant isolation, roles, privileges), and 145 end-to-end tests that drive a real browser through both demo restaurants in English and Arabic.
+- **Automated tests:** 417 unit tests, 40 integration tests against a real local database, 375 database security tests (tenant isolation, roles, privileges), and 150 end-to-end tests that drive a real browser through both demo restaurants in English and Arabic.
 - The browser tests build the app for production and start that build themselves, so they check the code in the form users get; they remove everything they create.
 - **CI** runs typecheck, lint (including the architecture-layer import rules), unit tests and a production build on every push. Database, integration and browser tests run locally (CI has no database yet).
 
@@ -73,12 +77,8 @@ One codebase serves every restaurant (multi-tenant). Each restaurant lives on it
 
 - **Phase 6 (in progress): onboarding a new restaurant in under a day.** In this order:
   1. ~~the team's setup tool: create a restaurant with its first owner, change passwords, replace a temporary password at first sign-in, issue a new temporary password~~ ✅
-  2. **in progress:** staff accounts managed by the owner and the manager. The rules are decided, and the database part and the logic behind it are built and tested against a real database (adding a member with a temporary password, changing a role, removing, re-hiring, a new temporary password). Only the screen is missing, so today a restaurant's other staff can still only be added in the database. The rules:
-     - the owner and the manager add managers, waiters and cashiers, each with a temporary password; owners are created by the SmartMenu team
-     - nobody can change or remove themselves, and a restaurant always keeps at least one owner
-     - an email that is in use at another restaurant is refused; somebody who was removed can be hired again
-     - removing somebody takes them out of the restaurant but keeps their account, so past orders still know who handled them
-  3. **takeout ordering** (designed: a pickup order with the customer's name and mobile number, followed on their phone like a table order). Until then a takeout-only restaurant such as Demo Coffee shows its menu but cannot take orders
+  2. ~~staff accounts managed by the owner and the manager~~ ✅
+  3. **next: takeout ordering** (designed: a pickup order with the customer's name and mobile number, followed on their phone like a table order). Until then a takeout-only restaurant such as Demo Coffee shows its menu but cannot take orders
   4. a setup checklist for the owner
   5. menu import from a spreadsheet
   6. menu import by AI from a photo or PDF
@@ -141,11 +141,11 @@ The dev server is slower than the real app (it compiles pages on demand). To fee
 
 Then open:
 - http://demo-dinein.localhost:3000 for **Demo Grill** (dine-in; Arabic first, use the switch for English) and http://demo-takeout.localhost:3000 for **Demo Coffee** (takeout only)
-- http://demo-dinein.localhost:3000/en/staff/login for **staff login**: orders, open tables, menu, tables and QR codes, settings, branding
+- http://demo-dinein.localhost:3000/en/staff/login for **staff login**: orders, open tables, menu, staff, tables and QR codes, settings, branding
 - http://demo-dinein.localhost:3000/en/staff/tables to copy a table's QR link, which is how a customer "scans" a table on a computer
 - http://localhost:3000/en/setup for the **team's setup tool** (note: no restaurant name in front of `localhost`)
 
-Careful on the setup tool: **New temporary password** really replaces that owner's password, also for the demo owners (`npx supabase db reset` brings the demo passwords back).
+Careful: on the setup tool and on the **Staff** screen, **New temporary password**, **Remove** and **Save role** really change that account, also for the demo accounts. Try them on a member or restaurant you added yourself (`npx supabase db reset` brings the demo accounts back).
 
 Demo accounts (local only): `owner@demo-dinein.test`, `waiter@demo-dinein.test`, `cashier@demo-dinein.test`, `owner@demo-takeout.test`, and the founder `founder@demo-platform.test` for the setup tool. The password is in [`supabase/seed.sql`](supabase/seed.sql).
 
