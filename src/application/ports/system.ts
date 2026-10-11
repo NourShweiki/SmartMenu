@@ -11,3 +11,8 @@ export interface IdGenerator {
 export interface TokenGenerator {
   newToken(): string;
 }
+
+/** Temporary passwords handed to a new member of staff: random, from a cryptographically secure source, easy to read out and type. */
+export interface PasswordGenerator {
+  newPassword(): string;
+}

@@ -1,0 +1,18 @@
+import type { Restaurant, RestaurantId } from "@/domain/restaurant/restaurant";
+import type { Result } from "@/domain/shared/result";
+import type { UserId } from "./auth-gateway";
+
+/** Why a new restaurant cannot be stored: this very one is already there (same id), or its address belongs to another. */
+export type RestaurantClash = "SAME_ID" | "SLUG";
+
+export type StoreRestaurantError = { type: "ALREADY_CREATED" } | { type: "SLUG_TAKEN" } | { type: "NOT_A_FOUNDER" };
+
+/**
+ * The platform's list of restaurants, as the founders' setup tool sees it. The one port that works ACROSS tenants,
+ * which is why its methods take no restaurantId: use it only behind a founder check.
+ */
+export interface RestaurantDirectory {
+  clash(id: RestaurantId, slug: string): Promise<RestaurantClash | null>;
+  /** Stores the restaurant, its settings and its first OWNER together, or nothing. The store checks the founder again. */
+  create(actorId: UserId, restaurant: Restaurant, ownerId: UserId): Promise<Result<void, StoreRestaurantError>>;
+}

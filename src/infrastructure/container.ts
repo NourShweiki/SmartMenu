@@ -39,6 +39,7 @@ import { makeGetStaffOrderList } from "@/application/use-cases/orders/get-staff-
 import { makeMoveOrderStatus } from "@/application/use-cases/orders/move-order-status";
 import { makeFindPlacedOrder, makePlaceOrder } from "@/application/use-cases/orders/place-order";
 import type { StaffActor } from "@/application/use-cases/permissions";
+import { makeCreateRestaurant } from "@/application/use-cases/platform/create-restaurant";
 import { makeGetRestaurantSettings } from "@/application/use-cases/settings/get-restaurant-settings";
 import { makeUpdateRestaurantSettings } from "@/application/use-cases/settings/update-restaurant-settings";
 import type { SettingsActor } from "@/application/use-cases/settings/shared";
@@ -55,7 +56,10 @@ import type { MenuActor } from "@/application/use-cases/menu/shared";
 import type { RestaurantId } from "@/domain/restaurant/restaurant";
 import { createPublicClient, createServiceClient, createSessionClient } from "./supabase/client";
 import { SupabaseBrandingRepository } from "./supabase/supabase-branding-repository";
-import { newTableToken } from "./random-token";
+import { newTableToken, newTemporaryPassword } from "./random-token";
+import { SupabaseAccountDirectory } from "./supabase/supabase-account-directory";
+import { SupabasePlatformAdminRepository } from "./supabase/supabase-platform-admin-repository";
+import { SupabaseRestaurantDirectory } from "./supabase/supabase-restaurant-directory";
 import { SupabaseOrderRepository } from "./supabase/supabase-order-repository";
 import { SupabaseOrderingCatalog } from "./supabase/supabase-ordering-catalog";
 import { SupabaseAuthGateway } from "./supabase/supabase-auth-gateway";
@@ -284,4 +288,30 @@ export const tableSessions = {
     makeGetSessionOrders({ sessions: new SupabaseTableSessionGateway(createPublicClient()) })(input),
   listOpen: async (actor: StaffActor) => makeGetOpenVisits(await staffOrderDeps())(actor),
   move: async (...args: Parameters<ReturnType<typeof makeMoveTableSession>>) => makeMoveTableSession(await staffOrderDeps())(...args),
+};
+
+// ─── Platform (the founders' setup tool) ────────────────────────────────
+
+/**
+ * Who is signed in and whether they are a founder is read as that user (RLS). The work itself (making the owner's
+ * account, storing a restaurant) crosses tenants, so it uses the service-role client: only ever behind the founder
+ * check the use cases start with, which the database repeats.
+ */
+async function platformDeps() {
+  const db = await createSessionClient();
+  const service = createServiceClient();
+  return {
+    auth: new SupabaseAuthGateway(db),
+    admins: new SupabasePlatformAdminRepository(db),
+    accounts: new SupabaseAccountDirectory(service),
+    restaurants: new SupabaseRestaurantDirectory(service),
+    passwords: { newPassword: newTemporaryPassword },
+    clock: systemClock,
+  };
+}
+
+export const platform = {
+  /** A founder creates a restaurant with its first owner (see makeCreateRestaurant). */
+  createRestaurant: async (...args: Parameters<ReturnType<typeof makeCreateRestaurant>>) =>
+    makeCreateRestaurant(await platformDeps())(...args),
 };

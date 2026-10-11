@@ -116,7 +116,7 @@ One codebase serves every restaurant (multi-tenant). Each restaurant lives on it
 ### ⬜ Not done yet (next up)
 
 - **Phase 6 (in progress): onboarding a new restaurant in under a day.** In this order:
-  1. the founders' tool to create a restaurant with its first owner (the database part is done: a restaurant, its settings and its owner are created together or not at all, and only by a founder)
+  1. the founders' tool to create a restaurant with its first owner (database and app logic are done: a restaurant, its settings and its owner account with a temporary password are created together or not at all, and only by a founder; the screen comes next)
   2. staff accounts managed by the owner
   3. takeout ordering (designed: a pickup order with the customer's name and mobile number, followed on their phone like a table order)
   4. a setup checklist for the owner
