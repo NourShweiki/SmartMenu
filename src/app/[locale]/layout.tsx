@@ -1,5 +1,6 @@
 import { IBM_Plex_Sans_Arabic } from "next/font/google";
 import { NextIntlClientProvider } from "next-intl";
+import { StuckRenderGuard } from "@/interface/web/components/stuck-render-guard";
 import { initLocale } from "@/interface/web/i18n/init-locale";
 import { dirOf, LOCALES } from "@/interface/web/i18n/locales";
 
@@ -28,6 +29,7 @@ export default async function LocaleLayout({
       {/* suppressHydrationWarning: browser extensions (e.g. Grammarly) add attributes to <body> before React loads;
           this silences only attribute mismatches on this element, not on its children. */}
       <body suppressHydrationWarning className="min-h-screen bg-white font-sans text-gray-900 antialiased">
+        <StuckRenderGuard />
         <NextIntlClientProvider>{children}</NextIntlClientProvider>
       </body>
     </html>

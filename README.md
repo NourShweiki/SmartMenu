@@ -94,6 +94,7 @@ One codebase serves every restaurant (multi-tenant). Each restaurant lives on it
   - Clear messages, in Arabic and English, explain when an order cannot be placed: no table scanned, the visit ended, the bill was requested, something in the cart sold out or changed.
   - Without a table the button stays off (takeout ordering is not built yet). Staff do not have a screen for incoming orders yet: that is the next phase.
 - **Browser tests.** 118 automated end-to-end tests drive a real browser through the app on both demo restaurants, in English and Arabic: login, language switch, roles, menu, settings, branding, the customer menu with its cart, tables with QR scanning, and placing an order. They change data and put it back. Run with `npm run test:e2e` (needs the local database).
+- **Reliable updates after a save.** In production builds a bug in the React version bundled with our framework could leave a page showing old content after a successful save, until a reload. A small built-in guard now makes the page catch up by itself; the browser tests run against a production build to keep it that way.
 - **Quality gates.** CI runs typecheck, lint (including architecture-layer import rules), unit tests and a production build on every push. Database security tests (pgTAP) and integration tests run locally.
 
 ### ⬜ Not done yet (next up)

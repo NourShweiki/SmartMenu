@@ -72,11 +72,14 @@ Scan table QR → join/create session → browse digital menu (an AI assistant c
 `NEW → CONFIRMED → PREPARING → READY → SERVED → COMPLETED`
 On **READY**, push a notification to the customer's session device(s).
 **Rule:** when a customer adds items after confirming, the addition re-enters the flow at NEW (kitchen treats it as freshly needed work, not something already done).
-**Open question — needs a decision before building this part:** can confirmed items also be *removed*, or only added?
+**Decided (Nour, 2026-10-11):** dine-in guests are notified when their order is READY too, not only takeout customers. (Assumed channel for dine-in: a notice on the devices that joined the table session, since no phone number is collected at a table; SMS for dine-in would mean asking the guest for a number first. Confirm before building SMS for dine-in.)
+**Decided (Nour, 2026-10-11): only staff can cancel an order.** A customer cannot cancel an order or remove items from it once it is placed; they ask the staff. Still to settle when it is built: which roles may cancel, up to which status, and how a cancelled order shows on the bill.
+**Open question — needs a decision before building this part:** can staff remove single items from a placed order, or only cancel the whole order?
 
 ### Staff roles
 - **Waiter (tablet):** confirms orders as they arrive, handles service requests (waiter call, cleaning), tells the cashier when a table is ready to pay. **Does not** hand this off automatically — it's a manual "ready to pay" signal to the cashier.
 - **Cashier:** billing and closing only — confirm payment, generate receipt, close the session. **Does not see service requests** — that's the waiter's screen only. **Decided (Nour, 2026-10-10):** the cashier takes an order from SERVED to COMPLETED after the customer has paid, and may do nothing else to an order; the waiter moves orders up to SERVED but cannot complete them. Owner and manager can do every step. Enforced by the database, not only the screens.
+- **No kitchen role or kitchen screen (decided by Nour, 2026-10-11):** the waiter moves an order through every step up to SERVED, as built. The roles stay Owner, Manager, Waiter, Cashier.
 - **Owner/Manager:** full dashboard — sales, menu/category/modifier management, table & staff management (incl. QR generation, roles/permissions), order & payment history, reports & analytics.
 
 ### Session lifecycle (full loop)
@@ -243,11 +246,11 @@ Each phase ends with something demoable.
 
 ## 12. Open Questions (resolve before the relevant phase starts)
 
-- Can confirmed order items be removed, or only added? (blocks Section 4 edge cases)
+- Can staff remove single items from a placed order, or only cancel the whole order? (customers can do neither: decided 2026-10-11, see Section 4)
 - How does takeout/delivery map onto the Table-Session model? (blocks Phase 4/10 delivery work)
 - Loyalty points: exact earn/redeem rules (blocks Phase 6/10 loyalty work)
 - ~~Menu UI editing: exact list of editable elements~~ — DECIDED 2026-10-10 (see Section 5)
-- Order cancellation rules (CANCELLED status is deliberately not built yet)
+- Order cancellation details: only staff can cancel (decided 2026-10-11); which roles, up to which status, and the effect on the bill are still open (CANCELLED status is not built yet)
 - Is tax charged on top of the service charge? (assumed yes; kept as is by Nour, 2026-10-10)
 - Pricing model (intentionally deferred — doesn't block building)
 - Who owns finding/talking to the first pilot restaurant (doesn't block building)
