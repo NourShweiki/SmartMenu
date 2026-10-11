@@ -14,6 +14,7 @@ import type {
 } from "@/domain/order/order";
 import type { RestaurantId } from "@/domain/restaurant/restaurant";
 import type { Fils } from "@/domain/shared/money";
+import type { PickupCustomer } from "@/domain/table-session/pickup";
 import { REFUSED } from "./postgres-errors";
 import { UUID } from "./supabase-options-repository";
 
@@ -112,10 +113,12 @@ export function toOrder(row: OrderRow): Order {
  * The jsonb payload of public.place_order (migrations 20261010140000 and 20261011100000). Array order = receipt
  * order. `requestId` is the device's key for this submission (null = none: every call is a new order).
  */
-export function toPlaceOrderPayload(order: Order, requestId?: string) {
+export function toPlaceOrderPayload(order: Order, requestId?: string, pickup?: PickupCustomer) {
   return {
     id: order.id,
     client_request_id: requestId ?? null,
+    // Present = "start this order's session as a pickup visit for this customer, unless it is already there".
+    ...(pickup && { pickup: { customer_name: pickup.name, customer_phone: pickup.phone } }),
     restaurant_id: order.restaurantId,
     session_id: order.sessionId,
     number: order.number,
@@ -167,8 +170,8 @@ export class SupabaseOrderRepository implements OrderRepository {
     return data as number;
   }
 
-  async place(order: Order, requestId?: string): Promise<OrderId> {
-    const { data, error } = await this.server().rpc("place_order", { p_order: toPlaceOrderPayload(order, requestId) });
+  async place(order: Order, requestId?: string, pickup?: PickupCustomer): Promise<OrderId> {
+    const { data, error } = await this.server().rpc("place_order", { p_order: toPlaceOrderPayload(order, requestId, pickup) });
     if (error) throw new Error(`place_order failed: ${error.message}`);
     // The function names the order now stored for this request: ours, or an earlier one with the same key.
     if (typeof data !== "string") throw new Error("place_order returned no order id");

@@ -1,10 +1,17 @@
 import type { OrderStatus } from "@/domain/order/order";
 import type { Fils } from "@/domain/shared/money";
 import type { LocalizedText } from "@/domain/shared/result";
+import type { SessionKind } from "@/domain/table-session/pickup";
 import type { SessionStatus, TableSessionId } from "@/domain/table-session/table-session";
 
-/** What a customer's device learns when it scans a table's QR code. Nothing else about the table or restaurant. */
-export type PublicSession = { sessionId: TableSessionId; tableLabel: string; status: SessionStatus };
+/**
+ * What a customer's device learns about the visit it holds. A TABLE visit (the device scanned a table's QR code):
+ * the table's label. A PICKUP visit (the device placed a takeout order): the name the order is under, never the
+ * phone number. Nothing else about the table or the restaurant.
+ */
+export type PublicSession =
+  | { sessionId: TableSessionId; kind: "TABLE"; tableLabel: string; status: SessionStatus }
+  | { sessionId: TableSessionId; kind: Extract<SessionKind, "PICKUP">; customerName: string; status: SessionStatus };
 
 /**
  * One order of a table visit, as far as the guests at that table may see it: its number, how far it has got, when

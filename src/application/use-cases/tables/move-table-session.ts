@@ -52,7 +52,8 @@ export function makeMoveTableSession(deps: {
     if (!allowed.ok) return allowed;
 
     const [found] = await deps.sessions.findWithTables(actor.restaurantId, [input.sessionId]);
-    if (!found || found.session.restaurantId !== actor.restaurantId) return err({ type: "SESSION_NOT_FOUND" });
+    // A pickup visit is not staff's to move: it ends by itself with its last order.
+    if (!found || found.session.restaurantId !== actor.restaurantId || found.session.kind !== "TABLE") return err({ type: "SESSION_NOT_FOUND" });
 
     const now = deps.clock.now();
     const stored = found.session;

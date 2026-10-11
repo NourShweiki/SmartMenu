@@ -13,7 +13,7 @@ const START = new Date("2026-10-11T18:05:00Z");
 function visit(label: string, status: SessionStatus, orders: OrderStatus[] = [], stored: SessionStatus = status): OpenVisit {
   const list = orders.map((s, i) => ({ id: `order-${i + 1}`, number: i + 1, status: s, totalFils: 1276 }) as unknown as Order);
   return {
-    session: { id: `session-${label}` as TableSessionId, restaurantId: R, tableId: `table-${label}` as TableId, status: stored, startedAt: START, endedAt: null },
+    session: { id: `session-${label}` as TableSessionId, restaurantId: R, kind: "TABLE", tableId: `table-${label}` as TableId, customer: null, status: stored, startedAt: START, endedAt: null },
     tableLabel: label,
     status,
     orders: list,

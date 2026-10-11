@@ -78,6 +78,7 @@ describe.skipIf(!enabled)("orders against local Supabase", () => {
     const placed = await place({
       restaurantId: GRILL,
       sessionId: SESSION,
+      kind: "TABLE" as const,
       rates: { taxRateBp: 1600, serviceChargeBp: 1000 },
       lines: [
         { menuItemId: kebabId, quantity: 2, selectedOptionIds: picks },
@@ -99,7 +100,8 @@ describe.skipIf(!enabled)("orders against local Supabase", () => {
     // Waiter: NEW -> SERVED. Not allowed to complete.
     const clock = { now: () => new Date() };
     const waiter = { restaurantId: GRILL, role: "WAITER" } as const;
-    const moveAsWaiter = makeMoveOrderStatus({ orders: waiterRepo, clock });
+    const waiterDb = await staffClient("waiter@demo-dinein.test");
+    const moveAsWaiter = makeMoveOrderStatus({ orders: waiterRepo, sessions: new SupabaseTableSessionRepository(waiterDb), clock });
     for (const to of ["CONFIRMED", "PREPARING", "READY", "SERVED"] as const) {
       const moved = await moveAsWaiter(waiter, { orderId: order.id, to });
       if (!moved.ok) throw new Error(JSON.stringify(moved.error));
@@ -110,7 +112,6 @@ describe.skipIf(!enabled)("orders against local Supabase", () => {
     expect(await waiterRepo.updateStatus(GRILL, order.id, "SERVED", "COMPLETED")).toBe(false);
 
     // The open tables screen (real adapters): this table with its order on the bill, and it cannot be closed yet.
-    const waiterDb = await staffClient("waiter@demo-dinein.test");
     const openVisits = makeGetOpenVisits({ sessions: new SupabaseTableSessionRepository(waiterDb), orders: new SupabaseOrderRepository(waiterDb), clock });
     const visitNow = async () => (await openVisits({ restaurantId: GRILL, role: "WAITER" })).find((v) => v.session.id === SESSION);
     expect(await visitNow()).toMatchObject({ tableLabel: "IT-orders", status: "OPEN", unfinished: 1, bill: { totalFils: order.totalFils } });
@@ -125,9 +126,9 @@ describe.skipIf(!enabled)("orders against local Supabase", () => {
       makeMoveTableSession({ sessions: new SupabaseTableSessionRepository(cashierDb), orders: cashierRepo, clock })({ restaurantId: GRILL, role: "CASHIER" }, { sessionId: SESSION, to: "CLOSED" });
     expect(await closeVisit()).toEqual({ ok: false, error: { type: "UNFINISHED_ORDERS", count: 1 } }); // the served order is not paid yet
     const queue = await cashierList({ restaurantId: GRILL, role: "CASHIER" });
-    expect(queue.find((e) => e.order.id === order.id)?.table).toEqual({ sessionId: SESSION, label: "IT-orders", sessionStatus: "OPEN" });
+    expect(queue.find((e) => e.order.id === order.id)?.table).toEqual({ sessionId: SESSION, kind: "TABLE", label: "IT-orders", customer: null, sessionStatus: "OPEN" });
     expect(queue.every((e) => e.order.restaurantId === GRILL && e.table !== null)).toBe(true);
-    const done = await makeMoveOrderStatus({ orders: cashierRepo, clock })({ restaurantId: GRILL, role: "CASHIER" }, { orderId: order.id, to: "COMPLETED" });
+    const done = await makeMoveOrderStatus({ orders: cashierRepo, sessions: new SupabaseTableSessionRepository(cashierDb), clock })({ restaurantId: GRILL, role: "CASHIER" }, { orderId: order.id, to: "COMPLETED" });
     if (!done.ok) throw new Error(JSON.stringify(done.error));
     expect((await cashierRepo.findById(GRILL, order.id))!.status).toBe("COMPLETED");
     expect((await waiterRepo.listOpen(GRILL)).map((o) => o.id)).not.toContain(order.id); // no longer in the open queue
@@ -148,6 +149,7 @@ describe.skipIf(!enabled)("orders against local Supabase", () => {
     const cart = {
       restaurantId: GRILL,
       sessionId: SESSION,
+      kind: "TABLE" as const,
       rates: { taxRateBp: 1600, serviceChargeBp: 1000 },
       lines: [{ menuItemId: data!.id as MenuItemId, quantity: 1, selectedOptionIds: [] }],
     };
@@ -189,6 +191,7 @@ describe.skipIf(!enabled)("orders against local Supabase", () => {
     const placed = await place({
       restaurantId: GRILL,
       sessionId: SESSION,
+      kind: "TABLE" as const,
       rates: { taxRateBp: 0, serviceChargeBp: 0 },
       lines: [{ menuItemId: data!.id as MenuItemId, quantity: 1, selectedOptionIds: [] }],
     });
@@ -216,7 +219,7 @@ describe.skipIf(!enabled)("orders against local Supabase", () => {
     const { data } = await service.from("menu_items").select("id").eq("restaurant_id", GRILL).eq("name_en", "Hummus").single();
     const place = makePlaceOrder({ orders: serverRepo, catalog, ids: { newId: () => crypto.randomUUID() }, clock: { now: () => new Date() } });
     const placeOne = async () => {
-      const placed = await place({ restaurantId: GRILL, sessionId: SESSION, rates: { taxRateBp: 1600, serviceChargeBp: 1000 }, lines: [{ menuItemId: data!.id as MenuItemId, quantity: 1, selectedOptionIds: [] }] });
+      const placed = await place({ restaurantId: GRILL, sessionId: SESSION, kind: "TABLE" as const, rates: { taxRateBp: 1600, serviceChargeBp: 1000 }, lines: [{ menuItemId: data!.id as MenuItemId, quantity: 1, selectedOptionIds: [] }] });
       if (!placed.ok) throw new Error(JSON.stringify(placed.error));
       return placed.value;
     };

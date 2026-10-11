@@ -151,7 +151,7 @@ describe("change a table", () => {
 });
 
 describe("scanning a QR code", () => {
-  const session: PublicSession = { sessionId: "s-1" as TableSessionId, tableLabel: "7", status: "OPEN" };
+  const session: PublicSession = { sessionId: "s-1" as TableSessionId, kind: "TABLE", tableLabel: "7", status: "OPEN" };
   const order = { number: 12, status: "READY", placedAt: new Date("2026-10-11T18:00:00Z"), totalFils: 1595, lines: [{ name: { en: "Hummus", ar: "حمص" }, quantity: 1 }] } as unknown as PublicOrder;
   const gateway = () => {
     const calls: string[] = [];

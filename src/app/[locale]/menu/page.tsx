@@ -26,7 +26,7 @@ export default async function CustomerMenuPage({ params }: { params: Promise<{ l
     sessionId ? tableSessions.orders({ slug: restaurant.slug, sessionId }) : [],
   ]);
   // The table is whatever the database says now: a session that was closed (the guests left) shows no table.
-  const table = session && session.status !== "CLOSED" ? { label: session.tableLabel } : null;
+  const table = session && session.kind === "TABLE" && session.status !== "CLOSED" ? { label: session.tableLabel } : null;
   const withPhoto = menu.sections.flatMap((s) => s.items.flatMap(({ item }) => (item.imagePath ? [{ id: item.id, path: item.imagePath }] : [])));
   const urls = menuPhotoUrls(withPhoto.map((p) => p.path));
   const imageUrls = Object.fromEntries(withPhoto.map((p, i) => [p.id, urls[i]!]));

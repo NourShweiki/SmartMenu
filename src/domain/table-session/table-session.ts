@@ -1,5 +1,6 @@
 import type { RestaurantId } from "@/domain/restaurant/restaurant";
 import { err, ok, type Result } from "@/domain/shared/result";
+import type { PickupCustomer, SessionKind } from "./pickup";
 
 export type TableId = string & { readonly __brand: "TableId" };
 /** One visit at one table. Several customer devices can share it (spec §4). */
@@ -98,7 +99,12 @@ export type SessionStatus = (typeof SESSION_STATUSES)[number];
 export type TableSession = {
   readonly id: TableSessionId;
   readonly restaurantId: RestaurantId;
-  readonly tableId: TableId;
+  /** TABLE = guests at a table; PICKUP = a takeout customer who collects at the cashier (see pickup.ts). */
+  readonly kind: SessionKind;
+  /** The table of a TABLE visit; null for a pickup visit. */
+  readonly tableId: TableId | null;
+  /** Who a PICKUP visit is for; null for a table visit. */
+  readonly customer: PickupCustomer | null;
   readonly status: SessionStatus;
   readonly startedAt: Date;
   /** Set when the session is CLOSED. */

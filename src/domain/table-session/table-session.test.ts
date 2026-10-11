@@ -119,7 +119,9 @@ describe("sessions", () => {
   const open = (): TableSession => ({
     id: "s-1" as TableSessionId,
     restaurantId: R,
+    kind: "TABLE",
     tableId: "t-1" as TableId,
+    customer: null,
     status: "OPEN",
     startedAt: NOW,
     endedAt: null,

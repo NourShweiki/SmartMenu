@@ -30,6 +30,8 @@ const STAMP = new Date("2026-10-10T12:00:05Z");
 let n = 0;
 const domainIds = { newId: () => `id-${++n}` };
 const clock = { now: () => NOW };
+/** No visit can be read: an order then counts as a table order (the stricter rule). */
+const noVisits: Pick<TableSessionRepository, "findWithTables"> = { findWithTables: async () => [] };
 
 function unwrap<T>(r: { ok: true; value: T } | { ok: false; error: unknown }): T {
   if (!r.ok) throw new Error(JSON.stringify(r.error));
@@ -128,6 +130,7 @@ describe("placeOrder", () => {
     const result = await place({
       restaurantId: R,
       sessionId: SESSION,
+      kind: "TABLE" as const,
       rates: RATES,
       lines: [{ menuItemId: kebab.id, quantity: 2, selectedOptionIds: [large.id] }],
     });
@@ -144,10 +147,10 @@ describe("placeOrder", () => {
     const { entry, kebab, small } = menu(R);
     const { repo } = fakeOrders();
     const place = makePlaceOrder(placeDeps(repo, fakeCatalog([entry])));
-    const cart = { restaurantId: R, sessionId: SESSION, rates: RATES, lines: [{ menuItemId: kebab.id, quantity: 1, selectedOptionIds: [small.id] }] };
+    const cart = { restaurantId: R, sessionId: SESSION, kind: "TABLE" as const, rates: RATES, lines: [{ menuItemId: kebab.id, quantity: 1, selectedOptionIds: [small.id] }] };
 
     const first = unwrap(await place(cart));
-    await makeMoveOrderStatus({ orders: repo, clock })({ restaurantId: R, role: "WAITER" }, { orderId: first.id, to: "CONFIRMED" });
+    await makeMoveOrderStatus({ orders: repo, sessions: noVisits, clock })({ restaurantId: R, role: "WAITER" }, { orderId: first.id, to: "CONFIRMED" });
     const second = unwrap(await place(cart));
 
     expect(second).toMatchObject({ number: 2, status: "NEW", sessionId: SESSION });
@@ -160,13 +163,14 @@ describe("placeOrder", () => {
     const { repo, state } = fakeOrders();
     const place = makePlaceOrder(placeDeps(repo, fakeCatalog([entry, foreign.entry])));
 
-    const missing = await place({ restaurantId: R, sessionId: SESSION, rates: RATES, lines: [{ menuItemId: "nope", quantity: 1, selectedOptionIds: [] }] });
+    const missing = await place({ restaurantId: R, sessionId: SESSION, kind: "TABLE" as const, rates: RATES, lines: [{ menuItemId: "nope", quantity: 1, selectedOptionIds: [] }] });
     expect(missing).toEqual({ ok: false, error: { type: "ITEM_NOT_FOUND", menuItemId: "nope" } });
 
     // The other restaurant's item exists, but not for restaurant R.
     const stranger = await place({
       restaurantId: R,
       sessionId: SESSION,
+      kind: "TABLE" as const,
       rates: RATES,
       lines: [{ menuItemId: foreign.kebab.id, quantity: 1, selectedOptionIds: [] }, { menuItemId: kebab.id, quantity: 1, selectedOptionIds: [] }],
     });
@@ -180,7 +184,7 @@ describe("placeOrder", () => {
     const soldOut: CatalogEntry = { ...entry, item: unwrap(setItemSoldOut(kebab, true)) };
     const { repo, state } = fakeOrders();
     const line = (quantity: number, selectedOptionIds: string[]) => ({ menuItemId: kebab.id, quantity, selectedOptionIds });
-    const cart = (lines: ReturnType<typeof line>[]) => ({ restaurantId: R, sessionId: SESSION, rates: RATES, lines });
+    const cart = (lines: ReturnType<typeof line>[]) => ({ restaurantId: R, sessionId: SESSION, kind: "TABLE" as const, rates: RATES, lines });
     const good = makePlaceOrder(placeDeps(repo, fakeCatalog([entry])));
 
     expect(await good(cart([line(0, [large.id])]))).toMatchObject({ ok: false, error: { type: "INVALID_QUANTITY" } });
@@ -203,7 +207,7 @@ describe("placeOrder", () => {
     const { entry, kebab, small } = menu(R);
     const { repo, state } = fakeOrders();
     const place = makePlaceOrder(placeDeps(repo, fakeCatalog([entry])));
-    const cart = { restaurantId: R, sessionId: SESSION, rates: RATES, lines: [{ menuItemId: kebab.id, quantity: 1, selectedOptionIds: [small.id] }] };
+    const cart = { restaurantId: R, sessionId: SESSION, kind: "TABLE" as const, rates: RATES, lines: [{ menuItemId: kebab.id, quantity: 1, selectedOptionIds: [small.id] }] };
 
     const first = unwrap(await place({ ...cart, requestId: "key-1" }));
     const again = unwrap(await place({ ...cart, requestId: "key-1" })); // the reply was lost, the guest pressed again
@@ -229,7 +233,7 @@ describe("placeOrder", () => {
   it("returns the order already placed even if the item sold out before the retry", async () => {
     const { entry, kebab, small } = menu(R);
     const { repo, state } = fakeOrders();
-    const cart = { restaurantId: R, sessionId: SESSION, rates: RATES, requestId: "key-1", lines: [{ menuItemId: kebab.id, quantity: 1, selectedOptionIds: [small.id] }] };
+    const cart = { restaurantId: R, sessionId: SESSION, kind: "TABLE" as const, rates: RATES, requestId: "key-1", lines: [{ menuItemId: kebab.id, quantity: 1, selectedOptionIds: [small.id] }] };
     const first = unwrap(await makePlaceOrder(placeDeps(repo, fakeCatalog([entry])))(cart));
 
     const soldOut: CatalogEntry = { ...entry, item: unwrap(setItemSoldOut(kebab, true)) };
@@ -242,7 +246,7 @@ describe("placeOrder", () => {
     const { entry, kebab, small } = menu(R);
     const { repo, state } = fakeOrders();
     const place = makePlaceOrder(placeDeps(repo, fakeCatalog([entry])));
-    const cart = { restaurantId: R, sessionId: SESSION, rates: RATES, requestId: "key-1", lines: [{ menuItemId: kebab.id, quantity: 1, selectedOptionIds: [small.id] }] };
+    const cart = { restaurantId: R, sessionId: SESSION, kind: "TABLE" as const, rates: RATES, requestId: "key-1", lines: [{ menuItemId: kebab.id, quantity: 1, selectedOptionIds: [small.id] }] };
 
     const first = unwrap(await place(cart));
     state.hideKeys = true; // the second call looked before the first was stored, so it goes on to store its own
@@ -260,6 +264,7 @@ describe("placeOrder", () => {
       await makePlaceOrder(placeDeps(repo, fakeCatalog([repriced])))({
         restaurantId: R,
         sessionId: SESSION,
+        kind: "TABLE" as const,
         rates: { taxRateBp: 0, serviceChargeBp: 0 },
         lines: [{ menuItemId: kebab.id, quantity: 1, selectedOptionIds: [small.id] }],
       }),
@@ -277,6 +282,7 @@ async function orderAt(status: OrderStatus, restaurantId = R) {
     await makePlaceOrder(placeDeps(repo, fakeCatalog([entry])))({
       restaurantId,
       sessionId: SESSION,
+      kind: "TABLE" as const,
       rates: RATES,
       lines: [{ menuItemId: kebab.id, quantity: 1, selectedOptionIds: [small.id] }],
     }),
@@ -289,7 +295,7 @@ const actor = (role: Role, restaurantId = R) => ({ restaurantId, role });
 describe("moveOrderStatus", () => {
   it("lets the waiter take an order from NEW up to SERVED, and says when to notify the customer", async () => {
     const { repo, id } = await orderAt("NEW");
-    const move = makeMoveOrderStatus({ orders: repo, clock });
+    const move = makeMoveOrderStatus({ orders: repo, sessions: noVisits, clock });
     const seen: [OrderStatus, boolean][] = [];
     for (const to of ["CONFIRMED", "PREPARING", "READY", "SERVED"] as const) {
       const r = unwrap(await move(actor("WAITER"), { orderId: id, to }));
@@ -300,7 +306,7 @@ describe("moveOrderStatus", () => {
 
   it("keeps COMPLETED for the cashier: the waiter is refused, the cashier may, after SERVED", async () => {
     const { repo, state, id } = await orderAt("SERVED");
-    const move = makeMoveOrderStatus({ orders: repo, clock });
+    const move = makeMoveOrderStatus({ orders: repo, sessions: noVisits, clock });
 
     expect(await move(actor("WAITER"), { orderId: id, to: "COMPLETED" })).toEqual({ ok: false, error: { type: "FORBIDDEN" } });
     expect(state.statusWrites).toBe(0);
@@ -313,7 +319,7 @@ describe("moveOrderStatus", () => {
 
   it("does not let the cashier move an order anywhere but COMPLETED, or skip ahead", async () => {
     const early = await orderAt("NEW");
-    const move = makeMoveOrderStatus({ orders: early.repo, clock });
+    const move = makeMoveOrderStatus({ orders: early.repo, sessions: noVisits, clock });
     expect(await move(actor("CASHIER"), { orderId: early.id, to: "CONFIRMED" })).toEqual({ ok: false, error: { type: "FORBIDDEN" } });
     // Permission is fine for COMPLETED, but the order is not SERVED yet: the domain refuses the jump.
     expect(await move(actor("CASHIER"), { orderId: early.id, to: "COMPLETED" })).toEqual({
@@ -326,14 +332,14 @@ describe("moveOrderStatus", () => {
   it("lets the owner and the manager do every step", async () => {
     for (const role of ["OWNER", "MANAGER"] as const) {
       const { repo, id } = await orderAt("NEW");
-      const move = makeMoveOrderStatus({ orders: repo, clock });
+      const move = makeMoveOrderStatus({ orders: repo, sessions: noVisits, clock });
       for (const to of ORDER_FLOW.slice(1)) expect(unwrap(await move(actor(role), { orderId: id, to })).order.status).toBe(to);
     }
   });
 
   it("refuses skipping, going back and moving a COMPLETED order, without writing", async () => {
     const { repo, state, id } = await orderAt("CONFIRMED");
-    const move = makeMoveOrderStatus({ orders: repo, clock });
+    const move = makeMoveOrderStatus({ orders: repo, sessions: noVisits, clock });
     expect(await move(actor("OWNER"), { orderId: id, to: "SERVED" })).toMatchObject({ ok: false, error: { type: "INVALID_TRANSITION" } });
     expect(await move(actor("OWNER"), { orderId: id, to: "NEW" })).toMatchObject({ ok: false, error: { type: "INVALID_TRANSITION" } });
     expect(state.statusWrites).toBe(0);
@@ -341,10 +347,10 @@ describe("moveOrderStatus", () => {
 
   it("does not find another restaurant's order", async () => {
     const { repo, state, id } = await orderAt("NEW", OTHER);
-    const result = await makeMoveOrderStatus({ orders: repo, clock })(actor("OWNER", R), { orderId: id, to: "CONFIRMED" });
+    const result = await makeMoveOrderStatus({ orders: repo, sessions: noVisits, clock })(actor("OWNER", R), { orderId: id, to: "CONFIRMED" });
     expect(result).toEqual({ ok: false, error: { type: "ORDER_NOT_FOUND" } });
     expect(state.statusWrites).toBe(0);
-    expect(await makeMoveOrderStatus({ orders: repo, clock })(actor("OWNER"), { orderId: "missing" as OrderId, to: "CONFIRMED" })).toEqual({
+    expect(await makeMoveOrderStatus({ orders: repo, sessions: noVisits, clock })(actor("OWNER"), { orderId: "missing" as OrderId, to: "CONFIRMED" })).toEqual({
       ok: false,
       error: { type: "ORDER_NOT_FOUND" },
     });
@@ -353,7 +359,7 @@ describe("moveOrderStatus", () => {
   it("reports a conflict instead of success when the change did not happen", async () => {
     const { repo, state, id } = await orderAt("NEW");
     state.refuseStatus = true; // someone else moved it first, or the database refused
-    const result = await makeMoveOrderStatus({ orders: repo, clock })(actor("WAITER"), { orderId: id, to: "CONFIRMED" });
+    const result = await makeMoveOrderStatus({ orders: repo, sessions: noVisits, clock })(actor("WAITER"), { orderId: id, to: "CONFIRMED" });
     expect(result).toEqual({ ok: false, error: { type: "CONFLICT" } });
     expect(state.orders[0]!.status).toBe("NEW");
   });
@@ -371,7 +377,9 @@ function visit(id: TableSessionId, label: string, over: Partial<SessionAtTable["
     session: {
       id,
       restaurantId: R,
+      kind: "TABLE",
       tableId: `table-${label}` as TableId,
+      customer: null,
       status: "OPEN",
       startedAt: new Date(NOW.getTime() - minutesAgo * 60_000),
       endedAt: null,
@@ -422,7 +430,7 @@ describe("getStaffOrderList", () => {
     const a = await orderAt("SERVED");
     const sessions = fakeSessions([visit(SESSION, "7", { minutesAgo: 121 })]); // stored as OPEN, started over 2 hours ago
     const [entry] = await makeGetStaffOrderList({ orders: fakeOrders(a.state.orders).repo, sessions: sessions.repo, clock })(actor("CASHIER"));
-    expect(entry?.table).toEqual({ sessionId: SESSION, label: "7", sessionStatus: "CLOSED" });
+    expect(entry?.table).toEqual({ sessionId: SESSION, kind: "TABLE", label: "7", customer: null, sessionStatus: "CLOSED" });
   });
 
   it("returns one table session's orders (the running bill), completed ones included", async () => {

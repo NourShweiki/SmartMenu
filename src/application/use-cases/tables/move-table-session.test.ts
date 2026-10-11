@@ -21,7 +21,9 @@ function store(status: SessionStatus, options: { minutesAgo?: number; restaurant
       session: {
         id: SESSION,
         restaurantId: options.restaurantId ?? R,
+        kind: "TABLE",
         tableId: "table-7" as TableId,
+        customer: null,
         status,
         startedAt: new Date(NOW.getTime() - (options.minutesAgo ?? 30) * 60_000),
         endedAt: status === "CLOSED" ? NOW : null,

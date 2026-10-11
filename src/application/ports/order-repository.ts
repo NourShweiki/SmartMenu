@@ -1,5 +1,6 @@
 import type { CancelReason, Order, OrderId, OrderStatus, TableSessionId } from "@/domain/order/order";
 import type { RestaurantId } from "@/domain/restaurant/restaurant";
+import type { PickupCustomer } from "@/domain/table-session/pickup";
 
 /**
  * Storage for orders. Every method takes the restaurantId first (tenant scope, data-model skill §1).
@@ -15,7 +16,7 @@ export interface OrderRepository {
    * the id of the EARLIER order when the same key was already used in this table session. In that case nothing
    * was written: a repeated submission is the same order, not a second one.
    */
-  place(order: Order, requestId?: string): Promise<OrderId>;
+  place(order: Order, requestId?: string, pickup?: PickupCustomer): Promise<OrderId>;
   /** The order already placed in this table session with this request key, or null. */
   findByRequest(restaurantId: RestaurantId, sessionId: TableSessionId, requestId: string): Promise<Order | null>;
   findById(restaurantId: RestaurantId, orderId: OrderId): Promise<Order | null>;

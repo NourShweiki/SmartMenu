@@ -38,7 +38,7 @@ import type { BrandingActor } from "@/application/use-cases/branding/shared";
 import { makeCancelOrder } from "@/application/use-cases/orders/cancel-order";
 import { makeGetStaffOrderList } from "@/application/use-cases/orders/get-staff-order-list";
 import { makeMoveOrderStatus } from "@/application/use-cases/orders/move-order-status";
-import { makeFindPlacedOrder, makePlaceOrder } from "@/application/use-cases/orders/place-order";
+import { makeFindPlacedOrder, makePlaceOrder, makePlacePickupOrder } from "@/application/use-cases/orders/place-order";
 import type { StaffActor } from "@/application/use-cases/permissions";
 import { makeCreateRestaurant } from "@/application/use-cases/platform/create-restaurant";
 import { makeGetFounderContext, makeListRestaurants, makeSignInFounder } from "@/application/use-cases/platform/founder-access";
@@ -243,6 +243,20 @@ export const orders = {
   place: (...args: Parameters<ReturnType<typeof makePlaceOrder>>) => {
     const { service, orders: repository } = customerOrderRepository();
     return makePlaceOrder({
+      orders: repository,
+      catalog: new SupabaseOrderingCatalog(service),
+      ids: uuidIds,
+      clock: systemClock,
+    })(...args);
+  },
+  /**
+   * A takeout customer's order, which starts its own pickup visit (see makePlacePickupOrder). Server-side like
+   * `place`: the restaurantId MUST come from the host, the rates from its settings, and the caller must have
+   * checked that the restaurant takes takeout orders.
+   */
+  placePickup: (...args: Parameters<ReturnType<typeof makePlacePickupOrder>>) => {
+    const { service, orders: repository } = customerOrderRepository();
+    return makePlacePickupOrder({
       orders: repository,
       catalog: new SupabaseOrderingCatalog(service),
       ids: uuidIds,

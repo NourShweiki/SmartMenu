@@ -9,7 +9,10 @@ import { UUID } from "./supabase-options-repository";
 export type SessionAtTableRow = {
   id: string;
   restaurant_id: string;
-  table_id: string;
+  table_id: string | null;
+  kind: string;
+  customer_name: string | null;
+  customer_phone: string | null;
   status: string;
   started_at: string;
   ended_at: string | null;
@@ -18,17 +21,25 @@ export type SessionAtTableRow = {
 
 // The label comes with the session in ONE query. Deleted tables are included on purpose (no `deleted_at` filter):
 // an order keeps saying which table it was for.
-const COLUMNS = "id, restaurant_id, table_id, status, started_at, ended_at, restaurant_tables(label)";
+// A pickup visit has no table: the embedded table is then null (the embed is a LEFT join).
+const COLUMNS = "id, restaurant_id, table_id, kind, customer_name, customer_phone, status, started_at, ended_at, restaurant_tables(label)";
 
-/** Null when the table did not come with the session (it always should: the foreign key guarantees a table). */
+/**
+ * Null when the row is not a visit this app understands: a table visit whose table did not come with it (it always
+ * should: the foreign key guarantees a table), or a pickup visit without its customer (the database check
+ * guarantees one).
+ */
 export function toSessionAtTable(row: SessionAtTableRow): SessionAtTable | null {
-  if (!row.restaurant_tables) return null;
+  const pickup = row.kind === "PICKUP";
+  if (pickup ? !row.customer_name || !row.customer_phone : !row.restaurant_tables || !row.table_id) return null;
   return {
-    tableLabel: row.restaurant_tables.label,
+    tableLabel: pickup ? null : row.restaurant_tables!.label,
     session: {
       id: row.id as TableSessionId,
       restaurantId: row.restaurant_id as RestaurantId,
-      tableId: row.table_id as TableId,
+      kind: pickup ? "PICKUP" : "TABLE",
+      tableId: pickup ? null : (row.table_id as TableId),
+      customer: pickup ? { name: row.customer_name!, phone: row.customer_phone! } : null,
       status: row.status as SessionStatus,
       startedAt: new Date(row.started_at),
       endedAt: row.ended_at ? new Date(row.ended_at) : null,
@@ -56,6 +67,7 @@ export class SupabaseTableSessionRepository implements TableSessionRepository {
       .from("table_sessions")
       .select(COLUMNS)
       .eq("restaurant_id", restaurantId)
+      .eq("kind", "TABLE") // pickup visits are not tables (they end with their last order)
       .neq("status", "CLOSED")
       .order("started_at", { ascending: true });
     if (error) throw new Error(`list live table sessions failed: ${error.message}`);

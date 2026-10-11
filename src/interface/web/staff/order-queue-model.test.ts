@@ -24,7 +24,7 @@ function entry(number: number, status: OrderStatus, visit: SessionStatus | null 
       { quantity: 1, name: { en: "Hummus", ar: "حمص" }, options: [] },
     ],
   } as unknown as Order;
-  return { order, table: visit ? { sessionId: SESSION, label, sessionStatus: visit } : null };
+  return { order, table: visit ? { sessionId: SESSION, kind: "TABLE" as const, label, customer: null, sessionStatus: visit } : null };
 }
 
 describe("buildOrderQueue", () => {
@@ -36,6 +36,7 @@ describe("buildOrderQueue", () => {
         number: 1,
         status: "NEW",
         tableLabel: "7",
+        pickup: null,
         visit: null,
         placedAt: new Date("2026-10-11T18:01:00Z"),
         lines: [

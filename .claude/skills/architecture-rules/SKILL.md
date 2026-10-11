@@ -57,6 +57,7 @@ export function makeConfirmOrder(deps: { orders: OrderRepository; clock: Clock }
 - **The tenant never comes from the request body.** Staff pages and actions start with `requireStaff(locale)` (restaurant from the host, person and role from the session); the founders' tool starts with `requireFounder(locale)` (platform address only).
 - **Which Supabase client:** the signed-in user's session client by default (RLS decides again); the public client for the narrow public functions; the service-role client ONLY for what has no signed-in user or crosses tenants (placing a customer's order, the founders' tool, clearing one's own temporary-password mark), always behind a check in the use case.
 - **Ports that cross tenants** (`RestaurantDirectory`, `AccountDirectory`) take no `restaurantId`; they may only be called from use cases that check the founder (or the acting person) first.
+- **A session has a kind.** `TableSession.kind` is `"TABLE"` or `"PICKUP"` (takeout); a pickup visit has `tableId: null` and a `customer`. Code that needs a table must check the kind (`PublicSession` is a union on it); code that decides who may move an order uses `permissionsToMoveTo(status, kind)`; a use case that places an order is told the kind and drops the service charge itself for a pickup visit.
 - **One known exception:** `src/infrastructure/customer-order.integration.test.ts` imports the interface layer to test the whole ordering path; do not copy that in production code.
 
 ## Tests

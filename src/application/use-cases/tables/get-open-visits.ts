@@ -32,7 +32,10 @@ export function makeGetOpenVisits(deps: {
   clock: Clock;
 }) {
   return async (actor: StaffActor): Promise<OpenVisit[]> => {
-    const live = (await deps.sessions.listLive(actor.restaurantId)).filter(({ session }) => session.restaurantId === actor.restaurantId);
+    // Tables only: a pickup visit has no table and ends with its last order (the store already leaves them out).
+    const live = (await deps.sessions.listLive(actor.restaurantId)).flatMap(({ session, tableLabel }) =>
+      session.restaurantId === actor.restaurantId && session.kind === "TABLE" && tableLabel !== null ? [{ session, tableLabel }] : [],
+    );
     if (live.length === 0) return [];
 
     const all = await deps.orders.listBySessions(actor.restaurantId, live.map(({ session }) => session.id));

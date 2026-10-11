@@ -35,12 +35,20 @@ describe("toTable", () => {
 
 describe("toPublicSession", () => {
   it("reads what the join function returns", () => {
-    expect(toPublicSession({ session_id: "s-1", table_label: "7", status: "OPEN" })).toEqual({ sessionId: "s-1", tableLabel: "7", status: "OPEN" });
+    expect(toPublicSession({ session_id: "s-1", table_label: "7", status: "OPEN" })).toEqual({ sessionId: "s-1", kind: "TABLE", tableLabel: "7", status: "OPEN" });
+    // What the lookup returns since takeout: the kind, and for a pickup visit the name instead of a table.
+    expect(toPublicSession({ session_id: "s-1", kind: "TABLE", table_label: "7", customer_name: null, status: "OPEN" })).toEqual({ sessionId: "s-1", kind: "TABLE", tableLabel: "7", status: "OPEN" });
+    expect(toPublicSession({ session_id: "s-3", kind: "PICKUP", table_label: null, customer_name: "Ali Hasan", status: "OPEN" })).toEqual({
+      sessionId: "s-3",
+      kind: "PICKUP",
+      customerName: "Ali Hasan",
+      status: "OPEN",
+    });
     expect(toPublicSession({ session_id: "s-2", table_label: "Terrace", status: "PAYMENT_REQUESTED" })?.status).toBe("PAYMENT_REQUESTED");
   });
 
   it("returns null for anything unexpected instead of throwing", () => {
-    for (const odd of [null, undefined, "x", 5, [], {}, { session_id: "", table_label: "7", status: "OPEN" }, { session_id: "s", table_label: 7, status: "OPEN" }, { session_id: "s", table_label: "7", status: "WHATEVER" }]) {
+    for (const odd of [null, undefined, "x", 5, [], {}, { session_id: "", table_label: "7", status: "OPEN" }, { session_id: "s", table_label: 7, status: "OPEN" }, { session_id: "s", table_label: "7", status: "WHATEVER" }, { session_id: "s", kind: "PICKUP", table_label: null, customer_name: null, status: "OPEN" }, { session_id: "s", kind: "TABLE", table_label: null, customer_name: "Ali", status: "OPEN" }]) {
       expect(toPublicSession(odd)).toBeNull();
     }
   });
@@ -60,6 +68,9 @@ describe("toSessionAtTable", () => {
     id: "bbbbbbbb-7c7c-4000-8000-000000000001",
     restaurant_id: "11111111-1111-4000-8000-000000000001",
     table_id: row.id,
+    kind: "TABLE",
+    customer_name: null,
+    customer_phone: null,
     status: "PAYMENT_REQUESTED",
     started_at: "2026-10-10T18:00:00.000Z",
     ended_at: null,
@@ -72,12 +83,22 @@ describe("toSessionAtTable", () => {
       session: {
         id: sessionRow.id,
         restaurantId: sessionRow.restaurant_id,
+        kind: "TABLE",
         tableId: row.id,
+        customer: null,
         status: "PAYMENT_REQUESTED",
         startedAt: new Date("2026-10-10T18:00:00.000Z"),
         endedAt: null,
       },
     });
+    // A pickup visit: no table, the customer instead.
+    expect(toSessionAtTable({ ...sessionRow, table_id: null, kind: "PICKUP", customer_name: "Ali Hasan", customer_phone: "+962791234567", restaurant_tables: null })).toMatchObject({
+      tableLabel: null,
+      session: { kind: "PICKUP", tableId: null, customer: { name: "Ali Hasan", phone: "+962791234567" } },
+    });
+    // Rows that are neither: a table visit without its table, a pickup visit without its customer.
+    expect(toSessionAtTable({ ...sessionRow, restaurant_tables: null })).toBeNull();
+    expect(toSessionAtTable({ ...sessionRow, table_id: null, kind: "PICKUP", customer_name: null, customer_phone: null, restaurant_tables: null })).toBeNull();
     expect(toSessionAtTable({ ...sessionRow, status: "CLOSED", ended_at: "2026-10-10T19:30:00.000Z" })?.session).toMatchObject({
       status: "CLOSED",
       endedAt: new Date("2026-10-10T19:30:00.000Z"),

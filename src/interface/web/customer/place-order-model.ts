@@ -105,7 +105,8 @@ export async function placeCustomerOrder(
 
   const find = () => deps.findSession({ slug: restaurant.slug, sessionId });
   const session = await find();
-  if (!session) return refuse("noTable");
+  // Ordering at a table. (A phone that holds a pickup visit orders through the takeout path, not here.)
+  if (!session || session.kind !== "TABLE") return refuse("noTable");
   const closed = sessionProblem(session.status);
   if (closed) {
     // The visit no longer takes orders. But if THIS submission went through before that (its reply was lost and the
@@ -119,6 +120,7 @@ export async function placeCustomerOrder(
     const result = await deps.place({
       restaurantId: restaurant.id,
       sessionId: session.sessionId,
+      kind: "TABLE",
       rates: { taxRateBp: restaurant.settings.taxRateBp, serviceChargeBp: restaurant.settings.serviceChargeBp },
       lines,
       requestId, // a retry of the same submission gets the order that is already there

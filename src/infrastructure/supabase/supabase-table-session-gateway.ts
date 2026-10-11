@@ -12,8 +12,11 @@ export function toPublicSession(json: unknown): PublicSession | null {
   if (typeof json !== "object" || json === null || Array.isArray(json)) return null;
   const o = json as Record<string, unknown>;
   const status = SESSION_STATUSES.find((s) => s === o.status) as SessionStatus | undefined;
-  if (typeof o.session_id !== "string" || o.session_id === "" || typeof o.table_label !== "string" || !status) return null;
-  return { sessionId: o.session_id as TableSessionId, tableLabel: o.table_label, status };
+  if (typeof o.session_id !== "string" || o.session_id === "" || !status) return null;
+  const sessionId = o.session_id as TableSessionId;
+  // `kind` is missing in what join_table_session returns (a scan is always a table) and in older databases: TABLE.
+  if (o.kind === "PICKUP") return typeof o.customer_name === "string" && o.customer_name !== "" ? { sessionId, kind: "PICKUP", customerName: o.customer_name, status } : null;
+  return typeof o.table_label === "string" ? { sessionId, kind: "TABLE", tableLabel: o.table_label, status } : null;
 }
 
 /**

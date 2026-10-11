@@ -41,7 +41,7 @@ function setup(
     findSession: async (input: { slug: string; sessionId: string }): Promise<PublicSession | null> => {
       seen.finds.push(input);
       const status = statuses.length > 1 ? statuses.shift()! : statuses[0]!;
-      return status ? { sessionId: SESSION, tableLabel: "7", status } : null;
+      return status ? { sessionId: SESSION, kind: "TABLE" as const, tableLabel: "7", status } : null;
     },
     place: async (input: PlaceOrderInput) => {
       seen.placed.push(input);
@@ -121,6 +121,7 @@ describe("placeCustomerOrder", () => {
       {
         restaurantId: R,
         sessionId: SESSION,
+        kind: "TABLE",
         rates: { taxRateBp: 1600, serviceChargeBp: 1000 },
         lines: [{ menuItemId: ITEM, quantity: 2, selectedOptionIds: [OPTION] }],
         requestId: KEY,
@@ -141,6 +142,7 @@ describe("placeCustomerOrder", () => {
     expect(seen.placed[0]).toEqual({
       restaurantId: R,
       sessionId: SESSION,
+      kind: "TABLE",
       rates: { taxRateBp: 1600, serviceChargeBp: 1000 },
       lines: [{ menuItemId: ITEM, quantity: 2, selectedOptionIds: [OPTION] }],
       requestId: KEY,

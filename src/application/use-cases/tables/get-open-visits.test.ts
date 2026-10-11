@@ -15,7 +15,7 @@ const actor = { restaurantId: R, role: "CASHIER" } as const;
 
 const visit = (id: TableSessionId, label: string, status: SessionStatus = "OPEN", minutesAgo = 30, restaurantId = R): SessionAtTable => ({
   tableLabel: label,
-  session: { id, restaurantId, tableId: `table-${label}` as TableId, status, startedAt: new Date(NOW.getTime() - minutesAgo * 60_000), endedAt: null },
+  session: { id, restaurantId, kind: "TABLE", tableId: `table-${label}` as TableId, customer: null, status, startedAt: new Date(NOW.getTime() - minutesAgo * 60_000), endedAt: null },
 });
 /** An order as far as a bill goes: 1.000 + 0.100 service + 0.176 tax = 1.276, times `units`. */
 const order = (number: number, sessionId: TableSessionId, status: OrderStatus, units = 1, restaurantId = R) =>

@@ -102,7 +102,7 @@ Table QR Scan → Create/Join Session → Session Timer Starts → Browse Menu �
 ### AI Feedback Analysis (owner side)
 Categorizes complaints vs. suggestions, groups recurring issues, assigns priority.
 
-### Takeout design (Nour, 2026-10-11: "do what's best with takeout"; these are OUR choices, change them here if they turn out wrong; the rules and the database part are built (2026-10-12), the screens are not)
+### Takeout design (Nour, 2026-10-11: "do what's best with takeout"; these are OUR choices, change them here if they turn out wrong; the rules, the database part and the logic are built (2026-10-12), the screens are not)
 - A takeout order belongs to a **pickup visit**: the same thing as a table session, without a table. Instead of a table it carries the customer's **name and mobile number**. Everything built around table sessions keeps working unchanged: orders, "your orders" on the customer's phone, the ready notice, the staff order queue.
 - **Customer flow:** open the restaurant's menu (no QR code needed) → fill the cart → give name and mobile number → place the order → see the order number and follow its status on the same phone → get the ready notice → pick up and pay at the cashier.
 - The pickup visit starts when the first order is placed (not when the menu is opened) and ends by itself when its orders are completed or cancelled.
@@ -264,8 +264,8 @@ Each phase ends with something demoable.
 3. **Menu & owner portal** — categories, items, options, prices, photos, hide/sold-out, Arabic/English, branding system. *Done when: an owner can build/edit a full menu and theme.*
 4. **Customer ordering** — customer menu, cart, dine-in with table QR, takeout with phone number, order creation. *Done when: a customer can place an order end-to-end.*
 5. **Staff order screen** — live orders, sound alert, status changes, order-ready SMS, waiter/cashier role split. *Done when: a placed order appears instantly and "Ready" texts the customer.*
-6. **Onboarding tools** — presets, bulk/AI menu import, branding, custom domains, setup checklist. *Done when: a test client is fully set up in under a day.*
-7. **Installable app & notifications** — PWA install, push offers, consent handling.
+6. **Onboarding tools** — presets, bulk/AI menu import, branding, setup checklist (and, added while building: the founders' setup tool, staff accounts, takeout). *Done when: a test client is fully set up in under a day.* **Custom domains were moved out of this phase to Phase 7 (Nour, 2026-10-12).**
+7. **Installable app & notifications** — PWA install, push offers, consent handling; **custom domains** (moved here from Phase 6).
 8. **Hardening** — security review, load testing, error monitoring, backups, data protection check.
 9. **Pilot** — one real restaurant, real orders, daily feedback and fixes.
 10. **Launch & iterate** — more clients → delivery mode → AI features → eventually the full Super POS.
