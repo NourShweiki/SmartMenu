@@ -102,8 +102,17 @@ Table QR Scan → Create/Join Session → Session Timer Starts → Browse Menu �
 ### AI Feedback Analysis (owner side)
 Categorizes complaints vs. suggestions, groups recurring issues, assigns priority.
 
+### Takeout design (Nour, 2026-10-11: "do what's best with takeout"; these are OUR choices, change them here if they turn out wrong; NOT built yet)
+- A takeout order belongs to a **pickup visit**: the same thing as a table session, without a table. Instead of a table it carries the customer's **name and mobile number**. Everything built around table sessions keeps working unchanged: orders, "your orders" on the customer's phone, the ready notice, the staff order queue.
+- **Customer flow:** open the restaurant's menu (no QR code needed) → fill the cart → give name and mobile number → place the order → see the order number and follow its status on the same phone → get the ready notice → pick up and pay at the cashier.
+- The pickup visit starts when the first order is placed (not when the menu is opened) and ends by itself when its orders are completed or cancelled.
+- The mobile number is a Jordanian mobile, stored in international form (+9627XXXXXXXX). No code by SMS to prove it for now (same known tradeoff as loyalty).
+- On a restaurant with both dine-in and takeout: a phone that scanned a table orders for that table; any other phone orders takeout.
+- **Staff:** takeout orders appear in the same Orders queue, marked "Takeout" with the name and number instead of a table. The steps are the same; SERVED means "handed over". Because a takeout counter is often run by the cashier alone, **the cashier may move a takeout order through every step** (on dine-in orders the cashier still only completes).
+- **No service charge on takeout orders** (it is a table-service fee); tax applies as usual.
+
 ### Open question
-How does takeout/delivery map onto this Table-Session-style model, since there's no physical table? Likely needs an equivalent "Order Session" concept — not yet designed. Flag this before building takeout/delivery.
+How does **delivery** map onto this model (addresses, fees, driver assignment)? Not designed. Flag this before building delivery.
 
 ---
 
@@ -146,6 +155,7 @@ This means Phase 3 (menu & owner portal) and Phase 6 (onboarding/reports) carry 
 ## 7. Fast Client Onboarding (target: under 1 day per client)
 
 - **Presets by business type** — choosing "dine-in" or "takeout" auto-configures sensible default settings.
+- **Who can onboard (chosen 2026-10-11):** only the founders. A founder is a person listed in the database as a platform admin (added by hand, never from a screen); being a founder gives no access to any restaurant's data. The setup tool creates the restaurant, its settings from the preset, and its first owner account together, or nothing.
 - **Bulk menu import** — spreadsheet upload, or AI reading a photo/PDF of an existing menu to draft items for review.
 - **Simple branding only** — logo, colors, name via settings, within the constraints from Section 5.
 - **Setup checklist** — menu, tables & QR codes, domain, test order, staff training.
@@ -262,7 +272,7 @@ Each phase ends with something demoable.
 ## 12. Open Questions (resolve before the relevant phase starts)
 
 - Can staff remove single items from a placed order, or only cancel the whole order? (customers can do neither: decided 2026-10-11, see Section 4)
-- How does takeout/delivery map onto the Table-Session model? (blocks Phase 4/10 delivery work)
+- How does delivery map onto the Table-Session model? (blocks Phase 10 delivery work). ~~Takeout~~: decided 2026-10-11, see "Takeout design" in Section 4.
 - Loyalty points: exact earn/redeem rules (blocks Phase 6/10 loyalty work)
 - ~~Menu UI editing: exact list of editable elements~~ — DECIDED 2026-10-10 (see Section 5)
 - ~~Order cancellation rules~~: decided 2026-10-11 (see Section 4: staff only, waiter before the kitchen starts, owner/manager until completed, kept and shown at zero on the bill). CANCELLED is not built yet.

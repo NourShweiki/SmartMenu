@@ -115,14 +115,19 @@ One codebase serves every restaurant (multi-tenant). Each restaurant lives on it
 
 ### ⬜ Not done yet (next up)
 
-- **Next: to be decided.** Phase 5 (the staff order screen and everything around it) is done, except SMS, which was left out on purpose for now. Candidates are the onboarding tools (Phase 6) and takeout ordering, which waits for a design decision.
-- **Still to come:**
-  - takeout
+- **Phase 6 (in progress): onboarding a new restaurant in under a day.** In this order:
+  1. the founders' tool to create a restaurant with its first owner (the database part is done: a restaurant, its settings and its owner are created together or not at all, and only by a founder)
+  2. staff accounts managed by the owner
+  3. takeout ordering (designed: a pickup order with the customer's name and mobile number, followed on their phone like a table order)
+  4. a setup checklist for the owner
+  5. menu import from a spreadsheet
+  6. menu import by AI from a photo or PDF
+  7. custom domains
+- **Still to come after that:**
   - SMS, and push notifications that reach a locked phone
   - reports
   - loyalty points
-  - AI menu import and ordering assistant
-  - custom domains
+  - AI ordering assistant
   - cloud deployment (Vercel + Supabase)
 
 ### Open decisions (blocking specific features only)

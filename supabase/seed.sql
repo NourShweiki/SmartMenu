@@ -23,7 +23,9 @@ from (values
   ('aaaa0001-0000-4000-8000-000000000001'::uuid, 'owner@demo-dinein.test'),
   ('aaaa0001-0000-4000-8000-000000000002'::uuid, 'waiter@demo-dinein.test'),
   ('aaaa0001-0000-4000-8000-000000000003'::uuid, 'cashier@demo-dinein.test'),
-  ('bbbb0001-0000-4000-8000-000000000001'::uuid, 'owner@demo-takeout.test')
+  ('bbbb0001-0000-4000-8000-000000000001'::uuid, 'owner@demo-takeout.test'),
+  -- A founder: not staff of any restaurant, may use the setup tool (platform_admins below).
+  ('cccc0001-0000-4000-8000-000000000001'::uuid, 'founder@demo-platform.test')
 ) as u(id, email);
 
 insert into auth.identities (id, user_id, provider_id, provider, identity_data, last_sign_in_at, created_at, updated_at)
@@ -38,6 +40,9 @@ insert into public.restaurant_members (restaurant_id, user_id, role) values
   ('11111111-1111-4000-8000-000000000001', 'aaaa0001-0000-4000-8000-000000000002', 'WAITER'),
   ('11111111-1111-4000-8000-000000000001', 'aaaa0001-0000-4000-8000-000000000003', 'CASHIER'),
   ('22222222-2222-4000-8000-000000000002', 'bbbb0001-0000-4000-8000-000000000001', 'OWNER');
+
+-- Founders are added by hand in the database, never from a screen (see the platform_admins migration).
+insert into public.platform_admins (user_id) values ('cccc0001-0000-4000-8000-000000000001');
 
 -- ─── Demo menus (prices in fils: 4500 = 4.500 JD) ───────────────────────
 insert into public.menu_categories (id, restaurant_id, name_en, name_ar, sort_order) values

@@ -54,7 +54,7 @@ These are decided and expensive to change. Do not deviate without the user's exp
 
 ## 10. Open questions — stop and ask before building these
 - Removing items after an order is confirmed.
-- Takeout/delivery equivalent of a table session.
+- Delivery equivalent of a table session. (Takeout is decided, 2026-10-11: a "pickup visit" = a session without a table, with the customer's name and phone; see PROJECT_SPEC.md §4 "Takeout design".)
 - Loyalty earn/redeem rules.
 - Exact list of owner-editable branding elements.
 
