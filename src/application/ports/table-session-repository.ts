@@ -1,5 +1,5 @@
 import type { RestaurantId } from "@/domain/restaurant/restaurant";
-import type { TableSession, TableSessionId } from "@/domain/table-session/table-session";
+import type { SessionStatus, TableSession, TableSessionId } from "@/domain/table-session/table-session";
 
 /** A visit together with the label of its table: what staff need next to an order ("Table 7"). */
 export type SessionAtTable = { readonly session: TableSession; readonly tableLabel: string };
@@ -16,4 +16,10 @@ export interface TableSessionRepository {
    * it was served). Ids that are unknown, or another restaurant's, are simply missing from the result.
    */
   findWithTables(restaurantId: RestaurantId, sessionIds: readonly TableSessionId[]): Promise<SessionAtTable[]>;
+  /**
+   * Moves a session only if it is still in `from`. False when someone else moved it first, it does not exist
+   * here, or the database refused this user or this move (never report a change that did not happen). The end
+   * time of a CLOSED session is set by the database.
+   */
+  updateStatus(restaurantId: RestaurantId, sessionId: TableSessionId, from: SessionStatus, to: SessionStatus): Promise<boolean>;
 }

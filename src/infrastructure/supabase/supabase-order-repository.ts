@@ -13,6 +13,7 @@ import type {
 } from "@/domain/order/order";
 import type { RestaurantId } from "@/domain/restaurant/restaurant";
 import type { Fils } from "@/domain/shared/money";
+import { REFUSED } from "./postgres-errors";
 import { UUID } from "./supabase-options-repository";
 
 type OptionRow = {
@@ -135,9 +136,6 @@ export function toPlaceOrderPayload(order: Order, requestId?: string) {
     })),
   };
 }
-
-/** Postgres refusals that mean "not allowed / not a legal move" rather than "something broke". */
-const REFUSED = new Set(["42501", "23514"]);
 
 export class SupabaseOrderRepository implements OrderRepository {
   /**

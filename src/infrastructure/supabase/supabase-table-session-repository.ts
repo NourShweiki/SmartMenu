@@ -2,6 +2,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import type { SessionAtTable, TableSessionRepository } from "@/application/ports/table-session-repository";
 import type { RestaurantId } from "@/domain/restaurant/restaurant";
 import type { SessionStatus, TableId, TableSessionId } from "@/domain/table-session/table-session";
+import { REFUSED } from "./postgres-errors";
 import { UUID } from "./supabase-options-repository";
 
 /** A `table_sessions` row with its table's label (embedded through the foreign key to `restaurant_tables`). */
@@ -48,5 +49,23 @@ export class SupabaseTableSessionRepository implements TableSessionRepository {
     const { data, error } = await this.db.from("table_sessions").select(COLUMNS).eq("restaurant_id", restaurantId).in("id", ids);
     if (error) throw new Error(`read table sessions failed: ${error.message}`);
     return ((data ?? []) as unknown as SessionAtTableRow[]).flatMap((row) => toSessionAtTable(row) ?? []);
+  }
+
+  async updateStatus(restaurantId: RestaurantId, sessionId: TableSessionId, from: SessionStatus, to: SessionStatus): Promise<boolean> {
+    if (!UUID.test(sessionId)) return false;
+    // `.eq("status", from)` makes the move conditional: if someone else moved it first, zero rows match.
+    // Only `status` is sent: it is the only column staff may change, and the trigger sets `ended_at`.
+    const { data, error } = await this.db
+      .from("table_sessions")
+      .update({ status: to })
+      .eq("restaurant_id", restaurantId)
+      .eq("id", sessionId)
+      .eq("status", from)
+      .select("id");
+    if (error) {
+      if (REFUSED.has(error.code)) return false; // the database refused this user / this move
+      throw new Error(`update table session failed: ${error.message}`);
+    }
+    return (data?.length ?? 0) === 1;
   }
 }

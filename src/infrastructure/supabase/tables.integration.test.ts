@@ -11,6 +11,7 @@ import { newTableToken } from "../random-token";
 import { SupabaseTableRepository } from "./supabase-table-repository";
 import { SupabaseTableSessionGateway } from "./supabase-table-session-gateway";
 import { SupabaseTableSessionRepository } from "./supabase-table-session-repository";
+import { makeMoveTableSession } from "@/application/use-cases/tables/move-table-session";
 import type { TableSessionId } from "@/domain/table-session/table-session";
 
 const GRILL = "11111111-1111-4000-8000-000000000001" as RestaurantId;
@@ -154,6 +155,55 @@ describe.skipIf(!enabled)("tables and sessions against local Supabase", () => {
     await expect(new SupabaseTableSessionRepository(createPublicClient()).findWithTables(GRILL, [id])).rejects.toThrow(/permission denied/);
     // Naming the wrong restaurant finds nothing even for its own staff.
     expect(await waiter.findWithTables(COFFEE, [id])).toEqual([]);
+  });
+
+  it("moves a visit by role: waiter 'ready to pay', cashier closes; the database refuses everything else", async () => {
+    const owner = await repoFor("owner@demo-dinein.test");
+    const made = createTable(GRILL, "IT-T-Move", deps, NOW);
+    if (!made.ok) throw new Error("fixture");
+    await owner.insert(made.value);
+    const gateway = new SupabaseTableSessionGateway(createPublicClient());
+    const id = (await gateway.join("demo-dinein", made.value.token))!.sessionId;
+
+    const clock = { now: () => new Date() };
+    const waiterRepo = await sessionsFor("waiter@demo-dinein.test");
+    const cashierRepo = await sessionsFor("cashier@demo-dinein.test");
+    const asWaiter = makeMoveTableSession({ sessions: waiterRepo, clock });
+    const asCashier = makeMoveTableSession({ sessions: cashierRepo, clock });
+    const waiter = { restaurantId: GRILL, role: "WAITER" } as const;
+    const cashier = { restaurantId: GRILL, role: "CASHIER" } as const;
+
+    // Wrong role for the move: refused by the use case, and by the DATABASE when the use case is bypassed.
+    expect(await asCashier(cashier, { sessionId: id, to: "PAYMENT_REQUESTED" })).toEqual({ ok: false, error: { type: "FORBIDDEN" } });
+    expect(await cashierRepo.updateStatus(GRILL, id, "OPEN", "PAYMENT_REQUESTED")).toBe(false);
+    expect(await waiterRepo.updateStatus(GRILL, id, "OPEN", "CLOSED")).toBe(false);
+    // Another restaurant's owner cannot touch it at all.
+    const coffee = await sessionsFor("owner@demo-takeout.test");
+    expect(await coffee.updateStatus(GRILL, id, "OPEN", "CLOSED")).toBe(false);
+    expect(await makeMoveTableSession({ sessions: coffee, clock })({ restaurantId: COFFEE, role: "OWNER" }, { sessionId: id, to: "CLOSED" })).toEqual({
+      ok: false,
+      error: { type: "SESSION_NOT_FOUND" },
+    });
+    expect((await waiterRepo.findWithTables(GRILL, [id]))[0]?.session.status).toBe("OPEN"); // untouched so far
+
+    // The waiter signals "ready to pay". The guests' phones see it; a second identical move finds it already done.
+    expect(await asWaiter(waiter, { sessionId: id, to: "PAYMENT_REQUESTED" })).toMatchObject({ ok: true, value: { tableLabel: "IT-T-Move", session: { status: "PAYMENT_REQUESTED" } } });
+    expect((await gateway.find("demo-dinein", id))?.status).toBe("PAYMENT_REQUESTED");
+    expect(await waiterRepo.updateStatus(GRILL, id, "OPEN", "PAYMENT_REQUESTED")).toBe(false); // stale "from"
+    expect(await asWaiter(waiter, { sessionId: id, to: "CLOSED" })).toEqual({ ok: false, error: { type: "FORBIDDEN" } });
+
+    // The cashier closes it: the database stamps the end time, and nothing can follow.
+    expect(await asCashier(cashier, { sessionId: id, to: "CLOSED" })).toMatchObject({ ok: true, value: { session: { status: "CLOSED" } } });
+    const stored = (await cashierRepo.findWithTables(GRILL, [id]))[0]!.session;
+    expect(stored.status).toBe("CLOSED");
+    expect(stored.endedAt).toBeInstanceOf(Date);
+    expect(await cashierRepo.updateStatus(GRILL, id, "CLOSED", "PAYMENT_REQUESTED")).toBe(false);
+    expect(await asCashier(cashier, { sessionId: id, to: "CLOSED" })).toEqual({ ok: false, error: { type: "INVALID_TRANSITION", from: "CLOSED", to: "CLOSED" } });
+
+    // The table is free again: the next scan starts a new visit.
+    const next = await gateway.join("demo-dinein", made.value.token);
+    expect(next?.status).toBe("OPEN");
+    expect(next?.sessionId).not.toBe(id);
   });
 
   it("knows the seeded demo tables: Demo Grill's scan works, Demo Coffee (dine-in off) refuses", async () => {

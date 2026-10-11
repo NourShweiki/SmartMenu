@@ -374,6 +374,7 @@ function fakeSessions(visits: SessionAtTable[]) {
       asked.push({ restaurantId, sessionIds: [...sessionIds] });
       return visits.filter((v) => sessionIds.includes(v.session.id));
     },
+    updateStatus: async () => false, // the order list never moves a visit
   };
   return { repo, asked };
 }
