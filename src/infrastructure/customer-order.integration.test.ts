@@ -127,6 +127,12 @@ describe.skipIf(!enabled)("a guest places an order, against local Supabase", () 
     expect(await attempt({ ...coffee, settings: { ...coffee.settings, dineInEnabled: true } })).toEqual({ ok: false, problem: "noTable" });
 
     for (const [status, problem] of [["PAYMENT_REQUESTED", "paymentRequested"], ["CLOSED", "sessionEnded"]] as const) {
+      if (status === "CLOSED") {
+        // A visit with unfinished orders cannot simply be closed (migration cancel_orders), unless it has run out
+        // of time: so this one is made 3 hours old first, which is how a visit with orders left in it really ends.
+        const aged = await service.from("table_sessions").update({ started_at: new Date(Date.now() - 3 * 60 * 60 * 1000).toISOString() }).eq("id", session.sessionId);
+        if (aged.error) throw aged.error;
+      }
       const { error } = await service.from("table_sessions").update({ status }).eq("id", session.sessionId);
       if (error) throw error;
       expect(await attempt(grill)).toEqual({ ok: false, problem });

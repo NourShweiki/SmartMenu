@@ -34,7 +34,10 @@ export type MoveTableSessionError =
  *
  * A visit cannot be CLOSED while it has unfinished orders (PROJECT_SPEC §4, chosen 2026-10-11): an order must not
  * be left behind with no visit to bill it to. "Ready to pay" has no such condition: guests often ask for the bill
- * while the last dish is on its way. This rule lives here only; the database does not enforce it yet.
+ * while the last dish is on its way. "Unfinished" means neither completed nor cancelled.
+ * The database enforces the same (migration cancel_orders) with one difference: there, a visit that has RUN OUT OF
+ * TIME may be closed over unfinished orders, because the next scan of the table has to be able to start a new
+ * visit. Staff closing by hand are still asked to settle those orders first: that is this check.
  */
 export function makeMoveTableSession(deps: {
   sessions: Pick<TableSessionRepository, "findWithTables" | "updateStatus">;

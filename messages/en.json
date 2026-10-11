@@ -397,7 +397,8 @@
       "PREPARING": "Preparing",
       "READY": "Ready",
       "SERVED": "Served",
-      "COMPLETED": "Completed"
+      "COMPLETED": "Completed",
+      "CANCELLED": "Cancelled"
     },
     "action": {
       "CONFIRMED": "Confirm",

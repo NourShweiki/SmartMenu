@@ -8,6 +8,8 @@ export const PERMISSIONS = [
   "menu:sold-out", // mark items sold out / back in stock during service (decided 2026-10-06)
   "tables:manage", // tables + QR codes
   "orders:confirm", // confirm / move orders through statuses
+  "orders:cancel", // cancel an order the kitchen has not started (NEW, CONFIRMED)
+  "orders:cancel-late", // cancel an order that is being prepared, ready or served (wasted food / a refund)
   "service-requests:handle", // waiter call, cleaning
   "payments:close", // confirm payment, receipt, close session
   "reports:view", // sales, analytics, feedback
@@ -22,12 +24,14 @@ const ROLE_PERMISSIONS: Record<Role, readonly Permission[]> = {
     "menu:sold-out",
     "tables:manage",
     "orders:confirm",
+    "orders:cancel",
+    "orders:cancel-late",
     "service-requests:handle",
     "payments:close",
     "reports:view",
   ],
-  WAITER: ["orders:confirm", "service-requests:handle", "menu:sold-out"],
-  // Spec: cashier handles billing/closing only and does NOT see service requests.
+  WAITER: ["orders:confirm", "orders:cancel", "service-requests:handle", "menu:sold-out"],
+  // Spec: cashier handles billing/closing only, does NOT see service requests, and never cancels an order.
   CASHIER: ["payments:close"],
 };
 

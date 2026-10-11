@@ -31,7 +31,11 @@ import {
   type OrderStatus,
   type TableSessionId,
   billTotals,
+  cancelOrder,
+  CANCEL_REASONS,
   isUnfinished,
+  ORDER_STATUSES,
+  permissionToCancel,
 } from "./order";
 
 const R = "11111111-1111-4000-8000-000000000001" as RestaurantId;
@@ -411,8 +415,8 @@ describe("permissionToMoveTo", () => {
 });
 
 describe("billTotals", () => {
-  const amounts = (subtotalFils: number, serviceChargeFils: number, taxFils: number) =>
-    ({ subtotalFils, serviceChargeFils, taxFils, totalFils: subtotalFils + serviceChargeFils + taxFils }) as Parameters<typeof billTotals>[0][number];
+  const amounts = (subtotalFils: number, serviceChargeFils: number, taxFils: number, status: "SERVED" | "COMPLETED" | "CANCELLED" = "SERVED") =>
+    ({ status, subtotalFils, serviceChargeFils, taxFils, totalFils: subtotalFils + serviceChargeFils + taxFils }) as Parameters<typeof billTotals>[0][number];
 
   it("adds up what each order was priced at when it was placed, also when the rates changed in between", () => {
     // The first order at 10% service + 16% tax, the second after the owner dropped the service charge.
@@ -421,13 +425,78 @@ describe("billTotals", () => {
     expect(bill.totalFils).toBe(bill.subtotalFils + bill.serviceChargeFils + bill.taxFils);
   });
 
+  it("leaves cancelled orders out: they stay on the list but nobody pays for them", () => {
+    const bill = billTotals([amounts(6000, 600, 1056, "COMPLETED"), amounts(9000, 900, 1584, "CANCELLED"), amounts(1250, 0, 200)]);
+    expect(bill).toEqual({ subtotalFils: 7250, serviceChargeFils: 600, taxFils: 1256, totalFils: 9106 });
+    expect(billTotals([amounts(9000, 900, 1584, "CANCELLED")]).totalFils).toBe(0);
+  });
+
   it("is zero for a table that has ordered nothing", () => {
     expect(billTotals([])).toEqual({ subtotalFils: 0, serviceChargeFils: 0, taxFils: 0, totalFils: 0 });
   });
 });
 
 describe("isUnfinished", () => {
-  it("is true for every status except COMPLETED", () => {
-    expect((["NEW", "CONFIRMED", "PREPARING", "READY", "SERVED", "COMPLETED"] as const).map((status) => isUnfinished({ status }))).toEqual([true, true, true, true, true, false]);
+  it("is true for every status except COMPLETED and CANCELLED", () => {
+    expect(ORDER_STATUSES.map((status) => [status, isUnfinished({ status })])).toEqual([
+      ["NEW", true],
+      ["CONFIRMED", true],
+      ["PREPARING", true],
+      ["READY", true],
+      ["SERVED", true],
+      ["COMPLETED", false],
+      ["CANCELLED", false],
+    ]);
+  });
+});
+
+describe("cancelling an order", () => {
+  const at = (status: (typeof ORDER_STATUSES)[number]) =>
+    ({ id: "o-1", status, statusChangedAt: new Date("2026-10-11T18:00:00Z"), cancellation: null, totalFils: 1160 }) as unknown as Order;
+  const NOW = new Date("2026-10-11T18:30:00Z");
+
+  it("takes an order out of the flow from any step before COMPLETED, keeping why and when", () => {
+    for (const status of ["NEW", "CONFIRMED", "PREPARING", "READY", "SERVED"] as const) {
+      const result = cancelOrder(at(status), "ITEM_UNAVAILABLE", NOW);
+      expect(result).toMatchObject({ ok: true, value: { status: "CANCELLED", statusChangedAt: NOW, cancellation: { reason: "ITEM_UNAVAILABLE", at: NOW, by: null }, totalFils: 1160 } });
+    }
+  });
+
+  it("does not cancel a completed order, or one that is cancelled already", () => {
+    expect(cancelOrder(at("COMPLETED"), "MISTAKE", NOW)).toEqual({ ok: false, error: { type: "INVALID_TRANSITION", from: "COMPLETED", to: "CANCELLED" } });
+    expect(cancelOrder(at("CANCELLED"), "MISTAKE", NOW)).toEqual({ ok: false, error: { type: "INVALID_TRANSITION", from: "CANCELLED", to: "CANCELLED" } });
+  });
+
+  it("needs a reason from the fixed list", () => {
+    for (const reason of CANCEL_REASONS) expect(cancelOrder(at("NEW"), reason, NOW).ok).toBe(true);
+    for (const reason of ["", "because", "other", "GUEST_CHANGED_MIND "]) {
+      expect(cancelOrder(at("NEW"), reason, NOW)).toEqual({ ok: false, error: { type: "INVALID_CANCEL_REASON" } });
+    }
+  });
+
+  it("is final: a cancelled order has no next step and cannot be moved", () => {
+    expect(nextStatus("CANCELLED")).toBeNull();
+    for (const to of ["NEW", "CONFIRMED", "COMPLETED"] as const) {
+      expect(moveOrderTo(at("CANCELLED"), to, NOW)).toEqual({ ok: false, error: { type: "INVALID_TRANSITION", from: "CANCELLED", to } });
+    }
+    // ...and cancelling is never reached by "moving": it is its own action.
+    expect(moveOrderTo(at("SERVED"), "CANCELLED", NOW).ok).toBe(false);
+    expect(moveOrderTo(at("COMPLETED"), "CANCELLED", NOW).ok).toBe(false);
+  });
+
+  it("asks for the right permission by how far the order has got", () => {
+    expect(ORDER_STATUSES.map((status) => [status, permissionToCancel(status)])).toEqual([
+      ["NEW", "orders:cancel"],
+      ["CONFIRMED", "orders:cancel"],
+      ["PREPARING", "orders:cancel-late"],
+      ["READY", "orders:cancel-late"],
+      ["SERVED", "orders:cancel-late"],
+      ["COMPLETED", null],
+      ["CANCELLED", null],
+    ]);
+    // Who that is: the waiter only before the kitchen starts, the cashier never.
+    const who = (status: (typeof ORDER_STATUSES)[number]) => (["OWNER", "MANAGER", "WAITER", "CASHIER"] as Role[]).filter((role) => can(role, permissionToCancel(status)!));
+    expect(who("CONFIRMED")).toEqual(["OWNER", "MANAGER", "WAITER"]);
+    expect(who("SERVED")).toEqual(["OWNER", "MANAGER"]);
   });
 });

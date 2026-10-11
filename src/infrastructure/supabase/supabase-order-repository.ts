@@ -3,6 +3,7 @@ import type { OrderRepository } from "@/application/ports/order-repository";
 import type { MenuItemId } from "@/domain/menu/menu";
 import type { OptionId } from "@/domain/menu/options";
 import type {
+  CancelReason,
   Order,
   OrderId,
   OrderItem,
@@ -50,12 +51,15 @@ export type OrderRow = {
   service_charge_bp: number;
   created_at: string;
   status_changed_at: string;
+  cancel_reason: string | null;
+  cancelled_at: string | null;
+  cancelled_by: string | null;
   order_items: ItemRow[];
 };
 
 const ORDER_COLUMNS =
   "id, restaurant_id, session_id, number, status, subtotal_fils, service_charge_fils, tax_fils, total_fils, " +
-  "tax_rate_bp, service_charge_bp, created_at, status_changed_at, " +
+  "tax_rate_bp, service_charge_bp, created_at, status_changed_at, cancel_reason, cancelled_at, cancelled_by, " +
   "order_items(id, menu_item_id, name_en, name_ar, unit_price_fils, quantity, line_total_fils, position, " +
   "order_item_options(option_id, group_name_en, group_name_ar, name_en, name_ar, price_delta_fils, position))";
 
@@ -96,6 +100,11 @@ export function toOrder(row: OrderRow): Order {
     serviceChargeBp: row.service_charge_bp,
     createdAt: new Date(row.created_at),
     statusChangedAt: new Date(row.status_changed_at),
+    // The table guarantees a reason and a time exactly when the status is CANCELLED.
+    cancellation:
+      row.cancel_reason && row.cancelled_at
+        ? { reason: row.cancel_reason as CancelReason, at: new Date(row.cancelled_at), by: row.cancelled_by }
+        : null,
   };
 }
 
@@ -196,7 +205,7 @@ export class SupabaseOrderRepository implements OrderRepository {
       .from("orders")
       .select(ORDER_COLUMNS)
       .eq("restaurant_id", restaurantId)
-      .neq("status", "COMPLETED")
+      .not("status", "in", "(COMPLETED,CANCELLED)")
       .order("created_at", { ascending: true })
       .order("number", { ascending: true });
     if (error) throw new Error(`list open orders failed: ${error.message}`);
@@ -214,6 +223,23 @@ export class SupabaseOrderRepository implements OrderRepository {
       .order("number", { ascending: true });
     if (error) throw new Error(`list session orders failed: ${error.message}`);
     return ((data ?? []) as unknown as OrderRow[]).map(toOrder);
+  }
+
+  async cancel(restaurantId: RestaurantId, orderId: OrderId, from: OrderStatus, reason: CancelReason): Promise<boolean> {
+    if (!UUID.test(orderId)) return false;
+    // Status and reason go together (the table refuses one without the other); when and who are stamped there.
+    const { data, error } = await this.db
+      .from("orders")
+      .update({ status: "CANCELLED", cancel_reason: reason })
+      .eq("restaurant_id", restaurantId)
+      .eq("id", orderId)
+      .eq("status", from)
+      .select("id");
+    if (error) {
+      if (REFUSED.has(error.code)) return false; // the database refused this user / this move
+      throw new Error(`cancel order failed: ${error.message}`);
+    }
+    return (data?.length ?? 0) === 1;
   }
 
   async listBySessions(restaurantId: RestaurantId, sessionIds: readonly TableSessionId[]): Promise<Order[]> {

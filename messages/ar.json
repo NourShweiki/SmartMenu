@@ -397,7 +397,8 @@
       "PREPARING": "قيد التحضير",
       "READY": "جاهز",
       "SERVED": "تم التقديم",
-      "COMPLETED": "مكتمل"
+      "COMPLETED": "مكتمل",
+      "CANCELLED": "ملغى"
     },
     "action": {
       "CONFIRMED": "تأكيد",

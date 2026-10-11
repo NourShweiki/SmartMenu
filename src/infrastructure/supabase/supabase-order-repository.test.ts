@@ -16,6 +16,9 @@ const row: OrderRow = {
   service_charge_bp: 1000,
   created_at: "2026-10-10T12:00:00.000Z",
   status_changed_at: "2026-10-10T12:05:00.000Z",
+  cancel_reason: null,
+  cancelled_at: null,
+  cancelled_by: null,
   // Deliberately out of order: the mapper must sort by position.
   order_items: [
     {
@@ -65,6 +68,15 @@ describe("toOrder", () => {
     });
     expect(order.createdAt).toEqual(new Date("2026-10-10T12:00:00.000Z"));
     expect(order.statusChangedAt).toEqual(new Date("2026-10-10T12:05:00.000Z"));
+  });
+
+  it("reads a cancellation (why, when, who) only from a cancelled order", () => {
+    expect(order.cancellation).toBeNull();
+    const cancelled = toOrder({ ...row, status: "CANCELLED", cancel_reason: "ITEM_UNAVAILABLE", cancelled_at: "2026-10-10T12:07:00.000Z", cancelled_by: "aaaa0001-0000-4000-8000-000000000002" });
+    expect(cancelled.status).toBe("CANCELLED");
+    expect(cancelled.cancellation).toEqual({ reason: "ITEM_UNAVAILABLE", at: new Date("2026-10-10T12:07:00.000Z"), by: "aaaa0001-0000-4000-8000-000000000002" });
+    // Cancelled by the server itself: nobody in particular.
+    expect(toOrder({ ...row, status: "CANCELLED", cancel_reason: "OTHER", cancelled_at: "2026-10-10T12:07:00.000Z" }).cancellation?.by).toBeNull();
   });
 
   it("keeps lines and options in the order they were ordered (by position)", () => {

@@ -34,6 +34,7 @@ import { makeGetBranding } from "@/application/use-cases/branding/get-branding";
 import { makeRemoveRestaurantLogo, makeSetRestaurantLogo } from "@/application/use-cases/branding/set-restaurant-logo";
 import { makeUpdateBranding } from "@/application/use-cases/branding/update-branding";
 import type { BrandingActor } from "@/application/use-cases/branding/shared";
+import { makeCancelOrder } from "@/application/use-cases/orders/cancel-order";
 import { makeGetStaffOrderList } from "@/application/use-cases/orders/get-staff-order-list";
 import { makeMoveOrderStatus } from "@/application/use-cases/orders/move-order-status";
 import { makeFindPlacedOrder, makePlaceOrder } from "@/application/use-cases/orders/place-order";
@@ -222,6 +223,8 @@ export const orders = {
     makeFindPlacedOrder({ orders: customerOrderRepository().orders })(...args),
   moveStatus: async (...args: Parameters<ReturnType<typeof makeMoveOrderStatus>>) =>
     makeMoveOrderStatus(await staffOrderDeps())(...args),
+  /** A member of staff cancels an order, with a reason (see makeCancelOrder). Runs as that person: RLS and the status trigger decide again. */
+  cancel: async (...args: Parameters<ReturnType<typeof makeCancelOrder>>) => makeCancelOrder(await staffOrderDeps())(...args),
   /** The staff order screen's data: the open queue, or one table session's orders, each with its table. */
   getForStaff: async (actor: StaffActor, query?: Parameters<ReturnType<typeof makeGetStaffOrderList>>[1]) =>
     makeGetStaffOrderList(await staffOrderDeps())(actor, query),

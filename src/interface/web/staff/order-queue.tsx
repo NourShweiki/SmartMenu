@@ -15,6 +15,7 @@ const STATUS_STYLE: Record<OrderStatus, string> = {
   READY: "bg-green-50 text-green-800 ring-green-200",
   SERVED: "bg-gray-100 text-gray-700 ring-gray-200",
   COMPLETED: "bg-gray-100 text-gray-500 ring-gray-200",
+  CANCELLED: "bg-white text-gray-500 ring-gray-300",
 };
 const pill = "rounded-full px-2.5 py-0.5 text-xs font-semibold ring-1";
 /** Up to this many leftover orders are shown straight away; more than that start folded. */

@@ -20,9 +20,26 @@ export type { TableSessionId };
 export type OrderId = string & { readonly __brand: "OrderId" };
 export type OrderItemId = string & { readonly __brand: "OrderItemId" };
 
-/** Spec §4. Cancellation is NOT modelled yet: its rules need Nour's decision first (data-model skill §8). */
+/** The steps an order goes through, in this order (spec §4). */
 export const ORDER_FLOW = ["NEW", "CONFIRMED", "PREPARING", "READY", "SERVED", "COMPLETED"] as const;
-export type OrderStatus = (typeof ORDER_FLOW)[number];
+/**
+ * Every status an order can have: the flow, plus CANCELLED. Cancelling is not a step: an order can be taken OUT
+ * of the flow at any point before it is completed, and nothing follows it (spec §4, rules chosen 2026-10-11).
+ */
+export const ORDER_STATUSES = [...ORDER_FLOW, "CANCELLED"] as const;
+export type OrderStatus = (typeof ORDER_STATUSES)[number];
+
+/** Why an order was cancelled: staff pick one (a fixed list, so it can be counted in reports later). */
+export const CANCEL_REASONS = ["GUEST_CHANGED_MIND", "ITEM_UNAVAILABLE", "MISTAKE", "OTHER"] as const;
+export type CancelReason = (typeof CANCEL_REASONS)[number];
+export const isCancelReason = (value: string): value is CancelReason => (CANCEL_REASONS as readonly string[]).includes(value);
+
+export type OrderCancellation = {
+  readonly reason: CancelReason;
+  readonly at: Date;
+  /** The staff member's user id, as the database stamped it. Null before it is stored, or when the server cancelled. */
+  readonly by: string | null;
+};
 
 /** What the customer picked, copied at order time so later menu edits never change a past order. */
 export type OrderOptionSnapshot = {
@@ -61,6 +78,8 @@ export type Order = {
   readonly serviceChargeBp: number;
   readonly createdAt: Date;
   readonly statusChangedAt: Date;
+  /** Set exactly when the status is CANCELLED. */
+  readonly cancellation: OrderCancellation | null;
 };
 
 export type OrderError =
@@ -73,7 +92,8 @@ export type OrderError =
   | { type: "ITEM_NOT_ORDERABLE"; menuItemId: string }
   | { type: "WRONG_RESTAURANT" }
   | { type: "SELECTION"; menuItemId: string; reason: SelectionError }
-  | { type: "INVALID_TRANSITION"; from: OrderStatus; to: OrderStatus };
+  | { type: "INVALID_TRANSITION"; from: OrderStatus; to: OrderStatus }
+  | { type: "INVALID_CANCEL_REASON" };
 
 /** Ids are injected so the domain stays pure and testable (same shape as the menu context's). */
 export type OrderDeps = { newId: () => string };
@@ -229,14 +249,16 @@ export function createOrder(input: NewOrderInput, deps: OrderDeps, now: Date): R
     serviceChargeBp: input.rates.serviceChargeBp,
     createdAt: now,
     statusChangedAt: now,
+    cancellation: null,
   });
 }
 
 // ─── Status flow ────────────────────────────────────────────────────────
 
-/** The only status an order may move to next, or null once COMPLETED. */
+/** The only status an order may move to next along the flow, or null once COMPLETED (or CANCELLED: it left the flow). */
 export function nextStatus(status: OrderStatus): OrderStatus | null {
-  return ORDER_FLOW[ORDER_FLOW.indexOf(status) + 1] ?? null;
+  const at = (ORDER_FLOW as readonly OrderStatus[]).indexOf(status);
+  return at < 0 ? null : (ORDER_FLOW[at + 1] ?? null);
 }
 
 /** One step forward at a time, no skipping and no going back (spec §4). */
@@ -245,8 +267,42 @@ export function moveOrderTo(order: Order, to: OrderStatus, now: Date): Result<Or
   return ok({ ...order, status: to, statusChangedAt: now });
 }
 
-/** Still on its way through the flow (anything that is not COMPLETED). A visit cannot be closed while it has one. */
-export const isUnfinished = (order: Pick<Order, "status">): boolean => order.status !== "COMPLETED";
+/**
+ * Takes an order out of the flow. Possible from every step before COMPLETED; a completed order stays completed and
+ * a cancelled one stays cancelled. WHO may cancel at which step is `permissionToCancel`.
+ */
+export function cancelOrder(order: Order, reason: string, now: Date): Result<Order & { cancellation: OrderCancellation }, OrderError> {
+  if (order.status === "COMPLETED" || order.status === "CANCELLED") {
+    return err({ type: "INVALID_TRANSITION", from: order.status, to: "CANCELLED" });
+  }
+  if (!isCancelReason(reason)) return err({ type: "INVALID_CANCEL_REASON" });
+  return ok({ ...order, status: "CANCELLED", statusChangedAt: now, cancellation: { reason, at: now, by: null } });
+}
+
+/**
+ * The permission needed to cancel an order that is at this status (spec §4): before the kitchen starts it is
+ * `orders:cancel` (waiter, manager, owner); once it is being prepared, ready or served it is `orders:cancel-late`
+ * (manager, owner: that is a decision about wasted food or a refund). Null = nobody can (completed, or cancelled
+ * already). The cashier holds neither. The database enforces the same (migration cancel_orders).
+ */
+export function permissionToCancel(status: OrderStatus): Extract<Permission, "orders:cancel" | "orders:cancel-late"> | null {
+  switch (status) {
+    case "NEW":
+    case "CONFIRMED":
+      return "orders:cancel";
+    case "PREPARING":
+    case "READY":
+    case "SERVED":
+      return "orders:cancel-late";
+    default:
+      return null;
+  }
+}
+
+/**
+ * Still on its way through the flow: neither COMPLETED nor CANCELLED. A visit cannot be closed while it has one.
+ */
+export const isUnfinished = (order: Pick<Order, "status">): boolean => order.status !== "COMPLETED" && order.status !== "CANCELLED";
 
 export type BillTotals = Pick<Order, "subtotalFils" | "serviceChargeFils" | "taxFils" | "totalFils">;
 
@@ -254,9 +310,11 @@ export type BillTotals = Pick<Order, "subtotalFils" | "serviceChargeFils" | "tax
  * What a table owes for these orders: each amount is the SUM over the orders. Every order was priced when it was
  * placed, with the rates in force then (snapshots, data-model skill §4), so the bill adds those amounts up and
  * never recomputes anything from today's prices or rates. Whole fils in, whole fils out: no rounding happens here.
+ * A CANCELLED order counts as zero: it stays on the list, but nobody pays for it (spec §4).
  */
-export function billTotals(orders: readonly BillTotals[]): BillTotals {
-  const sum = (pick: (o: BillTotals) => number) => orders.reduce((total, o) => total + pick(o), 0) as Fils;
+export function billTotals(orders: readonly (BillTotals & Pick<Order, "status">)[]): BillTotals {
+  const charged = orders.filter((o) => o.status !== "CANCELLED");
+  const sum = (pick: (o: BillTotals) => number) => charged.reduce((total, o) => total + pick(o), 0) as Fils;
   return {
     subtotalFils: sum((o) => o.subtotalFils),
     serviceChargeFils: sum((o) => o.serviceChargeFils),

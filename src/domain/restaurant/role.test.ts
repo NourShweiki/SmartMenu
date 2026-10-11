@@ -15,4 +15,9 @@ describe("role permissions", () => {
     expect(can("WAITER", "menu:manage")).toBe(false);
     expect(can("WAITER", "menu:sold-out")).toBe(true);
   });
+
+  it("cancelling: the waiter before the kitchen starts, owner and manager also later, the cashier never", () => {
+    expect(ROLES.filter((role) => can(role, "orders:cancel"))).toEqual(["OWNER", "MANAGER", "WAITER"]);
+    expect(ROLES.filter((role) => can(role, "orders:cancel-late"))).toEqual(["OWNER", "MANAGER"]);
+  });
 });

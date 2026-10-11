@@ -1,4 +1,4 @@
-import type { Order, OrderId, OrderStatus, TableSessionId } from "@/domain/order/order";
+import type { CancelReason, Order, OrderId, OrderStatus, TableSessionId } from "@/domain/order/order";
 import type { RestaurantId } from "@/domain/restaurant/restaurant";
 
 /**
@@ -19,7 +19,7 @@ export interface OrderRepository {
   /** The order already placed in this table session with this request key, or null. */
   findByRequest(restaurantId: RestaurantId, sessionId: TableSessionId, requestId: string): Promise<Order | null>;
   findById(restaurantId: RestaurantId, orderId: OrderId): Promise<Order | null>;
-  /** Orders not yet COMPLETED, oldest first: the kitchen / floor queue. */
+  /** Orders still on their way (neither COMPLETED nor CANCELLED), oldest first: the kitchen / floor queue. */
   listOpen(restaurantId: RestaurantId): Promise<Order[]>;
   /** All orders of one table session, oldest first (the running bill). */
   listBySession(restaurantId: RestaurantId, sessionId: TableSessionId): Promise<Order[]>;
@@ -30,4 +30,10 @@ export interface OrderRepository {
    * exists, or the database refused this user (never report a change that did not happen).
    */
   updateStatus(restaurantId: RestaurantId, orderId: OrderId, from: OrderStatus, to: OrderStatus): Promise<boolean>;
+  /**
+   * Cancels an order only if it is still in `from`, with the reason. Same answer as `updateStatus`: false when
+   * someone else moved it first, it does not exist here, or the database refused this user. The time and the
+   * person are stamped by the database.
+   */
+  cancel(restaurantId: RestaurantId, orderId: OrderId, from: OrderStatus, reason: CancelReason): Promise<boolean>;
 }
