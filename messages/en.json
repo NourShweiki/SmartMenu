@@ -381,7 +381,7 @@
     "title": "Orders",
     "back": "Staff dashboard",
     "refresh": "Refresh",
-    "hint": "Oldest first. Press Refresh to see new orders.",
+    "hint": "Oldest first. The list updates by itself every few seconds.",
     "empty": "No open orders right now.",
     "liveTitle": "Open orders",
     "endedTitle": "Orders from visits that have ended",
@@ -426,13 +426,19 @@
       },
       "confirm": "Cancel this order",
       "keep": "Keep the order"
+    },
+    "live": {
+      "turnSoundOn": "Turn sound on",
+      "turnSoundOff": "Sound is on: turn off",
+      "soundBlocked": "Tap anywhere on the page once so the browser lets the sound play.",
+      "newOrders": "{count, plural, one {New order} other {# new orders}}"
     }
   },
   "OpenTables": {
     "title": "Open tables",
     "back": "Staff dashboard",
     "refresh": "Refresh",
-    "hint": "Tables with guests, oldest first, each with its running bill.",
+    "hint": "Tables with guests, oldest first, each with its running bill. The list updates by itself.",
     "empty": "No open tables right now.",
     "table": "Table {label}",
     "since": "Since <time></time>",

@@ -4,6 +4,8 @@ import { localized } from "@/domain/shared/localized";
 import { orders } from "@/infrastructure/container";
 import { LanguageSwitch } from "@/interface/web/components/language-switch";
 import { initLocale } from "@/interface/web/i18n/init-locale";
+import { LiveRefresh } from "@/interface/web/staff/live-refresh";
+import { NewOrderAlert } from "@/interface/web/staff/new-order-alert";
 import { OrderQueueView } from "@/interface/web/staff/order-queue";
 import { buildOrderQueue } from "@/interface/web/staff/order-queue-model";
 import { requireStaff } from "@/interface/web/staff/require-staff";
@@ -31,7 +33,7 @@ export default async function StaffOrdersPage({ params }: { params: Promise<{ lo
             <p className="text-sm text-gray-500">{localized(restaurant.name, locale)}</p>
           </div>
           <div className="flex items-center gap-3">
-            {/* A plain link to the same page: a full, fresh load of the list. Live updates come in a later step. */}
+            {/* A plain link to the same page: a full, fresh load, for when someone does not want to wait for the next update. */}
             <a href={`/${locale}/staff/orders`} className="rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-semibold hover:bg-gray-100">
               {t("refresh")}
             </a>
@@ -40,6 +42,9 @@ export default async function StaffOrdersPage({ params }: { params: Promise<{ lo
         </header>
 
         <p className="text-gray-600">{t("hint")}</p>
+        {/* The list refreshes itself; an order that is NEW and was not there before gets a notice and, if switched on, a sound. */}
+        <LiveRefresh />
+        <NewOrderAlert newOrderIds={[...queue.live, ...queue.ended].filter((o) => o.status === "NEW").map((o) => o.id)} />
         <OrderQueueView locale={locale} queue={queue} />
       </div>
     </main>

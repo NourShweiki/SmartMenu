@@ -166,3 +166,50 @@ test("who may cancel: the cashier never, the waiter only before the kitchen star
     await removeTable(page, site, "en", name);
   }
 });
+
+test("a new order appears on an open order screen by itself, with a notice; the sound switch is remembered", async ({ page, browser }) => {
+  const site = SITES.grill;
+  const name = tableLabel();
+  await openTables(page, site, "en");
+  try {
+    await addTable(page, "en", name);
+    const g = await guest(browser);
+    await g.page.goto(await scanUrl(tableRow(page, "en", name)));
+    await g.page.goto(`${site.origin}/en/menu`);
+
+    // The waiter has the screen open BEFORE anything is ordered, and switches the sound on.
+    const waiter = await staffAt(browser, site, site.waiter, "en", ORDERS);
+    const soundOff = waiter.page.getByRole("button", { name: t("en", "StaffOrders.live.turnSoundOn"), exact: true });
+    const soundOn = waiter.page.getByRole("button", { name: t("en", "StaffOrders.live.turnSoundOff"), exact: true });
+    await expect(soundOff).toHaveAttribute("aria-pressed", "false");
+    await soundOff.click();
+    await expect(soundOn).toHaveAttribute("aria-pressed", "true");
+
+    // The guest orders. Nobody touches the waiter's screen: the notice and the order show up on their own.
+    const number = await placeAnOrder(g.page, "en", site.menu.simple.en);
+    await g.context.close();
+    await expect(waiter.page.getByRole("status").filter({ hasText: "New order" })).toBeVisible();
+    await expect(card(waiter.page, "en", number)).toContainText(t("en", "StaffOrders.table", { label: name }));
+
+    // After a reload the sound is still on; the browser wants one touch of the page before it plays again, and says so.
+    await waiter.page.reload();
+    await expect(soundOn).toHaveAttribute("aria-pressed", "true");
+    await expect(waiter.page.getByText(t("en", "StaffOrders.live.soundBlocked"))).toBeVisible();
+    await waiter.page.getByRole("heading", { level: 1 }).click();
+    await expect(waiter.page.getByText(t("en", "StaffOrders.live.soundBlocked"))).toHaveCount(0);
+
+    // Someone else moves the order: this screen follows without a refresh either.
+    await page.goto(`${site.origin}/en/staff/orders`); // the owner
+    await takeOrderThrough(page, "en", number, ["CONFIRMED"]);
+    await expect(card(waiter.page, "en", number)).toContainText(t("en", "StaffOrders.status.CONFIRMED"));
+    await waiter.context.close();
+
+    // Tidy up: cancel the order and close the table's visit.
+    await cancelOrderOn(page, "en", number, "OTHER");
+    await page.goto(`${site.origin}/en/staff/open-tables`);
+    await tableCard(page, "en", name).getByRole("button", { name: t("en", "OpenTables.close"), exact: true }).click();
+    await expect(tableCard(page, "en", name)).toHaveCount(0);
+  } finally {
+    await removeTable(page, site, "en", name);
+  }
+});

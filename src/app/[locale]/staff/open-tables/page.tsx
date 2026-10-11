@@ -4,6 +4,7 @@ import { localized } from "@/domain/shared/localized";
 import { tableSessions } from "@/infrastructure/container";
 import { LanguageSwitch } from "@/interface/web/components/language-switch";
 import { initLocale } from "@/interface/web/i18n/init-locale";
+import { LiveRefresh } from "@/interface/web/staff/live-refresh";
 import { OpenTablesView } from "@/interface/web/staff/open-tables";
 import { buildOpenTables } from "@/interface/web/staff/open-tables-model";
 import { requireStaff } from "@/interface/web/staff/require-staff";
@@ -31,7 +32,7 @@ export default async function StaffOpenTablesPage({ params }: { params: Promise<
             <p className="text-sm text-gray-500">{localized(restaurant.name, locale)}</p>
           </div>
           <div className="flex items-center gap-3">
-            {/* A plain link to the same page: a full, fresh load. Live updates come in a later step. */}
+            {/* A plain link to the same page: a full, fresh load, for when someone does not want to wait for the next update. */}
             <a href={`/${locale}/staff/open-tables`} className="rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-semibold hover:bg-gray-100">
               {t("refresh")}
             </a>
@@ -40,6 +41,7 @@ export default async function StaffOpenTablesPage({ params }: { params: Promise<
         </header>
 
         <p className="text-gray-600">{t("hint")}</p>
+        <LiveRefresh />
         <OpenTablesView locale={locale} tables={tables} />
       </div>
     </main>

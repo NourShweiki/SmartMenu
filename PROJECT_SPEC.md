@@ -214,6 +214,7 @@ Domain rules get built and agreed on first because they're the hardest to change
 
 - **Next.js + TypeScript** — one project for customer menu, staff screen, and owner portal
 - **Supabase** — Postgres, auth, image storage, and live/real-time updates (powers instant order updates on the staff screen)
+  - *For now (2026-10-11) the staff screens refresh themselves every 5 seconds instead of using real-time push: simpler to run and secure, and an order shows within about 5 seconds. Switching to Supabase Realtime later changes one small component.*
 - **Claude Code** — primary dev tool
 - **Hosting** — DECIDED (2026-10-03): **Vercel + Supabase** for now. Vercel builds every push (preview URL per branch/PR, `main` = test environment). Supabase is standard Postgres, so moving to AWS later stays possible.
 
