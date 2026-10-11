@@ -4,6 +4,7 @@ import Image from "next/image";
 import { useLocale, useTranslations } from "next-intl";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
+import type { PublicOrder } from "@/application/ports/table-session-gateway";
 import type { CustomerMenuItem, CustomerMenuSection } from "@/application/use-cases/get-public-menu";
 import { cartItemCount, priceCart, type CartCatalogEntry } from "@/domain/cart/cart";
 import { MAX_LINE_QUANTITY, type OrderRates } from "@/domain/order/order";
@@ -11,6 +12,7 @@ import { localized } from "@/domain/shared/localized";
 import { formatPrice } from "@/interface/web/format";
 import type { Locale } from "@/interface/web/i18n/locales";
 import { CartPanel } from "./cart-panel";
+import { GuestOrders } from "./guest-orders";
 import { OptionPicker } from "./option-picker";
 import { placeOrderAction } from "./order-actions";
 import type { PlaceOrderOutcome, PlaceOrderProblem } from "./place-order-model";
@@ -26,10 +28,14 @@ type Props = {
   imageUrls: Record<string, string>;
   /** The table this guest scanned (read by the server from the session cookie), or null. */
   table: { label: string } | null;
+  /** The orders of this table's visit so far (empty without a table), as the server just read them. */
+  orders: readonly PublicOrder[];
+  /** The restaurant's name in the guest's language (the body of the "order is ready" notification). */
+  restaurantName: string;
 };
 
 /** The customer menu: browse, add to a cart (with option choices), review the cart with a price preview, place the order. */
-export function CustomerMenu({ restaurantSlug, sections, rates, imageUrls, table }: Props) {
+export function CustomerMenu({ restaurantSlug, sections, rates, imageUrls, table, orders, restaurantName }: Props) {
   const t = useTranslations("Menu");
   const locale = useLocale() as Locale;
   const tTable = useTranslations("Table");
@@ -97,6 +103,7 @@ export function CustomerMenu({ restaurantSlug, sections, rates, imageUrls, table
       clear();
       setPlacedOrderNumber(outcome.orderNumber);
       setCartOpen(true); // the confirmation lives in the cart dialog: make sure it is seen
+      router.refresh(); // the new order joins "your orders" at once (and from now on the page follows its status)
       return null;
     }
     router.refresh(); // the menu or the table changed under the guest: show the current state next to the reason
@@ -111,6 +118,7 @@ export function CustomerMenu({ restaurantSlug, sections, rates, imageUrls, table
             {tTable("banner", { label: table.label })}
           </p>
         )}
+        {table && orders.length > 0 && <GuestOrders orders={orders} restaurantName={restaurantName} />}
         {sections.length === 0 && <p className="py-10 text-center text-gray-500">{t("empty")}</p>}
 
         {sections.map(({ category, items }) => (

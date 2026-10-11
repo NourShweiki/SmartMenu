@@ -22,6 +22,9 @@ export default defineConfig({
   workers: 1,
   retries: 0,
   reporter: [["list"]],
+  // Before and after the suite: remove the tables, visits and orders that test runs left behind (see the file).
+  globalSetup: "./e2e/support/global-cleanup.ts",
+  globalTeardown: "./e2e/support/global-cleanup.ts",
   use: {
     channel: "chrome",
     headless: true,

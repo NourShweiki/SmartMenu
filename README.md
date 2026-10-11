@@ -106,13 +106,16 @@ One codebase serves every restaurant (multi-tenant). Each restaurant lives on it
   - The waiter may cancel an order the kitchen has not started; the owner and manager any order that is not completed; the cashier never. The database enforces this itself.
   - A cancelled order is kept with its reason, the time and who cancelled it. It leaves the queue, stays on the table's bill crossed out at zero, and cannot be brought back.
   - A table cannot be closed while one of its orders is still unfinished (neither completed nor cancelled).
-- **Browser tests.** 133 automated end-to-end tests drive a real browser through the app on both demo restaurants, in English and Arabic: login, language switch, roles, menu, settings, branding, the customer menu with its cart, tables with QR scanning, placing an order, the staff order screen and the open tables screen. They change data and put it back. Run with `npm run test:e2e` (needs the local database): the tests build the app for production and start that build themselves, so they always check the current code in the form users get.
+- **Guests follow their order on their phone (Phase 5).** After ordering, the menu page shows **Your orders**: every order of the table's visit with how far it has got, on every phone at that table.
+  - When an order is ready, a notice appears on the page by itself, with a sound and a vibration where the phone allows it, and as a system notification if the guest asked for one. If staff cancel an order, the guest is told to ask a member of staff.
+  - A phone only ever sees the orders of its own table's visit. The system notification works while the menu page is still open in the browser; reaching a locked phone needs push messages, which come with the installable app.
+- **Browser tests.** 136 automated end-to-end tests drive a real browser through the app on both demo restaurants, in English and Arabic: login, language switch, roles, menu, settings, branding, the customer menu with its cart, tables with QR scanning, placing an order, the staff order screen, the open tables screen, and guests following their orders. They change data and put it back. Run with `npm run test:e2e` (needs the local database): the tests build the app for production and start that build themselves, so they always check the current code in the form users get.
 - **Reliable updates after a save.** In production builds a bug in the React version bundled with our framework could leave a page showing old content after a successful save, until a reload. A small built-in guard now makes the page catch up by itself; the browser tests run against a production build to keep it that way.
 - **Quality gates.** CI runs typecheck, lint (including architecture-layer import rules), unit tests and a production build on every push. Database security tests (pgTAP) and integration tests run locally.
 
 ### ⬜ Not done yet (next up)
 
-- **Phase 5 (next):** the staff order screen: incoming orders with their table, status buttons by role, staff cancelling an order, live updates with a sound alert, and a "your order is ready" notice on the guests' phones. Takeout ordering waits for a design decision.
+- **Next: to be decided.** Phase 5 (the staff order screen and everything around it) is done, except SMS, which was left out on purpose for now. Candidates are the onboarding tools (Phase 6) and takeout ordering, which waits for a design decision.
 - **Phase 4+:** everything customer-facing, including:
   - takeout
   - the live staff order screen

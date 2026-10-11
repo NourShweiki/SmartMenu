@@ -327,6 +327,24 @@
         "itemsChanged": "Something on the menu changed since you added it. Check your cart and try again.",
         "failed": "We could not send your order. Please try again, or ask a member of staff."
       }
+    },
+    "orders": {
+      "title": "Your orders",
+      "order": "Order {number}",
+      "status": {
+        "NEW": "Received",
+        "CONFIRMED": "Confirmed",
+        "PREPARING": "Being prepared",
+        "READY": "Ready",
+        "SERVED": "Served",
+        "COMPLETED": "Paid",
+        "CANCELLED": "Cancelled"
+      },
+      "readyNotice": "Order {number} is ready!",
+      "cancelledNotice": "Order {number} was cancelled. Please ask a member of staff.",
+      "dismiss": "OK",
+      "notifyMe": "Notify me when my order is ready",
+      "notifyOn": "You will get a notification when an order is ready."
     }
   },
   "Tables": {

@@ -18,10 +18,12 @@ export default async function CustomerMenuPage({ params }: { params: Promise<{ l
   const { restaurant } = site;
 
   const sessionId = await readSessionId(); // set by the server when a table QR code was scanned
-  const [menu, t, session] = await Promise.all([
+  const [menu, t, session, sessionOrders] = await Promise.all([
     getPublicMenu({ id: restaurant.id, slug: restaurant.slug }),
     getTranslations("Menu"),
     sessionId ? tableSessions.find({ slug: restaurant.slug, sessionId }) : null,
+    // The orders of that visit, for "your orders" (the session id in the cookie is what entitles this device to them).
+    sessionId ? tableSessions.orders({ slug: restaurant.slug, sessionId }) : [],
   ]);
   // The table is whatever the database says now: a session that was closed (the guests left) shows no table.
   const table = session && session.status !== "CLOSED" ? { label: session.tableLabel } : null;
@@ -52,6 +54,8 @@ export default async function CustomerMenuPage({ params }: { params: Promise<{ l
         rates={{ taxRateBp: restaurant.settings.taxRateBp, serviceChargeBp: restaurant.settings.serviceChargeBp }}
         imageUrls={imageUrls}
         table={table}
+        orders={table ? sessionOrders : []} // a closed visit shows no table, and no orders of it either
+        restaurantName={localized(restaurant.name, locale)}
       />
     </main>
   );
