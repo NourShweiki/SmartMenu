@@ -1,6 +1,6 @@
 import { expect, test, type Page } from "@playwright/test";
 import { jd, LOCALES, SITES, t, type Locale } from "./support/demo";
-import { addButton, cartBar, dialog, menuRow as row } from "./support/cart";
+import { addButton, cartBar, confirmation, dialog, menuRow as row, placeAnOrder as order, placeButton } from "./support/cart";
 import { hostOf, LOOPBACK_ORIGIN } from "./support/server";
 import { addTable, guest, openTables, removeTable, scanUrl, tableLabel, tableRow } from "./support/tables";
 
@@ -9,27 +9,8 @@ import { addTable, guest, openTables, removeTable, scanUrl, tableLabel, tableRow
 // The refusals that need a visit to end (bill requested, closed) have no screen yet: the integration test
 // `customer-order.integration.test.ts` and the unit tests cover them.
 
-const placeButton = (page: Page, locale: Locale) => dialog(page).getByRole("button", { name: t(locale, "Menu.cart.placeOrder") });
 const banner = (page: Page, locale: Locale, name: string) => page.getByRole("status").filter({ hasText: t(locale, "Table.banner", { label: name }) });
 
-/** Reads the order number off the confirmation and closes it. */
-async function confirmation(page: Page, locale: Locale): Promise<number> {
-  await expect(dialog(page).getByRole("heading", { name: t(locale, "Menu.order.title") })).toBeVisible();
-  await expect(dialog(page)).toContainText(t(locale, "Menu.order.numberLabel"));
-  const number = Number((await dialog(page).locator("bdi").innerText()).trim());
-  expect(Number.isInteger(number) && number >= 1).toBe(true);
-  await dialog(page).getByRole("button", { name: t(locale, "Menu.order.done") }).click();
-  await expect(dialog(page)).toHaveCount(0);
-  return number;
-}
-/** Adds the simple item, opens the cart, places the order and returns the number the confirmation shows. */
-async function order(page: Page, locale: Locale, itemName: string): Promise<number> {
-  await addButton(row(page, itemName), locale).click();
-  await cartBar(page, locale).click();
-  await expect(placeButton(page, locale)).toBeEnabled();
-  await placeButton(page, locale).click();
-  return confirmation(page, locale);
-}
 
 for (const locale of LOCALES) {
   test(`grill /${locale}: a guest at a table places an order, gets its number, and can order again`, async ({ page, browser }) => {

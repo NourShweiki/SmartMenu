@@ -38,6 +38,8 @@ for (const site of ALL_SITES) {
       await expect(page).toHaveURL(new RegExp(`/${locale}/staff/login$`));
       await page.goto(`${site.origin}/${locale}/staff/menu`);
       await expect(page).toHaveURL(new RegExp(`/${locale}/staff/login$`));
+      await page.goto(`${site.origin}/${locale}/staff/orders`);
+      await expect(page).toHaveURL(new RegExp(`/${locale}/staff/login$`));
     });
   }
 }

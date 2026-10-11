@@ -82,6 +82,12 @@ On **READY**, push a notification to the customer's session device(s).
 - CANCELLED is final: a cancelled order cannot be brought back; the guest orders again.
 - On the bill a cancelled order is shown struck through and counts as zero: it is left out of the visit's total.
 - The guests at the table see on their phones that the order was cancelled.
+
+**Unfinished orders and the end of a visit (chosen 2026-10-11, Nour: "go ahead as you suggested and choose what's best"):**
+- A visit **cannot be closed while it still has unfinished orders**: the screen says which, and staff complete or cancel them first. (Built together with cancelling.)
+- **"Ready to pay" is allowed with unfinished orders**: guests often ask for the bill while the last dish is on its way.
+- Orders that were never completed although their visit is over (it ran past the 2-hour limit) are shown in their own group, **below the live queue**, where staff can still complete or cancel them. They never just disappear, and they never sit on top of the live orders.
+- The staff side has two screens: **Orders** (the queue, oldest first, status buttons by role) and **Tables** now (each live visit with its running bill, "ready to pay" and "close").
 **Open question — needs a decision before building this part:** can staff remove single items from a placed order, or only cancel the whole order?
 
 ### Staff roles

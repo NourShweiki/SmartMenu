@@ -33,7 +33,9 @@
     "brandingLink": "Branding",
     "brandingLinkHint": "Logo, colour, name and contact details",
     "tablesLink": "Tables and QR codes",
-    "tablesLinkHint": "Add tables and print their QR codes"
+    "tablesLinkHint": "Add tables and print their QR codes",
+    "ordersLink": "Orders",
+    "ordersLinkHint": "Incoming orders and their status"
   },
   "Settings": {
     "title": "Restaurant settings",
@@ -372,5 +374,43 @@
     "invalidTitle": "This QR code is not active",
     "invalidBody": "Please ask a member of staff for help, or have a look at the menu.",
     "viewMenu": "View menu"
+  },
+  "StaffOrders": {
+    "title": "Orders",
+    "back": "Staff dashboard",
+    "refresh": "Refresh",
+    "hint": "Oldest first. Press Refresh to see new orders.",
+    "empty": "No open orders right now.",
+    "liveTitle": "Open orders",
+    "endedTitle": "Orders from visits that have ended",
+    "endedHint": "The visit at these tables is over, but these orders were never completed.",
+    "order": "Order {number}",
+    "table": "Table {label}",
+    "noTable": "Table unknown",
+    "placedAt": "Placed at <time></time>",
+    "total": "Total",
+    "status": {
+      "NEW": "New",
+      "CONFIRMED": "Confirmed",
+      "PREPARING": "Preparing",
+      "READY": "Ready",
+      "SERVED": "Served",
+      "COMPLETED": "Completed"
+    },
+    "action": {
+      "CONFIRMED": "Confirm",
+      "PREPARING": "Start preparing",
+      "READY": "Mark ready",
+      "SERVED": "Mark served",
+      "COMPLETED": "Paid: complete"
+    },
+    "waiting": {
+      "cashier": "The cashier completes it after payment.",
+      "floor": "With the floor staff."
+    },
+    "visit": {
+      "paymentRequested": "Bill requested",
+      "ended": "Visit ended"
+    }
   }
 }
