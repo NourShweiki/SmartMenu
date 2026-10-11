@@ -24,7 +24,7 @@ infrastructure  ->  interface  ->  application  ->  domain
 The ONLY place `@supabase/*`, SMS or push SDKs are imported is `src/infrastructure/`. Wiring (choosing which adapter implements which port) lives in one composition root: `src/infrastructure/container.ts`.
 
 ## Bounded contexts (domain folders)
-`restaurant`, `table-session`, `order`, `menu`. Add a new one only when told to.
+`restaurant`, `table-session`, `order`, `menu`, plus `cart` (the customer's cart, added in Phase 4) and `shared` (money, result, localized text, id and password rules used by several contexts). Add a new one only when told to.
 
 ## Patterns to follow
 
@@ -50,6 +50,14 @@ export function makeConfirmOrder(deps: { orders: OrderRepository; clock: Clock }
 **Domain rule shape:** pure functions or immutable entities returning new values. A status change is a function that checks the allowed transition and returns a `Result`.
 
 **API route shape:** parse + validate input (zod lives here, not in domain) -> resolve tenant and actor from the request -> call one use case -> map `Result` to HTTP status. No business logic in routes.
+
+## Rules learned while building (2026-10)
+- **Interface -> infrastructure goes through ONE door:** UI code and Server Actions import `@/infrastructure/container` and nothing else from infrastructure (ESLint enforces it). The container exposes ready-wired use cases (`menu.addItem`, `orders.place`, `platform.createRestaurant`, ...).
+- **Form logic is pure and lives next to its action:** a `"use server"` file may only export async functions, so reading a form and mapping use-case errors to field messages goes into a `*-model.ts` file with its own unit test (`settings-form-model.ts`, `new-restaurant-model.ts`, `password-model.ts`).
+- **The tenant never comes from the request body.** Staff pages and actions start with `requireStaff(locale)` (restaurant from the host, person and role from the session); the founders' tool starts with `requireFounder(locale)` (platform address only).
+- **Which Supabase client:** the signed-in user's session client by default (RLS decides again); the public client for the narrow public functions; the service-role client ONLY for what has no signed-in user or crosses tenants (placing a customer's order, the founders' tool, clearing one's own temporary-password mark), always behind a check in the use case.
+- **Ports that cross tenants** (`RestaurantDirectory`, `AccountDirectory`) take no `restaurantId`; they may only be called from use cases that check the founder (or the acting person) first.
+- **One known exception:** `src/infrastructure/customer-order.integration.test.ts` imports the interface layer to test the whole ordering path; do not copy that in production code.
 
 ## Tests
 - Domain and use cases get unit tests (Vitest) with in-memory fakes of ports. No database needed.

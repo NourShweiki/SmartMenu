@@ -36,6 +36,7 @@ function world(options: {
   const auth: AuthGateway = {
     signInWithPassword: async () => err({ type: "INVALID_CREDENTIALS" }),
     currentUserId: async () => signedIn,
+    currentUser: async () => signedIn && { userId: signedIn, email: "founder@platform.test", mustChangePassword: false },
     signOut: async () => {},
   };
   const accounts: AccountDirectory = {
@@ -46,6 +47,7 @@ function world(options: {
       log.accounts.set(userId, { email, password });
       return ok({ userId });
     },
+    clearTemporaryPassword: async () => {},
     async remove(userId) {
       log.accounts.delete(userId);
       log.removed.push(userId);

@@ -15,6 +15,7 @@ import {
   makeSetTableActive,
 } from "@/application/use-cases/tables/table-use-cases";
 import type { TableActor } from "@/application/use-cases/tables/shared";
+import { makeChangeOwnPassword } from "@/application/use-cases/change-own-password";
 import { makeGetStaffContext } from "@/application/use-cases/get-staff-context";
 import { makeSignInStaff, type SignInStaffInput } from "@/application/use-cases/sign-in-staff";
 import { makeAddMenuCategory } from "@/application/use-cases/menu/add-menu-category";
@@ -59,6 +60,7 @@ import { createPublicClient, createServiceClient, createSessionClient } from "./
 import { SupabaseBrandingRepository } from "./supabase/supabase-branding-repository";
 import { newTableToken, newTemporaryPassword } from "./random-token";
 import { SupabaseAccountDirectory } from "./supabase/supabase-account-directory";
+import { SupabasePasswordGateway } from "./supabase/supabase-password-gateway";
 import { SupabasePlatformAdminRepository } from "./supabase/supabase-platform-admin-repository";
 import { SupabaseRestaurantDirectory } from "./supabase/supabase-restaurant-directory";
 import { SupabaseOrderRepository } from "./supabase/supabase-order-repository";
@@ -104,6 +106,20 @@ export async function signInStaff(input: SignInStaffInput) {
 
 export async function getStaffContext(input: { restaurantId: RestaurantId }) {
   return makeGetStaffContext(await staffDeps())(input);
+}
+
+/**
+ * The signed-in person replaces their own password (see makeChangeOwnPassword). The current password is checked on a
+ * throw-away client; the service-role client is used for one thing only: taking the "temporary password" mark off
+ * the account of the very person who is signed in.
+ */
+export async function changeOwnPassword(...args: Parameters<ReturnType<typeof makeChangeOwnPassword>>) {
+  const db = await createSessionClient();
+  return makeChangeOwnPassword({
+    auth: new SupabaseAuthGateway(db),
+    passwords: new SupabasePasswordGateway(db, createPublicClient),
+    accounts: new SupabaseAccountDirectory(createServiceClient()),
+  })(...args);
 }
 
 export async function signOutStaff() {

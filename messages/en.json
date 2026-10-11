@@ -37,7 +37,8 @@
     "ordersLink": "Orders",
     "ordersLinkHint": "Incoming orders and their status",
     "openTablesLink": "Open tables",
-    "openTablesLinkHint": "Bills, ready to pay, and closing a table"
+    "openTablesLinkHint": "Bills, ready to pay, and closing a table",
+    "passwordLink": "Change password"
   },
   "Settings": {
     "title": "Restaurant settings",
@@ -515,6 +516,27 @@
       "alreadyCreated": "This restaurant was already created: the form was sent twice. You will find it in the list below.",
       "notAllowed": "You are not allowed to do this. Sign in again.",
       "failed": "The restaurant could not be created. Reload the page and try again."
+    }
+  },
+  "Password": {
+    "title": "Change password",
+    "backToDashboard": "Staff dashboard",
+    "temporaryNotice": "You signed in with a temporary password. Choose your own password to continue.",
+    "current": "Current password",
+    "next": "New password",
+    "nextHint": "At least {min} characters. A few words in a row are easy to remember and hard to guess.",
+    "repeat": "New password again",
+    "submit": "Change password",
+    "submitting": "Changing…",
+    "saved": "Your password was changed. Use the new one from now on.",
+    "errors": {
+      "wrong": "This is not your current password.",
+      "tooShort": "Use at least {min} characters.",
+      "tooLong": "This password is too long. Use a shorter one.",
+      "unchanged": "The new password must be different from the current one.",
+      "refused": "This password is not accepted. Choose a different one.",
+      "mismatch": "The two entries of the new password are not the same.",
+      "notSignedIn": "You are no longer signed in. Sign in and try again."
     }
   }
 }

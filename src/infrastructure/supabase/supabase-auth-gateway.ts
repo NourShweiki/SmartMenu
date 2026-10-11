@@ -1,6 +1,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
-import type { AuthGateway, SignInError, UserId } from "@/application/ports/auth-gateway";
+import type { AuthGateway, CurrentUser, SignInError, UserId } from "@/application/ports/auth-gateway";
 import { err, ok, type Result } from "@/domain/shared/result";
+import { TEMPORARY_PASSWORD_FLAG } from "./account-flags";
 
 export class SupabaseAuthGateway implements AuthGateway {
   constructor(private readonly db: SupabaseClient) {}
@@ -16,12 +17,21 @@ export class SupabaseAuthGateway implements AuthGateway {
   }
 
   async currentUserId(): Promise<UserId | null> {
+    return (await this.currentUser())?.userId ?? null;
+  }
+
+  async currentUser(): Promise<CurrentUser | null> {
     // getClaims() verifies the token's signature and expiry locally (asymmetric signing keys,
     // JWKS cached across requests) — never trust the cookie contents without this. Tradeoff vs
     // getUser(): a session ended elsewhere stays valid until the token expires (max 1 hour).
     const { data, error } = await this.db.auth.getClaims();
-    if (error || !data?.claims.sub) return null;
-    return data.claims.sub as UserId;
+    const claims = data?.claims;
+    if (error || !claims?.sub) return null;
+    return {
+      userId: claims.sub as UserId,
+      email: typeof claims.email === "string" ? claims.email : "",
+      mustChangePassword: claims.app_metadata?.[TEMPORARY_PASSWORD_FLAG] === true,
+    };
   }
 
   async signOut(): Promise<void> {

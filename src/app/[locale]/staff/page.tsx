@@ -102,11 +102,16 @@ export default async function StaffHomePage({ params }: { params: Promise<{ loca
           </Link>
         )}
 
-        <form action={signOutAction.bind(null, locale)}>
-          <button type="submit" className="rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm hover:bg-gray-100">
-            {t("signOut")}
-          </button>
-        </form>
+        <div className="flex flex-wrap items-center gap-3">
+          <form action={signOutAction.bind(null, locale)}>
+            <button type="submit" className="rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm hover:bg-gray-100">
+              {t("signOut")}
+            </button>
+          </form>
+          <Link href={`/${locale}/staff/password`} className="rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm hover:bg-gray-100">
+            {t("passwordLink")}
+          </Link>
+        </div>
       </div>
     </main>
   );

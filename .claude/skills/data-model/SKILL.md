@@ -42,21 +42,23 @@ These are decided and expensive to change. Do not deviate without the user's exp
 - Never write `if (restaurantId === "...")`. If a client needs special behavior, it becomes a setting.
 
 ## 8. Statuses (domain enums, mirrored as Postgres enums or checked text)
-- Order: `NEW -> CONFIRMED -> PREPARING -> READY -> SERVED -> COMPLETED` (plus `CANCELLED`; confirm cancellation rules with the user before implementing).
+- Order: `NEW -> CONFIRMED -> PREPARING -> READY -> SERVED -> COMPLETED`, plus `CANCELLED` outside the flow (built; staff only, by role, with a reason, final, zero on the bill: PROJECT_SPEC.md §4). The database trigger enforces the flow and the roles.
 - Items added after confirmation create a NEW order/batch in the same session; they do not reopen a confirmed one.
-- Table session: `OPEN -> PAYMENT_REQUESTED -> CLOSED`; table: `AVAILABLE`/`OCCUPIED`. Confirm extra states with the user before adding.
-- On READY: notify the session's devices.
+- Table session: `OPEN -> PAYMENT_REQUESTED -> CLOSED` (built; closes by itself 2 hours after it starts; cannot be closed over unfinished orders). A table has no stored status: it is "occupied" while it has a live session. Confirm extra states with the user before adding.
+- On READY: notify the session's devices (built as a notice on the guests' open menu page; no SMS for now).
 
 ## 9. Roles
 `OWNER`, `MANAGER`, `WAITER`, `CASHIER`, attached per restaurant through a `restaurant_members(user_id, restaurant_id, role)` table. A user can belong to several restaurants.
 - Waiters handle service requests; cashiers do NOT see them.
 - Customers have no accounts. Loyalty identifies customers by phone number (E.164 format, e.g. `+9627XXXXXXXX`).
+- **Founders are not a restaurant role.** They are rows in `platform_admins(user_id)`, added by hand (no insert path from any screen); a user can read only their own row. Being a founder gives NO access to any restaurant's data through RLS. Work that crosses tenants (creating a restaurant) goes through a SECURITY DEFINER function granted to `service_role` only that checks the founder again inside (`create_restaurant(p_actor_id, ...)`).
+- **Staff accounts are made FOR people, never by sign-up.** They start with a temporary password, marked in the account's `app_metadata.must_change_password` (server-written, carried in the session token); until it is replaced the app opens nothing but the change-password page. Passwords: at least 10 characters, at most 72 bytes.
 
 ## 10. Open questions — stop and ask before building these
-- Removing items after an order is confirmed.
+- Removing SINGLE items from a placed order (cancelling the whole order is decided and built).
 - Delivery equivalent of a table session. (Takeout is decided, 2026-10-11: a "pickup visit" = a session without a table, with the customer's name and phone; see PROJECT_SPEC.md §4 "Takeout design".)
 - Loyalty earn/redeem rules.
-- Exact list of owner-editable branding elements.
+- (Decided, no longer open: branding elements = logo + one accent colour of 8 + written details; cancellation rules; takeout design.)
 
 ## 11. Table privileges (learned 2026-10-06, corrected 2026-10-10)
 Whether a new table gets privileges automatically DEPENDS ON THE SUPABASE VERSION: some give `anon`/`authenticated`

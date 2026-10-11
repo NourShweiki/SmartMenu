@@ -35,7 +35,10 @@ Then read `docs/PROGRESS.md` to see where work stopped (its **START HERE** secti
 ## Showing work to Nour (required for every feature)
 - After any change that affects what the app shows, run `npm run dev` and open http://localhost:3000 (the relevant page) so Nour can see it, and say in the report which URL to look at.
 - **Both demo restaurants, always (Nour, 2026-10-10):** Demo Grill (`demo-dinein`) and Demo Coffee (`demo-takeout`) must stay on the same phase. After any change to a staff or customer screen, check it on BOTH hosts (`http://demo-dinein.localhost:3000`, `http://demo-takeout.localhost:3000`), in `/ar` and `/en`, and leave the demo data as you found it. Demo accounts: `supabase/seed.sql`.
+- **The team's setup tool** lives on the address WITHOUT a restaurant in front: `http://localhost:3000/en/setup` (demo founder account in `supabase/seed.sql`). It must NOT exist on a restaurant's address (404 there).
+- Accounts the app creates (a new restaurant's owner) start with a temporary password: the first sign-in lands on `/staff/password` and nothing else opens until it is replaced. The seeded demo accounts are not affected.
 - You run the commands yourself (npm, npx supabase, git) — don't ask Nour to copy-paste output. Ask before anything destructive.
+- Docs are part of every iteration: `README.md` (for the team and visitors: what works, what does not, how to run it) and `docs/PROGRESS.md` (START HERE handoff + the log). When a phase, a count of tests or a decision changes, fix every place that states it, not only the newest entry; `PROJECT_SPEC.md` and the skills get the decision itself.
 
 ## Hosting
 - Vercel (app) + Supabase (database, auth, storage, realtime). Secrets go in Vercel/Supabase env settings and `.env.local` (never committed); document variable names in `.env.example`.
@@ -44,6 +47,7 @@ Then read `docs/PROGRESS.md` to see where work stopped (its **START HERE** secti
 - Install: `npm install` (Node 22, see `.nvmrc`)
 - Dev server: `npm run dev` -> http://localhost:3000
 - Unit tests: `npm test` (Vitest, files `src/**/*.test.ts`)
+- Integration tests (real adapters against the local Supabase; clean up after themselves): `npm run test:integration`
 - Lint: `npm run lint` (also enforces layer import rules)
 - Typecheck: `npm run typecheck`
 - Everything before pushing: `npm run check`
@@ -56,6 +60,7 @@ Then read `docs/PROGRESS.md` to see where work stopped (its **START HERE** secti
 ## Layout
 - `src/domain/` — pure business rules (no framework imports; ESLint enforces)
 - `src/application/use-cases/`, `src/application/ports/` — use cases + interfaces
-- `src/interface/api/`, `src/interface/web/` — HTTP handlers, DTOs, UI components
+- `src/interface/api/`, `src/interface/web/` — HTTP handlers, DTOs, UI components (`web/customer`, `web/staff`, `web/setup` = the founders' tool)
 - `src/app/` — Next.js routes (thin; call interface/use cases)
-- `src/infrastructure/` — Supabase, notifications; `container.ts` wires adapters
+- `src/infrastructure/` — Supabase, notifications; `container.ts` wires adapters (the ONLY infrastructure file the interface layer may import)
+- `e2e/` — Playwright specs; `e2e/support/` helpers and the cleanup that runs before and after the suite

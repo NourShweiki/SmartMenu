@@ -12,7 +12,7 @@ const COFFEE = "22222222-2222-4000-8000-000000000002" as RestaurantId;
 const OWNER = "user-owner" as UserId;
 
 /** In-memory auth: one account per email, password "right-password". */
-function fakeAuth(accounts: Record<string, UserId>, signedIn: UserId | null = null) {
+function fakeAuth(accounts: Record<string, UserId>, signedIn: UserId | null = null, mustChangePassword = false) {
   const state = { current: signedIn, signOuts: 0, attempts: [] as string[] };
   const auth: AuthGateway = {
     async signInWithPassword(email, password) {
@@ -24,6 +24,9 @@ function fakeAuth(accounts: Record<string, UserId>, signedIn: UserId | null = nu
     },
     async currentUserId() {
       return state.current;
+    },
+    async currentUser() {
+      return state.current && { userId: state.current, email: "someone@grill.test", mustChangePassword };
     },
     async signOut() {
       state.current = null;
@@ -98,8 +101,14 @@ describe("getStaffContext", () => {
     const { auth } = fakeAuth({}, OWNER);
     expect(await makeGetStaffContext({ auth, memberships })({ restaurantId: GRILL })).toEqual({
       ok: true,
-      value: { userId: OWNER, restaurantId: GRILL, role: "OWNER" },
+      value: { userId: OWNER, restaurantId: GRILL, role: "OWNER", mustChangePassword: false },
     });
+  });
+
+  it("says when the member still has a temporary password", async () => {
+    const { auth } = fakeAuth({}, OWNER, true);
+    const result = await makeGetStaffContext({ auth, memberships })({ restaurantId: GRILL });
+    expect(result.ok && result.value.mustChangePassword).toBe(true);
   });
 
   it("returns NOT_A_MEMBER for a signed-in user of another restaurant", async () => {

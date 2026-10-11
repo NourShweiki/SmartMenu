@@ -1,5 +1,6 @@
 import { expect, test, type Page } from "@playwright/test";
 import { LOCALES, PASSWORD, SITES, expectLocale, t, type Locale } from "./support/demo";
+import { passwordError, submitPasswordChange } from "./support/password";
 import { originOf, PLATFORM_ORIGIN } from "./support/server";
 
 // The founders' setup tool, on the platform's own address: sign-in for founders only, the list of restaurants, and
@@ -57,7 +58,7 @@ for (const locale of LOCALES) {
     await expect(page).toHaveURL(new RegExp(`/${locale}/setup/login$`));
   });
 
-  test(`setup /${locale}: a founder creates a restaurant, and its owner signs in with the temporary password`, async ({ page, browser }) => {
+  test(`setup /${locale}: a founder creates a restaurant; its owner signs in with the temporary password and must choose their own`, async ({ page, browser }) => {
     const run = Math.random().toString(36).slice(2, 8);
     const type = locale === "en" ? "takeout" : "dine-in"; // one business type per language: both presets get used
     const slug = `e2e-${run}-${locale}`;
@@ -115,12 +116,34 @@ for (const locale of LOCALES) {
     await expect(page.getByRole("alert").filter({ hasText: t(locale, "Setup.errors.alreadyCreated") })).toBeVisible();
     await expect(list(page).getByText(`${slug}-again.localhost`, { exact: false })).toHaveCount(0);
 
-    // The new restaurant's site answers, and its owner gets in with the temporary password, as OWNER.
+    // The new restaurant's site answers. Its owner signs in with the temporary password, which opens ONE page only:
+    // "change my password", whatever page is asked for.
+    const own = `my own password ${run}`;
     const owner = await browser.newContext();
     const ownerPage = await owner.newPage();
     await ownerPage.goto(`${originOf(slug)}/${locale}`);
     await expect(ownerPage.getByRole("heading", { level: 1 })).toHaveText(name[locale]);
     await signInAt(ownerPage, `${originOf(slug)}/${locale}/staff/login`, locale, email, password);
+    await expect(ownerPage).toHaveURL(new RegExp(`/${locale}/staff/password$`));
+    await expect(ownerPage.getByText(t(locale, "Password.temporaryNotice"))).toBeVisible();
+    for (const screen of ["", "/settings", "/menu", "/orders"]) {
+      await ownerPage.goto(`${originOf(slug)}/${locale}/staff${screen}`);
+      await expect(ownerPage).toHaveURL(new RegExp(`/${locale}/staff/password$`));
+    }
+    // Refusals leave the temporary password in place.
+    await submitPasswordChange(ownerPage, locale, "not-the-password", own);
+    await expect(passwordError(ownerPage, locale, "wrong")).toBeVisible();
+    await submitPasswordChange(ownerPage, locale, password, "too short");
+    await expect(passwordError(ownerPage, locale, "tooShort")).toBeVisible();
+    await submitPasswordChange(ownerPage, locale, password, own, `${own}!`);
+    await expect(passwordError(ownerPage, locale, "mismatch")).toBeVisible();
+    await ownerPage.goto(`${originOf(slug)}/${locale}/staff`);
+    await expect(ownerPage).toHaveURL(new RegExp(`/${locale}/staff/password$`));
+    // Their own password: the notice goes, the way to the dashboard opens.
+    await submitPasswordChange(ownerPage, locale, password, own);
+    await expect(ownerPage.getByText(t(locale, "Password.saved"))).toBeVisible();
+    await expect(ownerPage.getByText(t(locale, "Password.temporaryNotice"))).toHaveCount(0);
+    await ownerPage.getByRole("link", { name: new RegExp(t(locale, "Password.backToDashboard")) }).click();
     await expect(ownerPage).toHaveURL(new RegExp(`/${locale}/staff$`));
     await expect(ownerPage.getByText(name[locale], { exact: true })).toBeVisible();
     await expect(ownerPage.getByText(t(locale, "Roles.OWNER"), { exact: true })).toBeVisible();
@@ -136,9 +159,17 @@ for (const locale of LOCALES) {
       await expect(service).toHaveValue("10");
     }
     await expect(ownerPage.getByLabel(t(locale, "Settings.taxPercent"), { exact: true })).toHaveValue("16");
-    // The owner is nobody on the setup tool or at another restaurant.
+    // The owner is nobody at another restaurant.
     await ownerPage.goto(`${SITES.grill.origin}/${locale}/staff`);
     await expect(ownerPage).toHaveURL(new RegExp(`/${locale}/staff/login$`));
+    // From now on the temporary password is worthless, and their own goes straight to the dashboard.
+    await ownerPage.goto(`${originOf(slug)}/${locale}/staff`);
+    await ownerPage.getByRole("button", { name: t(locale, "StaffHome.signOut") }).click();
+    await expect(ownerPage).toHaveURL(new RegExp(`/${locale}/staff/login$`)); // signed out for real before signing in again
+    await signInAt(ownerPage, `${originOf(slug)}/${locale}/staff/login`, locale, email, password);
+    await expect(ownerPage.getByText(t(locale, "StaffLogin.invalid"))).toBeVisible();
+    await signInAt(ownerPage, `${originOf(slug)}/${locale}/staff/login`, locale, email, own);
+    await expect(ownerPage).toHaveURL(new RegExp(`/${locale}/staff$`));
     await owner.close();
   });
 }

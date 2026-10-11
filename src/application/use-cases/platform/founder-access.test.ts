@@ -19,6 +19,7 @@ function world(signedIn: UserId | null = null) {
       return ok({ userId: id });
     },
     currentUserId: async () => state.current,
+    currentUser: async () => state.current && { userId: state.current, email: "someone@platform.test", mustChangePassword: false },
     async signOut() {
       state.current = null;
       state.signOuts++;

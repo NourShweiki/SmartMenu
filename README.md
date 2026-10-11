@@ -11,7 +11,7 @@ One codebase serves every restaurant (multi-tenant). Each restaurant lives on it
 
 ## Status
 
-**Current phase: 4 — Customer ordering (Phase 3, the menu and owner portal, is finished)**
+**Current phase: 6 — Onboarding tools.** Dine-in works end to end: a guest scans a table, orders, follows the order on their phone; staff run the orders and the tables; the owner manages menu, branding and settings; the SmartMenu team can create a new restaurant with its owner in a minute. Everything runs on a developer machine for now (no cloud deployment yet).
 
 | Phase | What | Status |
 |---|---|---|
@@ -19,134 +19,87 @@ One codebase serves every restaurant (multi-tenant). Each restaurant lives on it
 | 1 | Foundation: Next.js skeleton, CI on every push | ✅ Done (cloud deploy postponed, running on localhost) |
 | 2 | Core backend: restaurants, roles, staff login, data isolation, settings | ✅ Done |
 | 3 | Menu & owner portal | ✅ Done |
-| 4 | Customer ordering (menu, cart, dine-in QR, takeout) | 🟡 In progress (menu, cart, tables and QR codes work; placing the order from the cart is next) |
-| 5 | Staff order screen (live orders, sound alert, SMS when ready) | ⬜ Not started |
-| 6 | Onboarding tools (presets, bulk/AI menu import, custom domains) | ⬜ Not started |
+| 4 | Customer ordering (menu, cart, dine-in QR, takeout) | ✅ Dine-in done · takeout is designed and gets built inside Phase 6 |
+| 5 | Staff order screen (live orders, sound alert, order-ready notice) | ✅ Done (SMS left out for now, on purpose) |
+| 6 | Onboarding tools (setup tool, staff accounts, takeout, checklist, menu import, custom domains) | 🟡 In progress: setup tool and passwords done |
 | 7 | Installable app (PWA) & push notifications | ⬜ Not started |
 | 8 | Hardening (security review, load tests, monitoring, backups) | ⬜ Not started |
 | 9–10 | Pilot restaurant, launch | ⬜ Not started |
 
-### ✅ Done: major features
+### ✅ What works today
 
+#### The platform
 - **Multi-restaurant from day one.** Every table carries `restaurant_id`, and Postgres Row Level Security keeps each restaurant's data invisible to the others. Automated database tests check this on every change.
 - **Restaurant per subdomain.** `demo-dinein.localhost:3000` shows Demo Grill, `demo-takeout.localhost:3000` shows Demo Coffee, and unknown subdomains get a 404.
-- **Arabic + English, right-to-left.** URLs are `/ar/...` and `/en/...`. Arabic is the default, the layout is RTL, the font is IBM Plex Sans Arabic, there's a language switch, all text is translated, and prices use Western digits (`4.500 د.أ` / `4.500 JD`).
-- **Staff login.** Email + password, with no public sign-up (the founders create accounts). Staff can only sign in on their own restaurant's site, and their session is separate per restaurant.
-- **Roles.** Owner, Manager, Waiter and Cashier, each with its own permissions, enforced both in the app and in the database.
-- **Menu management.** Staff see the menu by category with prices.
-  - Owner and manager can **add and edit items**: Arabic + English name and description, price, category. Prices are typed in JD (`4.5`, `4.500`, or Arabic digits `٤٫٥`) and stored exactly as fils. Validation errors are translated and shown next to the right field.
-  - Owner and manager can **add, rename, hide and delete categories**. A category can only be deleted when it's empty, so nothing disappears by surprise.
-  - Owner and manager can **delete items** (with an "are you sure?" step). Deleting is soft, so past orders keep the item's name and price.
-  - Owner and manager can **hide or show** items. Hiding a category hides everything in it from customers.
-  - **Item photos.** Owner and manager can upload, replace or remove one photo per item (JPG / PNG / WebP, up to 5 MB). Photos show as thumbnails on the menu screen.
-    - Files are checked by their actual content, so a disguised file (e.g. HTML renamed `.jpg`) is rejected.
-    - Each restaurant can only write into its own storage folder; the database storage rules enforce this.
-    - Photos are publicly viewable, ready for the customer menu.
-  - **Option groups (modifiers).** Owner and manager create reusable groups like "Size" (Regular / Large +2.000) or "Extras" once, then attach them to any items.
-    - Each group sets how many options a customer must or may pick (e.g. *required · choose 1*, or *optional · up to 3*).
-    - Options can add an extra price (in fils) or be free.
-    - The rules that will check a customer's picks and compute the final price are already built and tested, ready for ordering in Phase 4.
-    - Items on the menu screen show which groups they offer.
-  - **Reordering.** ↑ / ↓ buttons for categories, items (within their category) and options.
-- **Fast staff screens.** Toggles respond instantly (optimistic UI). In a production build, a save takes ~100–140 ms and opening a page ~90 ms. The login check is verified locally (no extra round trip), and forged tokens are rejected (tested).
-  - Owner, manager **and waiters** can mark items **sold out / back in stock** during service.
-  - Cashiers can view the menu but not change it.
-- **Menu rules.**
-  - Prices are stored as whole **fils** (JOD has 3 decimals).
-  - "Hidden" means invisible to customers. "Sold out" means visible but not orderable.
-  - Deleting is soft, so past orders keep their data.
-  - An item can never belong to another restaurant's category; the database itself enforces this.
-- **Order rules (Phase 4, rules only, no screen yet).** The core logic for dine-in orders is built and tested.
-  - An order moves **NEW → CONFIRMED → PREPARING → READY → SERVED → COMPLETED**, one step at a time (no skipping or going back).
-  - Each order **copies the item names, prices and chosen options at the moment of ordering**, so later menu edits never change a past order.
-  - Totals are exact whole fils: service charge on the subtotal, then tax on subtotal + service, each rounded half up. Rates are saved on the order.
-  - Hidden, sold-out or deleted items, other restaurants' items, wrong option picks and bad quantities are rejected.
-  - Ordering more after confirming creates a new order in the same visit, starting again at NEW.
-- **Orders in the database (Phase 4, no screen yet).** Tables for orders, their lines and chosen options now exist, with the same protections as the menu.
-  - Each restaurant gets its own order numbers (1, 2, 3 …), and a restaurant can never see another's orders (database tests prove it).
-  - A placed order is frozen: names, prices, totals and tax rates can't be edited. Staff can only move the status forward one step (NEW → CONFIRMED → PREPARING → READY → SERVED → COMPLETED), and the database itself refuses skipping or going back.
-  - Orders can't be deleted. **Who moves an order:** the owner and manager any step, the waiter up to SERVED, and the cashier only the last step (COMPLETED, after the customer has paid). The database enforces this split, not just the screens.
-  - **Placing and moving orders works behind the scenes now.** The app can take a cart, check every line against the live menu, compute the totals and save the whole order in one all-or-nothing step (a bad cart never uses up an order number). Staff can read the open orders and move them along. Covered by tests against the real database. Customer screens come next.
-- **Database permissions tightened.** A check found that newer Supabase versions hand every table's full rights to logged-in users by default. A new migration pins the older tables to exactly the rights they need (e.g. staff can never hard-delete menu items), and future tables no longer get the extra rights.
-- **Branding (owner only).** The owner uploads a **logo**, picks **one accent colour** from 8 ready-made ones (all stay readable with white text, checked by a test) and writes the **restaurant name, tagline, about text, address, phone and opening hours** in Arabic and English.
-  - It appears right away on the restaurant's public page: coloured header, logo, both names, tagline and details (empty parts are simply left out).
-  - Logos are JPG, PNG or WebP up to 2 MB (checked by the file's real content; SVG is refused because it can carry scripts). Only the owner can change branding, and only for their own restaurant.
-  - Saving the name and the branding together is all-or-nothing.
-- **Restaurant settings (owner only).** The owner chooses which order types are on (dine-in, takeout, delivery), the tax rate, the service charge and the default customer language.
-  - Percentages are typed normally (`16`, `10.5`, even Arabic digits `١٠`) and stored exactly (basis points, no rounding errors).
-  - Only the owner sees the screen. Other staff can't open it, and the database refuses their changes too (tested).
-  - New orders use the new rates; orders already placed keep theirs.
-- **Language switch fixed.** Switching between العربية and English on the staff pages now changes all the text, not only the page direction. (The cause was the loading skeleton forcing Arabic for the whole request.) Menu items still show both language names side by side, by design.
-- **Public menu and cart (Phase 4).** Customers open the restaurant's site and tap **View menu** (no login): categories, items with photos, descriptions and prices, in Arabic or English.
-  - Items with choices (size, extras, milk ...) open a small sheet; required choices must be made before the item can be added, and the price updates as they choose.
-  - The cart shows each line, quantities, and an estimate with service charge and tax; it is saved on the customer's device and survives a reload or a language switch. Sold-out items are shown but can't be added.
-  - The estimate is computed with the same rules as a real order. **Placing the order comes next**, together with table QR codes.
-  - Customers only ever get the visible menu through one narrow database function (hidden and deleted items never leave the database).
-- **Tables and QR codes (Phase 4).** The owner or a manager adds the restaurant's tables, and prints a QR card for each one (or all at once) on A4 paper.
-  - Each card shows the restaurant's name and logo, "Table 7 / طاولة 7" and the QR code, in Arabic and English.
-  - The QR code holds a long random token, **not the table number**. Renaming a table never breaks a printed code, nobody can guess another table's code, and a lost or leaked code is replaced with one click (the old one stops working at once).
-  - A guest scans the code, lands on the menu with "Table 7" shown, and everyone at that table joins the same visit. Invalid, switched-off or deleted codes, and restaurants with dine-in turned off, show a friendly "this code is not active" page.
-  - A table has one live visit at a time, visits follow a fixed flow (open, payment requested, closed), and orders can only be placed in an open visit of their own restaurant (the database enforces it).
-  - **A visit closes by itself 2 hours after it starts**, so guests who left without paying never leave an open visit for the next guests. The next scan starts a fresh one.
-  - Staff screens that move a visit along (waiter: ready to pay, cashier: close) come with the staff order screen.
-- **Placing an order (Phase 4).** A guest who scanned a table's QR code presses **Place order** in the cart and gets an order number; the cart is emptied and they can keep ordering from the same table.
-  - The phone only sends what is in the cart. The restaurant, the table, the prices and the tax / service rates are all taken by the server from its own side, so none of them can be changed from a phone.
-  - Clear messages, in Arabic and English, explain when an order cannot be placed: no table scanned, the visit ended, the bill was requested, something in the cart sold out or changed.
-  - Pressing **Place order** twice is safe. If the reply gets lost on a weak connection and the guest presses again, they get the number of the order that already went through, not a second order in the kitchen.
-  - Without a table the button stays off (takeout ordering is not built yet). Staff do not have a screen for incoming orders yet: that is the next phase.
-- **Staff order screen (Phase 5).** Every member of staff opens **Orders** from the dashboard and sees the restaurant's open orders, oldest first: order number, table, what was ordered with its choices, the total and the time.
-  - Each order has one button, for the next step that person may take: the waiter moves an order from new to confirmed, preparing, ready and served; the cashier completes it after payment; the owner and manager can do every step. Where the next step is someone else's, the screen says whose.
-  - Orders that were never completed although their table's visit is over are kept in their own group below the live queue, so they neither disappear nor get in the way.
-  - The screen keeps itself up to date: a new order appears within about 5 seconds with a "New order" notice, and with a sound once the sound switch is on (the choice is remembered on that device). The open tables screen refreshes itself the same way.
-- **Open tables screen (Phase 5).** **Open tables** on the staff dashboard shows every table that has guests: when the visit started, its orders, and its running bill (subtotal, service charge, tax, total).
-  - The waiter marks a table **ready to pay**; from then on its guests can no longer order. The cashier **closes the table** after payment, and the next scan of its code starts a new visit. The owner and manager can do both.
-  - A table cannot be closed while one of its orders is still unfinished: the screen says how many and links to the order screen.
-  - A visit that passed its 2-hour limit is shown as "time is up" until staff close it.
-- **Cancelling an order (Phase 5).** Only staff can cancel, with **Cancel order** on the order screen: it asks why (guest changed their mind, item not available, entered by mistake, other) before it cancels.
-  - The waiter may cancel an order the kitchen has not started; the owner and manager any order that is not completed; the cashier never. The database enforces this itself.
-  - A cancelled order is kept with its reason, the time and who cancelled it. It leaves the queue, stays on the table's bill crossed out at zero, and cannot be brought back.
-  - A table cannot be closed while one of its orders is still unfinished (neither completed nor cancelled).
-- **Guests follow their order on their phone (Phase 5).** After ordering, the menu page shows **Your orders**: every order of the table's visit with how far it has got, on every phone at that table.
-  - When an order is ready, a notice appears on the page by itself, with a sound and a vibration where the phone allows it, and as a system notification if the guest asked for one. If staff cancel an order, the guest is told to ask a member of staff.
-  - A phone only ever sees the orders of its own table's visit. The system notification works while the menu page is still open in the browser; reaching a locked phone needs push messages, which come with the installable app.
-- **Setup tool for the SmartMenu team (Phase 6, in progress).** On the platform's own address (`/en/setup`), founders sign in, see every restaurant, and create a new one: names, web address, business type (dine-in or takeout, which sets the starting settings) and the owner's email.
-  - The restaurant, its settings and the owner's account are created together or not at all. The owner's temporary password is shown once, to pass on.
-  - Only founders get in; a restaurant's staff are refused like a wrong password, and the tool does not exist on a restaurant's own address.
-- **Browser tests.** 140 automated end-to-end tests drive a real browser through the app on both demo restaurants, in English and Arabic: login, language switch, roles, menu, settings, branding, the customer menu with its cart, tables with QR scanning, placing an order, the staff order screen, the open tables screen, guests following their orders, and the team's setup tool. They change data and put it back. Run with `npm run test:e2e` (needs the local database): the tests build the app for production and start that build themselves, so they always check the current code in the form users get.
-- **Reliable updates after a save.** In production builds a bug in the React version bundled with our framework could leave a page showing old content after a successful save, until a reload. A small built-in guard now makes the page catch up by itself; the browser tests run against a production build to keep it that way.
-- **Quality gates.** CI runs typecheck, lint (including architecture-layer import rules), unit tests and a production build on every push. Database security tests (pgTAP) and integration tests run locally.
+- **Arabic + English, right-to-left.** URLs are `/ar/...` and `/en/...`. Arabic is the default, the layout is RTL, the font is IBM Plex Sans Arabic, there is a language switch on every screen, all text is translated, and prices use Western digits (`4.500 د.أ` / `4.500 JD`).
+- **Money is exact.** Prices are whole **fils** (JOD has 3 decimals). An order copies item names, prices, chosen options and the tax / service rates at the moment of ordering, so later menu or settings changes never touch a past order.
 
-### ⬜ Not done yet (next up)
+#### For the SmartMenu team (founders)
+- **Setup tool** on the platform's own address (`/en/setup`): founders sign in, see every restaurant, and create a new one: names, web address, business type (dine-in or takeout, which sets the starting settings) and the owner's email.
+  - The restaurant, its settings and the owner's account are created together or not at all. A form that is sent twice creates nothing the second time.
+  - The owner's **temporary password** is shown once, to pass on. Only founders get in: a restaurant's staff are refused like a wrong password, and the tool does not exist on a restaurant's own address.
+
+#### For staff
+- **Login.** Email + password, with no public sign-up. Staff can only sign in on their own restaurant's site, and sessions are separate per restaurant.
+- **Passwords.** Everyone can change their own password (the current one is asked for). Somebody who signs in with a temporary password gets one page only, "choose your own password", until they have done so.
+- **Roles.** Owner, Manager, Waiter and Cashier, each with its own permissions, enforced both in the app and in the database.
+- **Orders screen.** The restaurant's open orders, oldest first: number, table, what was ordered with its choices, total and time.
+  - Each order has one button for the next step that person may take: the waiter moves an order from new to confirmed, preparing, ready and served; the cashier completes it after payment; the owner and manager can do every step.
+  - **Cancelling** asks for a reason. The waiter may cancel before the kitchen starts, the owner and manager any order that is not completed, the cashier never. A cancelled order is kept, crossed out at zero on the bill.
+  - The screen keeps itself up to date: a new order appears within about 5 seconds, with a notice and (once switched on) a sound.
+- **Open tables screen.** Every table that has guests, with its orders and running bill. The waiter marks a table **ready to pay** (its guests can then no longer order); the cashier **closes the table** after payment. A table cannot be closed while an order is unfinished. A visit closes by itself after 2 hours.
+- **Sold out.** Owner, manager and waiters mark items sold out / back in stock during service.
+
+#### For the owner (and manager)
+- **Menu.** Categories and items with Arabic + English names and descriptions, prices, photos, hide / show, soft delete, reorder. Prices are typed in JD (`4.5`, `4.500`, or Arabic digits `٤٫٥`).
+- **Option groups.** Reusable groups like "Size" or "Extras" (required or optional, with extra prices), attached to any items.
+- **Tables and QR codes.** Add tables and print a QR card for each. The code holds a long random token, not the table number: renaming never breaks a printed code, and a lost code is replaced with one click.
+- **Branding (owner only).** Logo, one accent colour from 8, and the restaurant's name, tagline, about text, address, phone and opening hours in both languages. It shows at once on the public page.
+- **Settings (owner only).** Which order types are on, tax rate, service charge, default customer language.
+
+#### For customers
+- **Menu and cart.** No login, no app: categories, items with photos and prices, choices (size, extras ...), a cart with an estimate including service charge and tax. Sold-out items are shown but cannot be added.
+- **Ordering from the table.** Scan the table's QR code, fill the cart, press **Place order**, get an order number. Everyone at the table shares one visit and can keep ordering. Pressing the button twice, or a lost reply on weak Wi-Fi, never produces a second order.
+- **Following the order.** The menu page shows **Your orders** with how far each has got, on every phone at the table. When an order is ready a notice appears by itself (with a sound, a vibration, and a system notification where the phone allows it); a cancelled order is announced too.
+- The phone only sends what is in the cart. The restaurant, the table, the prices and the rates all come from the server's own side.
+
+#### Quality
+- **Automated tests:** 394 unit tests, 37 integration tests against a real local database, 322 database security tests (tenant isolation, roles, privileges), and 145 end-to-end tests that drive a real browser through both demo restaurants in English and Arabic.
+- The browser tests build the app for production and start that build themselves, so they check the code in the form users get; they remove everything they create.
+- **CI** runs typecheck, lint (including the architecture-layer import rules), unit tests and a production build on every push. Database, integration and browser tests run locally (CI has no database yet).
+
+### ⬜ Not done yet
 
 - **Phase 6 (in progress): onboarding a new restaurant in under a day.** In this order:
-  1. the founders' tool to create a restaurant with its first owner (done, see above; still to come here: changing a password and issuing a new temporary one)
-  2. staff accounts managed by the owner
-  3. takeout ordering (designed: a pickup order with the customer's name and mobile number, followed on their phone like a table order)
+  1. ~~the founders' tool to create a restaurant with its first owner~~ ✅, ~~changing passwords and the forced change of a temporary one~~ ✅, then a founder action to issue a new temporary password
+  2. staff accounts managed by the owner (today a restaurant's other staff can only be added in the database)
+  3. **takeout ordering** (designed: a pickup order with the customer's name and mobile number, followed on their phone like a table order). Until then a takeout-only restaurant such as Demo Coffee shows its menu but cannot take orders
   4. a setup checklist for the owner
   5. menu import from a spreadsheet
   6. menu import by AI from a photo or PDF
   7. custom domains
-- **Still to come after that:**
-  - SMS, and push notifications that reach a locked phone
-  - reports
-  - loyalty points
-  - AI ordering assistant
-  - cloud deployment (Vercel + Supabase)
+- **After that:** the installable app with push notifications that reach a locked phone, SMS, reports, loyalty points, the AI ordering assistant, delivery, and cloud deployment (Vercel + Supabase).
 
-### Open decisions (blocking specific features only)
+### Known limits (on purpose, for now)
 
-- Can confirmed order items be **removed**, or only added? (Phase 4/5) Also **order cancellation** rules.
-- Is **tax charged on top of the service charge**? (assumed yes for now; one function to change)
-- How **takeout/delivery** maps onto the table-session model. (Phase 4)
-- **Loyalty** earn/redeem rules.
+- The "order is ready" system notification only works while the menu page is still open in the browser.
+- The team's setup tool is protected by a password only (a second factor comes with the hardening phase).
+- An email address can belong to one account, so one person cannot yet own two restaurants under the same email.
+
+### Open decisions (each blocks one feature only)
+
+- May staff remove **single items** from a placed order, or only cancel the whole order?
+- How **delivery** maps onto the table-visit model (addresses, fees, drivers).
+- **Loyalty** earn / redeem rules.
+- Is **tax charged on top of the service charge**? (yes for now; one function to change)
 
 ---
 
 ## Tech stack
 
 - **Next.js 15 + React 19 + TypeScript (strict)**, Tailwind CSS v4, `next-intl` for translations
-- **Supabase** (Postgres, Auth, Row Level Security, Storage; later Realtime) running locally in Docker
-- **Vitest** (unit + integration), **pgTAP** (database security tests), ESLint (also enforces architecture layers)
+- **Supabase** (Postgres, Auth, Row Level Security, Storage) running locally in Docker. Live screens refresh themselves every few seconds for now; Supabase Realtime can replace that later
+- **Vitest** (unit + integration), **pgTAP** (database security tests), **Playwright** (end-to-end, real Chrome), ESLint (also enforces architecture layers)
 - Hosting plan: **Vercel + Supabase**
 
 ### Architecture (Clean Architecture)
@@ -155,9 +108,10 @@ One codebase serves every restaurant (multi-tenant). Each restaurant lives on it
 src/domain/          pure business rules (no frameworks): restaurant, menu, money, …
 src/application/     use cases + ports (interfaces), e.g. signInStaff, addMenuItem
 src/infrastructure/  Supabase adapters; container.ts wires everything together
-src/interface/web/   UI components, server actions, i18n, formatting
+src/interface/web/   UI components, server actions, i18n, formatting (customer/, staff/, setup/)
 src/app/             Next.js routes (thin)
 supabase/            migrations, seed data, database tests
+e2e/                 browser tests (Playwright)
 messages/            ar.json / en.json translations
 ```
 
@@ -181,10 +135,12 @@ The dev server is slower than the real app (it compiles pages on demand). To fee
 `npm run build` then `npm start`.
 
 Then open:
-- http://demo-dinein.localhost:3000 for the **Demo Grill** restaurant page (Arabic; use the switch for English)
-- http://demo-dinein.localhost:3000/ar/staff/login for **staff login**, then the menu screen at `/ar/staff/menu`
+- http://demo-dinein.localhost:3000 for **Demo Grill** (dine-in; Arabic first, use the switch for English) and http://demo-takeout.localhost:3000 for **Demo Coffee** (takeout only)
+- http://demo-dinein.localhost:3000/en/staff/login for **staff login**: orders, open tables, menu, tables and QR codes, settings, branding
+- http://demo-dinein.localhost:3000/en/staff/tables to copy a table's QR link, which is how a customer "scans" a table on a computer
+- http://localhost:3000/en/setup for the **team's setup tool** (note: no restaurant name in front of `localhost`)
 
-Demo staff accounts (local only): `owner@demo-dinein.test`, `waiter@demo-dinein.test`, `cashier@demo-dinein.test`, `owner@demo-takeout.test`. The password is in [`supabase/seed.sql`](supabase/seed.sql).
+Demo accounts (local only): `owner@demo-dinein.test`, `waiter@demo-dinein.test`, `cashier@demo-dinein.test`, `owner@demo-takeout.test`, and the founder `founder@demo-platform.test` for the setup tool. The password is in [`supabase/seed.sql`](supabase/seed.sql).
 
 ### Tests
 
@@ -192,7 +148,10 @@ Demo staff accounts (local only): `owner@demo-dinein.test`, `waiter@demo-dinein.
 npm run check             # typecheck + lint + unit tests + build (same as CI)
 npm run test:integration  # real adapters against the local database
 npx supabase test db      # database security tests (tenant isolation, roles)
+npm run test:e2e          # browser tests: builds the app and starts it on port 3100 by itself (about 10 minutes)
 ```
+
+The last three need the local database (`npx supabase start`). They clean up after themselves and leave the demo data as it was.
 
 ---
 
