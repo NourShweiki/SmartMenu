@@ -10,6 +10,8 @@ import type { OrderId, TableSessionId } from "@/domain/order/order";
 import type { RestaurantId } from "@/domain/restaurant/restaurant";
 import { makeGetStaffOrderList } from "@/application/use-cases/orders/get-staff-order-list";
 import { makeMoveOrderStatus } from "@/application/use-cases/orders/move-order-status";
+import { makeGetOpenVisits } from "@/application/use-cases/tables/get-open-visits";
+import { makeMoveTableSession } from "@/application/use-cases/tables/move-table-session";
 import { makePlaceOrder } from "@/application/use-cases/orders/place-order";
 import { createPublicClient, createServiceClient } from "./client";
 import { SupabaseOrderRepository } from "./supabase-order-repository";
@@ -106,11 +108,21 @@ describe.skipIf(!enabled)("orders against local Supabase", () => {
     // ...and even bypassing the use case, the DATABASE refuses the waiter the last step.
     expect(await waiterRepo.updateStatus(GRILL, order.id, "SERVED", "COMPLETED")).toBe(false);
 
+    // The open tables screen (real adapters): this table with its order on the bill, and it cannot be closed yet.
+    const waiterDb = await staffClient("waiter@demo-dinein.test");
+    const openVisits = makeGetOpenVisits({ sessions: new SupabaseTableSessionRepository(waiterDb), orders: new SupabaseOrderRepository(waiterDb), clock });
+    const visitNow = async () => (await openVisits({ restaurantId: GRILL, role: "WAITER" })).find((v) => v.session.id === SESSION);
+    expect(await visitNow()).toMatchObject({ tableLabel: "IT-orders", status: "OPEN", unfinished: 1, bill: { totalFils: order.totalFils } });
+    expect((await visitNow())!.orders.map((o) => [o.id, o.status])).toEqual([[order.id, "SERVED"]]);
+
     // Cashier: reads, cannot move earlier steps (database rule), completes the SERVED order.
     const cashierDb = await staffClient("cashier@demo-dinein.test");
     const cashierRepo = new SupabaseOrderRepository(cashierDb);
     // The staff order list (what the order screen will show): the order is in the open queue WITH its table.
     const cashierList = makeGetStaffOrderList({ orders: cashierRepo, sessions: new SupabaseTableSessionRepository(cashierDb), clock });
+    const closeVisit = () =>
+      makeMoveTableSession({ sessions: new SupabaseTableSessionRepository(cashierDb), orders: cashierRepo, clock })({ restaurantId: GRILL, role: "CASHIER" }, { sessionId: SESSION, to: "CLOSED" });
+    expect(await closeVisit()).toEqual({ ok: false, error: { type: "UNFINISHED_ORDERS", count: 1 } }); // the served order is not paid yet
     const queue = await cashierList({ restaurantId: GRILL, role: "CASHIER" });
     expect(queue.find((e) => e.order.id === order.id)?.table).toEqual({ sessionId: SESSION, label: "IT-orders", sessionStatus: "OPEN" });
     expect(queue.every((e) => e.order.restaurantId === GRILL && e.table !== null)).toBe(true);
@@ -123,6 +135,8 @@ describe.skipIf(!enabled)("orders against local Supabase", () => {
       [order.id, "COMPLETED", "IT-orders"],
     ]);
     expect(await cashierRepo.updateStatus(GRILL, order.id, "COMPLETED", "NEW")).toBe(false); // cannot go back
+    // Everything on the bill is completed: the table shows nothing unfinished (the bill is still there to read).
+    expect(await visitNow()).toMatchObject({ unfinished: 0, bill: { totalFils: order.totalFils } });
   });
 
   it("a repeated submission (same request key) returns the first order and stores nothing new", async () => {

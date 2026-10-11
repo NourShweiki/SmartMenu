@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { SessionAtTable, TableSessionRepository } from "@/application/ports/table-session-repository";
+import type { Order, OrderStatus } from "@/domain/order/order";
 import type { RestaurantId } from "@/domain/restaurant/restaurant";
 import type { Role } from "@/domain/restaurant/role";
 import type { SessionStatus, TableId, TableSessionId } from "@/domain/table-session/table-session";
@@ -13,7 +14,7 @@ const clock = { now: () => NOW };
 const actor = (role: Role, restaurantId = R) => ({ restaurantId, role });
 
 /** One visit at table 7 in an in-memory store that behaves like the database: a move only if the status still matches. */
-function store(status: SessionStatus, options: { minutesAgo?: number; restaurantId?: RestaurantId; refuse?: boolean } = {}) {
+function store(status: SessionStatus, options: { minutesAgo?: number; restaurantId?: RestaurantId; refuse?: boolean; orders?: OrderStatus[] } = {}) {
   const state = {
     visit: {
       tableLabel: "7",
@@ -28,7 +29,10 @@ function store(status: SessionStatus, options: { minutesAgo?: number; restaurant
     } as SessionAtTable,
     writes: [] as { from: SessionStatus; to: SessionStatus }[],
   };
-  const repo: TableSessionRepository = {
+  const orders = {
+    listBySession: async () => (options.orders ?? []).map((s, i) => ({ id: `order-${i}`, status: s }) as unknown as Order),
+  };
+  const repo: Pick<TableSessionRepository, "findWithTables" | "updateStatus"> = {
     findWithTables: async (restaurantId, ids) =>
       state.visit.session.restaurantId === restaurantId && ids.includes(state.visit.session.id) ? [state.visit] : [],
     updateStatus: async (restaurantId, id, from, to) => {
@@ -39,7 +43,7 @@ function store(status: SessionStatus, options: { minutesAgo?: number; restaurant
       return true;
     },
   };
-  return { state, move: makeMoveTableSession({ sessions: repo, clock }) };
+  return { state, move: makeMoveTableSession({ sessions: repo, orders, clock }) };
 }
 
 describe("moveTableSession", () => {
@@ -91,6 +95,24 @@ describe("moveTableSession", () => {
     // Closing brings the stored record in line: it moves from what is STORED (OPEN), not from the effective CLOSED.
     expect(await stale.move(actor("CASHIER"), { sessionId: SESSION, to: "CLOSED" })).toMatchObject({ ok: true, value: { session: { status: "CLOSED", endedAt: NOW } } });
     expect(stale.state.writes).toEqual([{ from: "OPEN", to: "CLOSED" }]);
+  });
+
+  it("does not close a visit that still has unfinished orders, and says how many", async () => {
+    const busy = store("PAYMENT_REQUESTED", { orders: ["COMPLETED", "SERVED", "PREPARING"] });
+    expect(await busy.move(actor("CASHIER"), { sessionId: SESSION, to: "CLOSED" })).toEqual({ ok: false, error: { type: "UNFINISHED_ORDERS", count: 2 } });
+    expect(busy.state.writes).toEqual([]);
+    // The same for a visit that ran out of time: its orders have to be settled first too.
+    const stale = store("OPEN", { minutesAgo: 121, orders: ["NEW"] });
+    expect(await stale.move(actor("OWNER"), { sessionId: SESSION, to: "CLOSED" })).toEqual({ ok: false, error: { type: "UNFINISHED_ORDERS", count: 1 } });
+
+    // Every order completed (or none at all): it closes.
+    expect((await store("PAYMENT_REQUESTED", { orders: ["COMPLETED", "COMPLETED"] }).move(actor("CASHIER"), { sessionId: SESSION, to: "CLOSED" })).ok).toBe(true);
+    expect((await store("OPEN", { orders: [] }).move(actor("CASHIER"), { sessionId: SESSION, to: "CLOSED" })).ok).toBe(true);
+  });
+
+  it("lets the waiter signal 'ready to pay' while orders are still on their way", async () => {
+    const eating = store("OPEN", { orders: ["PREPARING", "NEW"] });
+    expect((await eating.move(actor("WAITER"), { sessionId: SESSION, to: "PAYMENT_REQUESTED" })).ok).toBe(true);
   });
 
   it("does not find a visit that is unknown or another restaurant's", async () => {

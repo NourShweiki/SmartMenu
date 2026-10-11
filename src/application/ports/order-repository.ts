@@ -23,6 +23,8 @@ export interface OrderRepository {
   listOpen(restaurantId: RestaurantId): Promise<Order[]>;
   /** All orders of one table session, oldest first (the running bill). */
   listBySession(restaurantId: RestaurantId, sessionId: TableSessionId): Promise<Order[]>;
+  /** All orders of several table sessions in one question, oldest first (the bills of every open table). */
+  listBySessions(restaurantId: RestaurantId, sessionIds: readonly TableSessionId[]): Promise<Order[]>;
   /**
    * Moves an order only if it is still in `from`. False when someone else moved it first, it no longer
    * exists, or the database refused this user (never report a change that did not happen).

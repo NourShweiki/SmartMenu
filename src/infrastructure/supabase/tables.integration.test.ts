@@ -168,8 +168,9 @@ describe.skipIf(!enabled)("tables and sessions against local Supabase", () => {
     const clock = { now: () => new Date() };
     const waiterRepo = await sessionsFor("waiter@demo-dinein.test");
     const cashierRepo = await sessionsFor("cashier@demo-dinein.test");
-    const asWaiter = makeMoveTableSession({ sessions: waiterRepo, clock });
-    const asCashier = makeMoveTableSession({ sessions: cashierRepo, clock });
+    const noOrders = { listBySession: async () => [] }; // this visit never ordered (orders are covered in orders.integration)
+    const asWaiter = makeMoveTableSession({ sessions: waiterRepo, orders: noOrders, clock });
+    const asCashier = makeMoveTableSession({ sessions: cashierRepo, orders: noOrders, clock });
     const waiter = { restaurantId: GRILL, role: "WAITER" } as const;
     const cashier = { restaurantId: GRILL, role: "CASHIER" } as const;
 
@@ -180,11 +181,15 @@ describe.skipIf(!enabled)("tables and sessions against local Supabase", () => {
     // Another restaurant's owner cannot touch it at all.
     const coffee = await sessionsFor("owner@demo-takeout.test");
     expect(await coffee.updateStatus(GRILL, id, "OPEN", "CLOSED")).toBe(false);
-    expect(await makeMoveTableSession({ sessions: coffee, clock })({ restaurantId: COFFEE, role: "OWNER" }, { sessionId: id, to: "CLOSED" })).toEqual({
+    expect(await makeMoveTableSession({ sessions: coffee, orders: noOrders, clock })({ restaurantId: COFFEE, role: "OWNER" }, { sessionId: id, to: "CLOSED" })).toEqual({
       ok: false,
       error: { type: "SESSION_NOT_FOUND" },
     });
     expect((await waiterRepo.findWithTables(GRILL, [id]))[0]?.session.status).toBe("OPEN"); // untouched so far
+    // It is on the list of live visits (with its label) for Grill's staff, and not for Coffee's owner.
+    expect((await waiterRepo.listLive(GRILL)).find((v) => v.session.id === id)).toMatchObject({ tableLabel: "IT-T-Move", session: { status: "OPEN" } });
+    expect(await coffee.listLive(GRILL)).toEqual([]);
+    expect((await coffee.listLive(COFFEE)).some((v) => v.session.id === id)).toBe(false);
 
     // The waiter signals "ready to pay". The guests' phones see it; a second identical move finds it already done.
     expect(await asWaiter(waiter, { sessionId: id, to: "PAYMENT_REQUESTED" })).toMatchObject({ ok: true, value: { tableLabel: "IT-T-Move", session: { status: "PAYMENT_REQUESTED" } } });
@@ -197,6 +202,7 @@ describe.skipIf(!enabled)("tables and sessions against local Supabase", () => {
     const stored = (await cashierRepo.findWithTables(GRILL, [id]))[0]!.session;
     expect(stored.status).toBe("CLOSED");
     expect(stored.endedAt).toBeInstanceOf(Date);
+    expect((await cashierRepo.listLive(GRILL)).some((v) => v.session.id === id)).toBe(false); // closed: off the live list
     expect(await cashierRepo.updateStatus(GRILL, id, "CLOSED", "PAYMENT_REQUESTED")).toBe(false);
     expect(await asCashier(cashier, { sessionId: id, to: "CLOSED" })).toEqual({ ok: false, error: { type: "INVALID_TRANSITION", from: "CLOSED", to: "CLOSED" } });
 

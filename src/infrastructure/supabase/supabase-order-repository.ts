@@ -216,6 +216,20 @@ export class SupabaseOrderRepository implements OrderRepository {
     return ((data ?? []) as unknown as OrderRow[]).map(toOrder);
   }
 
+  async listBySessions(restaurantId: RestaurantId, sessionIds: readonly TableSessionId[]): Promise<Order[]> {
+    const ids = [...new Set(sessionIds)].filter((id) => UUID.test(id));
+    if (ids.length === 0) return [];
+    const { data, error } = await this.db
+      .from("orders")
+      .select(ORDER_COLUMNS)
+      .eq("restaurant_id", restaurantId)
+      .in("session_id", ids)
+      .order("created_at", { ascending: true })
+      .order("number", { ascending: true });
+    if (error) throw new Error(`list orders of sessions failed: ${error.message}`);
+    return ((data ?? []) as unknown as OrderRow[]).map(toOrder);
+  }
+
   async updateStatus(restaurantId: RestaurantId, orderId: OrderId, from: OrderStatus, to: OrderStatus): Promise<boolean> {
     if (!UUID.test(orderId)) return false;
     // `.eq("status", from)` makes the move conditional: if someone else moved it first, zero rows match.

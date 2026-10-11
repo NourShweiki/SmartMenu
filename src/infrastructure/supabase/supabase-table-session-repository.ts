@@ -51,6 +51,17 @@ export class SupabaseTableSessionRepository implements TableSessionRepository {
     return ((data ?? []) as unknown as SessionAtTableRow[]).flatMap((row) => toSessionAtTable(row) ?? []);
   }
 
+  async listLive(restaurantId: RestaurantId): Promise<SessionAtTable[]> {
+    const { data, error } = await this.db
+      .from("table_sessions")
+      .select(COLUMNS)
+      .eq("restaurant_id", restaurantId)
+      .neq("status", "CLOSED")
+      .order("started_at", { ascending: true });
+    if (error) throw new Error(`list live table sessions failed: ${error.message}`);
+    return ((data ?? []) as unknown as SessionAtTableRow[]).flatMap((row) => toSessionAtTable(row) ?? []);
+  }
+
   async updateStatus(restaurantId: RestaurantId, sessionId: TableSessionId, from: SessionStatus, to: SessionStatus): Promise<boolean> {
     if (!UUID.test(sessionId)) return false;
     // `.eq("status", from)` makes the move conditional: if someone else moved it first, zero rows match.

@@ -3,6 +3,7 @@
 // e.g. during `next build` in CI.
 import { makeGetPublicRestaurant, type GetPublicRestaurantInput } from "@/application/use-cases/get-public-restaurant";
 import { makeGetPublicMenu } from "@/application/use-cases/get-public-menu";
+import { makeGetOpenVisits } from "@/application/use-cases/tables/get-open-visits";
 import { makeGetPublicSession, makeJoinTableSession } from "@/application/use-cases/tables/join-table-session";
 import { makeMoveTableSession } from "@/application/use-cases/tables/move-table-session";
 import {
@@ -267,14 +268,14 @@ export const tables = {
 
 /**
  * Table sessions. `join` and `find` are what a customer's phone does after scanning a table QR code: public, no
- * login (narrow public database functions). `move` is the staff side ("ready to pay", close): it runs as the
- * signed-in staff member, so RLS decides again who may make which move.
+ * login (narrow public database functions). `listOpen` and `move` are the staff side (the open tables with their
+ * bills; "ready to pay", close): they run as the signed-in staff member, so RLS decides again.
  */
 export const tableSessions = {
   join: (input: { slug: string; token: string }) =>
     makeJoinTableSession({ sessions: new SupabaseTableSessionGateway(createPublicClient()) })(input),
   find: (input: { slug: string; sessionId: string }) =>
     makeGetPublicSession({ sessions: new SupabaseTableSessionGateway(createPublicClient()) })(input),
-  move: async (...args: Parameters<ReturnType<typeof makeMoveTableSession>>) =>
-    makeMoveTableSession({ sessions: new SupabaseTableSessionRepository(await createSessionClient()), clock: systemClock })(...args),
+  listOpen: async (actor: StaffActor) => makeGetOpenVisits(await staffOrderDeps())(actor),
+  move: async (...args: Parameters<ReturnType<typeof makeMoveTableSession>>) => makeMoveTableSession(await staffOrderDeps())(...args),
 };

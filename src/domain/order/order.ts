@@ -245,6 +245,26 @@ export function moveOrderTo(order: Order, to: OrderStatus, now: Date): Result<Or
   return ok({ ...order, status: to, statusChangedAt: now });
 }
 
+/** Still on its way through the flow (anything that is not COMPLETED). A visit cannot be closed while it has one. */
+export const isUnfinished = (order: Pick<Order, "status">): boolean => order.status !== "COMPLETED";
+
+export type BillTotals = Pick<Order, "subtotalFils" | "serviceChargeFils" | "taxFils" | "totalFils">;
+
+/**
+ * What a table owes for these orders: each amount is the SUM over the orders. Every order was priced when it was
+ * placed, with the rates in force then (snapshots, data-model skill §4), so the bill adds those amounts up and
+ * never recomputes anything from today's prices or rates. Whole fils in, whole fils out: no rounding happens here.
+ */
+export function billTotals(orders: readonly BillTotals[]): BillTotals {
+  const sum = (pick: (o: BillTotals) => number) => orders.reduce((total, o) => total + pick(o), 0) as Fils;
+  return {
+    subtotalFils: sum((o) => o.subtotalFils),
+    serviceChargeFils: sum((o) => o.serviceChargeFils),
+    taxFils: sum((o) => o.taxFils),
+    totalFils: sum((o) => o.totalFils),
+  };
+}
+
 /** On READY the session's devices get a push notification (spec §4); the use case decides when to send it. */
 export const shouldNotifyCustomer = (status: OrderStatus): boolean => status === "READY";
 

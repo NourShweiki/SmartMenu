@@ -17,6 +17,11 @@ export interface TableSessionRepository {
    */
   findWithTables(restaurantId: RestaurantId, sessionIds: readonly TableSessionId[]): Promise<SessionAtTable[]>;
   /**
+   * Every session of this restaurant that is not stored as CLOSED, oldest first, with its table's label. That
+   * includes visits that ran out of time and were never closed: they stay "live" in storage until staff close them.
+   */
+  listLive(restaurantId: RestaurantId): Promise<SessionAtTable[]>;
+  /**
    * Moves a session only if it is still in `from`. False when someone else moved it first, it does not exist
    * here, or the database refused this user or this move (never report a change that did not happen). The end
    * time of a CLOSED session is set by the database.

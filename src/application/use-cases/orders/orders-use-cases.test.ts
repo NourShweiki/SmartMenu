@@ -71,6 +71,8 @@ function fakeOrders(initial: Order[] = []) {
       state.orders.filter((o) => o.restaurantId === restaurantId && o.status !== "COMPLETED"),
     listBySession: async (restaurantId, sessionId) =>
       state.orders.filter((o) => o.restaurantId === restaurantId && o.sessionId === sessionId),
+    listBySessions: async (restaurantId, sessionIds) =>
+      state.orders.filter((o) => o.restaurantId === restaurantId && sessionIds.includes(o.sessionId)),
     updateStatus: async (restaurantId, orderId, from, to) => {
       state.statusWrites++;
       const order = state.orders.find((o) => o.restaurantId === restaurantId && o.id === orderId);
@@ -375,6 +377,7 @@ function fakeSessions(visits: SessionAtTable[]) {
       return visits.filter((v) => sessionIds.includes(v.session.id));
     },
     updateStatus: async () => false, // the order list never moves a visit
+    listLive: async () => visits,
   };
   return { repo, asked };
 }

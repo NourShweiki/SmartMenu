@@ -30,6 +30,8 @@ import {
   type OrderLineRequest,
   type OrderStatus,
   type TableSessionId,
+  billTotals,
+  isUnfinished,
 } from "./order";
 
 const R = "11111111-1111-4000-8000-000000000001" as RestaurantId;
@@ -405,5 +407,27 @@ describe("permissionToMoveTo", () => {
     for (const role of ["OWNER", "MANAGER"] as const) {
       expect(ORDER_FLOW.slice(1).every((s) => canMove(role, s))).toBe(true);
     }
+  });
+});
+
+describe("billTotals", () => {
+  const amounts = (subtotalFils: number, serviceChargeFils: number, taxFils: number) =>
+    ({ subtotalFils, serviceChargeFils, taxFils, totalFils: subtotalFils + serviceChargeFils + taxFils }) as Parameters<typeof billTotals>[0][number];
+
+  it("adds up what each order was priced at when it was placed, also when the rates changed in between", () => {
+    // The first order at 10% service + 16% tax, the second after the owner dropped the service charge.
+    const bill = billTotals([amounts(6000, 600, 1056), amounts(1250, 0, 200)]);
+    expect(bill).toEqual({ subtotalFils: 7250, serviceChargeFils: 600, taxFils: 1256, totalFils: 9106 });
+    expect(bill.totalFils).toBe(bill.subtotalFils + bill.serviceChargeFils + bill.taxFils);
+  });
+
+  it("is zero for a table that has ordered nothing", () => {
+    expect(billTotals([])).toEqual({ subtotalFils: 0, serviceChargeFils: 0, taxFils: 0, totalFils: 0 });
+  });
+});
+
+describe("isUnfinished", () => {
+  it("is true for every status except COMPLETED", () => {
+    expect((["NEW", "CONFIRMED", "PREPARING", "READY", "SERVED", "COMPLETED"] as const).map((status) => isUnfinished({ status }))).toEqual([true, true, true, true, true, false]);
   });
 });
