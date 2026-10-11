@@ -27,11 +27,17 @@ export const SITES = {
     tables: { labels: ["1", "2", "Terrace"], token: "grill-table-1-demo-token-0001", dineIn: true },
     /** Customer-menu facts from the seed, with HAND-computed expectations (fils): 10% service, then 16% tax on subtotal + service. */
     menu: {
-      simple: { en: "Hummus", ar: "حمص", fils: 1250, one: { sub: 1250, svc: 125, tax: 220, total: 1595 }, two: { sub: 2500, svc: 250, tax: 440, total: 3190 } },
+      simple: {
+        en: "Hummus", ar: "حمص", fils: 1250,
+        one: { sub: 1250, svc: 125, tax: 220, total: 1595 }, two: { sub: 2500, svc: 250, tax: 440, total: 3190 },
+        // The same as TAKEOUT (no table scanned): no service charge, 16% tax on the subtotal.
+        pickupOne: { sub: 1250, svc: 0, tax: 200, total: 1450 }, pickupTwo: { sub: 2500, svc: 0, tax: 400, total: 2900 },
+      },
       withOptions: {
         en: "Kebab", ar: "كباب", requiredChoice: true,
         choose: [{ en: "Large", ar: "كبير" }, { en: "Garlic sauce", ar: "ثومية" }], // (4.500 + 2.000 + 0.250) each
         quantity: 2, expected: { sub: 13500, svc: 1350, tax: 2376, total: 17226 },
+        pickupExpected: { sub: 13500, svc: 0, tax: 2160, total: 15660 },
       },
       soldOut: { en: "Shish tawook", ar: "شيش طاووق" },
       hiddenOrDeleted: "Test",
@@ -50,11 +56,16 @@ export const SITES = {
     tables: { labels: ["A"], token: "coffee-table-a-demo-token-0001", dineIn: false },
     /** No service charge at Demo Coffee, 16% tax. */
     menu: {
-      simple: { en: "Arabic coffee", ar: "قهوة عربية", fils: 1000, one: { sub: 1000, svc: 0, tax: 160, total: 1160 }, two: { sub: 2000, svc: 0, tax: 320, total: 2320 } },
+      simple: {
+        en: "Arabic coffee", ar: "قهوة عربية", fils: 1000,
+        one: { sub: 1000, svc: 0, tax: 160, total: 1160 }, two: { sub: 2000, svc: 0, tax: 320, total: 2320 },
+        pickupOne: { sub: 1000, svc: 0, tax: 160, total: 1160 }, pickupTwo: { sub: 2000, svc: 0, tax: 320, total: 2320 },
+      },
       withOptions: {
         en: "Cappuccino", ar: "كابتشينو", requiredChoice: false,
         choose: [{ en: "Oat milk", ar: "حليب الشوفان" }], // 2.250 + 0.500
         quantity: 1, expected: { sub: 2750, svc: 0, tax: 440, total: 3190 },
+        pickupExpected: { sub: 2750, svc: 0, tax: 440, total: 3190 },
       },
       soldOut: null,
       hiddenOrDeleted: null,

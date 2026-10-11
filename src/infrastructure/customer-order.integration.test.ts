@@ -7,7 +7,7 @@
 // was killed halfway heals on the next one) and the restaurant's order counter is put back.
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { makeGetPublicMenu } from "@/application/use-cases/get-public-menu";
-import { makeFindPlacedOrder, makePlaceOrder } from "@/application/use-cases/orders/place-order";
+import { makeFindPlacedOrder, makePlaceOrder, makePlacePickupOrder } from "@/application/use-cases/orders/place-order";
 import { makeGetPublicSession, makeJoinTableSession } from "@/application/use-cases/tables/join-table-session";
 import { priceCart, type Cart, type CartCatalogEntry } from "@/domain/cart/cart";
 import type { RestaurantId } from "@/domain/restaurant/restaurant";
@@ -35,6 +35,12 @@ describe.skipIf(!enabled)("a guest places an order, against local Supabase", () 
     findPlaced: makeFindPlacedOrder({ orders: new SupabaseOrderRepository(service, service) }),
     findSession: makeGetPublicSession({ sessions: gateway() }),
     place: makePlaceOrder({
+      orders: new SupabaseOrderRepository(service, service),
+      catalog: new SupabaseOrderingCatalog(service),
+      ids: { newId: () => crypto.randomUUID() },
+      clock: { now: () => new Date() },
+    }),
+    placePickup: makePlacePickupOrder({
       orders: new SupabaseOrderRepository(service, service),
       catalog: new SupabaseOrderingCatalog(service),
       ids: { newId: () => crypto.randomUUID() },
@@ -131,9 +137,12 @@ describe.skipIf(!enabled)("a guest places an order, against local Supabase", () 
     if (!stored.ok) throw new Error(stored.problem);
     const before = (await ordersOfTable()).orderIds.length;
 
-    // Demo Coffee has dine-in off; and even if it were on, a Grill session is not Coffee's.
-    expect(await attempt(coffee)).toEqual({ ok: false, problem: "orderingOff" });
-    expect(await attempt({ ...coffee, settings: { ...coffee.settings, dineInEnabled: true } })).toEqual({ ok: false, problem: "noTable" });
+    // Demo Coffee takes takeout orders only. A Grill table's visit means nothing there: without a name and number
+    // nothing is placed; with takeout switched off it is "no ordering here" (and "no table" where dine-in is on).
+    const noTakeout = { ...coffee.settings, takeoutEnabled: false, deliveryEnabled: true };
+    expect(await attempt(coffee)).toEqual({ ok: false, problem: "nameRequired" });
+    expect(await attempt({ ...coffee, settings: noTakeout })).toEqual({ ok: false, problem: "orderingOff" });
+    expect(await attempt({ ...coffee, settings: { ...noTakeout, dineInEnabled: true } })).toEqual({ ok: false, problem: "noTable" });
 
     for (const [status, problem] of [["PAYMENT_REQUESTED", "paymentRequested"], ["CLOSED", "sessionEnded"]] as const) {
       if (status === "CLOSED") {
@@ -144,7 +153,10 @@ describe.skipIf(!enabled)("a guest places an order, against local Supabase", () 
       }
       const { error } = await service.from("table_sessions").update({ status }).eq("id", session.sessionId);
       if (error) throw error;
-      expect(await attempt(grill)).toEqual({ ok: false, problem });
+      // Without takeout the guest is told why. Demo Grill also takes takeout orders: there, a visit that is over is
+      // no table any more and the cart asks for a name (takeout), while a bill in preparation still says so.
+      expect(await attempt({ ...grill, settings: { ...grill.settings, takeoutEnabled: false } })).toEqual({ ok: false, problem });
+      expect(await attempt(grill)).toEqual({ ok: false, problem: status === "CLOSED" ? "nameRequired" : problem });
       // ...but the retry of the order that already went through gets its number, not "scan again".
       expect(await placeCustomerOrder(deps(), { restaurant: grill, sessionId: session.sessionId, cart: lostReply })).toEqual(stored);
     }

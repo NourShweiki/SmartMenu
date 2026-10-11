@@ -11,7 +11,7 @@ import { MAX_LINE_QUANTITY, type OrderRates } from "@/domain/order/order";
 import { localized } from "@/domain/shared/localized";
 import { formatPrice } from "@/interface/web/format";
 import type { Locale } from "@/interface/web/i18n/locales";
-import { CartPanel } from "./cart-panel";
+import { CartPanel, type OrderingMode } from "./cart-panel";
 import { GuestOrders } from "./guest-orders";
 import { OptionPicker } from "./option-picker";
 import { placeOrderAction } from "./order-actions";
@@ -26,16 +26,23 @@ type Props = {
   rates: OrderRates;
   /** Public photo URLs by item id. */
   imageUrls: Record<string, string>;
-  /** The table this guest scanned (read by the server from the session cookie), or null. */
-  table: { label: string } | null;
-  /** The orders of this table's visit so far (empty without a table), as the server just read them. */
+  /**
+   * The visit this phone belongs to (read by the server from the session cookie): the table it scanned, or the
+   * pickup order it placed; null when there is none (or it has ended).
+   */
+  visit: { kind: "TABLE"; label: string } | { kind: "PICKUP"; name: string } | null;
+  /** Which way this phone orders, as the server decided (see the menu page). */
+  ordering: OrderingMode;
+  /** The restaurant also takes orders at its tables (the takeout form then points to the table's QR code). */
+  dineIn: boolean;
+  /** The orders of this visit so far (empty without one), as the server just read them. */
   orders: readonly PublicOrder[];
   /** The restaurant's name in the guest's language (the body of the "order is ready" notification). */
   restaurantName: string;
 };
 
 /** The customer menu: browse, add to a cart (with option choices), review the cart with a price preview, place the order. */
-export function CustomerMenu({ restaurantSlug, sections, rates, imageUrls, table, orders, restaurantName }: Props) {
+export function CustomerMenu({ restaurantSlug, sections, rates, imageUrls, visit, ordering, dineIn, orders, restaurantName }: Props) {
   const t = useTranslations("Menu");
   const locale = useLocale() as Locale;
   const tTable = useTranslations("Table");
@@ -90,11 +97,11 @@ export function CustomerMenu({ restaurantSlug, sections, rates, imageUrls, table
    * with a key that stays the same when the same cart is sent again: if the reply was lost and the guest presses
    * once more, the server answers with the order it already has instead of making a second one.
    */
-  const placeOrder = async (): Promise<PlaceOrderProblem | null> => {
+  const placeOrder = async (customer?: { name: string; phone: string }): Promise<PlaceOrderProblem | null> => {
     const requestId = requestKeyFor(keyStore(), restaurantSlug, cart.lines, Date.now());
     let outcome: PlaceOrderOutcome;
     try {
-      outcome = await placeOrderAction({ lines: cart.lines, requestId });
+      outcome = await placeOrderAction({ lines: cart.lines, requestId, ...(customer && { customer }) });
     } catch {
       outcome = { ok: false, problem: "failed" }; // no connection, or the reply never arrived (the order may exist)
     }
@@ -113,12 +120,12 @@ export function CustomerMenu({ restaurantSlug, sections, rates, imageUrls, table
   return (
     <>
       <div className="mx-auto flex max-w-2xl flex-col gap-8 px-4 py-6 pb-28">
-        {table && (
+        {visit && (
           <p role="status" className="rounded-xl bg-white px-4 py-3 text-center font-semibold ring-1 ring-gray-200">
-            {tTable("banner", { label: table.label })}
+            <bdi>{visit.kind === "TABLE" ? tTable("banner", { label: visit.label }) : t("pickup.banner", { name: visit.name })}</bdi>
           </p>
         )}
-        {table && orders.length > 0 && <GuestOrders orders={orders} restaurantName={restaurantName} />}
+        {visit && orders.length > 0 && <GuestOrders orders={orders} restaurantName={restaurantName} />}
         {sections.length === 0 && <p className="py-10 text-center text-gray-500">{t("empty")}</p>}
 
         {sections.map(({ category, items }) => (
@@ -213,7 +220,10 @@ export function CustomerMenu({ restaurantSlug, sections, rates, imageUrls, table
       <CartPanel
         open={cartOpen}
         priced={priced}
-        hasTable={table !== null}
+        ordering={ordering}
+        pickupName={visit?.kind === "PICKUP" ? visit.name : null}
+        tableHint={dineIn}
+        storageKey={restaurantSlug}
         placedOrderNumber={placedOrderNumber}
         onPlaceOrder={placeOrder}
         onClose={() => {

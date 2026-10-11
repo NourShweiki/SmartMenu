@@ -328,8 +328,12 @@
         "empty": "Your cart is empty.",
         "tooLarge": "This order is too large. Reduce the quantities or split it into two orders.",
         "itemsChanged": "Something on the menu changed since you added it. Check your cart and try again.",
-        "failed": "We could not send your order. Please try again, or ask a member of staff."
-      }
+        "failed": "We could not send your order. Please try again, or ask a member of staff.",
+        "nameRequired": "Please enter your name.",
+        "nameInvalid": "Please enter a shorter name, with letters only.",
+        "phoneInvalid": "Please enter a Jordanian mobile number, for example 079 123 4567."
+      },
+      "pickupBody": "We have your order. Collect it and pay at the cashier. This page shows when it is ready."
     },
     "orders": {
       "title": "Your orders",
@@ -348,6 +352,16 @@
       "dismiss": "OK",
       "notifyMe": "Notify me when my order is ready",
       "notifyOn": "You will get a notification when an order is ready."
+    },
+    "pickup": {
+      "banner": "Pickup order for {name}",
+      "title": "Pickup order",
+      "name": "Your name",
+      "phone": "Mobile number",
+      "phoneHint": "A Jordanian mobile number. We only call if there is a question about your order.",
+      "note": "You collect your order and pay at the cashier.",
+      "openNote": "This will be added to the pickup order for {name}.",
+      "tableHint": "Sitting at a table? Scan the QR code on your table to order to the table instead."
     }
   },
   "Tables": {

@@ -47,7 +47,7 @@ for (const locale of LOCALES) {
     }
   });
 
-  test(`coffee /${locale}: dine-in is off, so its table code is not active and the cart cannot place an order`, async ({ page }) => {
+  test(`coffee /${locale}: dine-in is off, so its table code is not active; the cart offers a takeout order instead`, async ({ page }) => {
     const site = SITES.coffee;
     await page.goto(`${site.origin}/t/${site.tables.token}`);
     await expect(page.getByRole("heading", { level: 1 })).toHaveText(new RegExp(`${t("ar", "Table.invalidTitle")}|${t("en", "Table.invalidTitle")}`));
@@ -55,8 +55,9 @@ for (const locale of LOCALES) {
     await expect(page.getByRole("status").filter({ hasText: t(locale, "Table.banner", { label: site.tables.labels[0] }) })).toHaveCount(0);
     await addButton(row(page, site.menu.simple[locale]), locale).click();
     await cartBar(page, locale).click();
-    await expect(placeButton(page, locale)).toBeDisabled();
-    await expect(dialog(page).getByText(t(locale, "Menu.cart.checkoutSoon"))).toBeVisible();
+    await expect(dialog(page).getByText(t(locale, "Menu.cart.checkoutSoon"))).toHaveCount(0);
+    await expect(dialog(page).getByLabel(t(locale, "Menu.pickup.name"), { exact: true })).toBeVisible();
+    await expect(placeButton(page, locale)).toBeEnabled(); // placing a takeout order is tested in takeout.spec.ts
   });
 }
 

@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import type { PublicRestaurant } from "@/application/ports/restaurant-repository";
 import type { PublicSession } from "@/application/ports/table-session-gateway";
-import type { PlaceOrderInput } from "@/application/use-cases/orders/place-order";
+import type { PlaceOrderInput, PlacePickupOrderInput } from "@/application/use-cases/orders/place-order";
 import type { OrderUseCaseError } from "@/application/use-cases/orders/shared";
 import type { Order } from "@/domain/order/order";
 import type { RestaurantId } from "@/domain/restaurant/restaurant";
@@ -14,12 +14,13 @@ const SESSION = "33333333-3333-4000-8000-000000000003" as TableSessionId;
 const ITEM = "44444444-4444-4000-8000-000000000004";
 const OPTION = "55555555-5555-4000-8000-000000000005";
 
-const restaurant = (dineInEnabled = true) =>
+/** By default a dine-in restaurant WITHOUT takeout: what the table tests below are about. */
+const restaurant = (dineInEnabled = true, takeoutEnabled = false) =>
   ({
     id: R,
     slug: "demo-dinein",
     name: { en: "Demo Grill", ar: "مشاوي" },
-    settings: { dineInEnabled, takeoutEnabled: true, deliveryEnabled: false, taxRateBp: 1600, serviceChargeBp: 1000, defaultLanguage: "ar" },
+    settings: { dineInEnabled, takeoutEnabled, deliveryEnabled: !dineInEnabled && !takeoutEnabled, taxRateBp: 1600, serviceChargeBp: 1000, defaultLanguage: "ar" },
     branding: {},
   }) as unknown as PublicRestaurant;
 
@@ -33,15 +34,25 @@ function setup(
     place?: () => Promise<ReturnType<typeof ok<Order>> | ReturnType<typeof err<OrderUseCaseError>>>;
     /** Number of the order this submission already produced (its reply was lost), if it did. */
     alreadyPlaced?: number;
+    /** The visit this phone holds is a pickup visit (takeout), not a table. */
+    pickupVisit?: boolean;
   } = {},
 ) {
   const statuses = [...(options.statuses ?? ["OPEN"])];
-  const seen = { finds: [] as { slug: string; sessionId: string }[], placed: [] as PlaceOrderInput[], lookups: [] as unknown[] };
+  const seen = { finds: [] as { slug: string; sessionId: string }[], placed: [] as PlaceOrderInput[], pickups: [] as PlacePickupOrderInput[], lookups: [] as unknown[] };
   const deps = {
     findSession: async (input: { slug: string; sessionId: string }): Promise<PublicSession | null> => {
       seen.finds.push(input);
       const status = statuses.length > 1 ? statuses.shift()! : statuses[0]!;
-      return status ? { sessionId: SESSION, kind: "TABLE" as const, tableLabel: "7", status } : null;
+      if (!status) return null;
+      return options.pickupVisit ? { sessionId: SESSION, kind: "PICKUP" as const, customerName: "Ali Hasan", status } : { sessionId: SESSION, kind: "TABLE" as const, tableLabel: "7", status };
+    },
+    // Like the use case: the customer is checked there; here any name and number will do, and the visit is the key.
+    placePickup: async (input: PlacePickupOrderInput) => {
+      seen.pickups.push(input);
+      if (input.customer.phone === "064123456") return err({ type: "PHONE_INVALID" as const });
+      if (input.customer.name.trim() === "") return err({ type: "NAME_REQUIRED" as const });
+      return ok({ order: { number: 7, sessionId: input.requestId } as unknown as Order });
     },
     place: async (input: PlaceOrderInput) => {
       seen.placed.push(input);
@@ -220,5 +231,74 @@ describe("placeCustomerOrder", () => {
     });
     expect(await placeCustomerOrder(deps, { restaurant: restaurant(), sessionId: SESSION, cart: CART })).toEqual({ ok: false, problem: "failed" });
     expect(log).toHaveBeenCalledOnce();
+  });
+});
+
+describe("placeCustomerOrder: takeout", () => {
+  const ALI = { name: "Ali Hasan", phone: "079 123 4567" };
+  const coffee = () => restaurant(false, true); // takeout only
+  const both = () => restaurant(true, true);
+  const cartFor = (customer?: unknown) => ({ ...CART, ...(customer !== undefined && { customer }) });
+
+  it("without a table, a takeout order starts a pickup visit and names it for the cookie", async () => {
+    const { deps, seen } = setup();
+    const outcome = await placeCustomerOrder(deps, { restaurant: coffee(), sessionId: null, cart: cartFor(ALI) });
+    expect(outcome).toEqual({ ok: true, orderNumber: 7, startedVisit: KEY });
+    expect(seen.pickups).toEqual([
+      { restaurantId: R, rates: { taxRateBp: 1600, serviceChargeBp: 1000 }, lines: [{ menuItemId: ITEM, quantity: 2, selectedOptionIds: [OPTION] }], requestId: KEY, customer: ALI },
+    ]);
+    expect(seen.placed).toEqual([]); // not the table path
+    expect(seen.finds).toEqual([]); // no cookie: nothing to look up
+  });
+
+  it("asks for the name and number, and says which of them is wrong", async () => {
+    const { deps, seen } = setup();
+    const attempt = (customer?: unknown) => placeCustomerOrder(deps, { restaurant: coffee(), sessionId: null, cart: cartFor(customer) });
+    expect(await attempt()).toEqual({ ok: false, problem: "nameRequired" });
+    expect(await attempt({ name: 5, phone: "079" })).toEqual({ ok: false, problem: "nameRequired" });
+    expect(seen.pickups).toEqual([]); // nothing was even tried
+    expect(await attempt({ name: "  ", phone: "0791234567" })).toEqual({ ok: false, problem: "nameRequired" });
+    expect(await attempt({ name: "Ali", phone: "064123456" })).toEqual({ ok: false, problem: "phoneInvalid" });
+  });
+
+  it("adds to the pickup visit the phone already holds, without asking for the name again", async () => {
+    const { deps, seen } = setup({ pickupVisit: true });
+    expect(await placeCustomerOrder(deps, { restaurant: coffee(), sessionId: SESSION, cart: CART })).toEqual({ ok: true, orderNumber: 42 });
+    expect(seen.placed[0]).toMatchObject({ sessionId: SESSION, kind: "PICKUP", requestId: KEY });
+    expect(seen.pickups).toEqual([]);
+  });
+
+  it("starts a new pickup visit once the old one has ended", async () => {
+    const { deps, seen } = setup({ pickupVisit: true, statuses: ["CLOSED"] });
+    expect(await placeCustomerOrder(deps, { restaurant: coffee(), sessionId: SESSION, cart: cartFor(ALI) })).toEqual({ ok: true, orderNumber: 7, startedVisit: KEY });
+    expect(seen.placed).toEqual([]);
+  });
+
+  it("where both are offered: a live table orders for the table, any other phone orders takeout", async () => {
+    const atTable = setup();
+    expect(await placeCustomerOrder(atTable.deps, { restaurant: both(), sessionId: SESSION, cart: cartFor(ALI) })).toEqual({ ok: true, orderNumber: 42 });
+    expect(atTable.seen.placed[0]).toMatchObject({ kind: "TABLE", sessionId: SESSION });
+    expect(atTable.seen.pickups).toEqual([]);
+
+    const noTable = setup();
+    expect(await placeCustomerOrder(noTable.deps, { restaurant: both(), sessionId: null, cart: cartFor(ALI) })).toMatchObject({ ok: true, startedVisit: KEY });
+
+    // A table visit that is over is no table any more: takeout. One whose bill is being prepared is not.
+    const ended = setup({ statuses: ["CLOSED"] });
+    expect(await placeCustomerOrder(ended.deps, { restaurant: both(), sessionId: SESSION, cart: cartFor(ALI) })).toMatchObject({ ok: true, startedVisit: KEY });
+    const paying = setup({ statuses: ["PAYMENT_REQUESTED"] });
+    expect(await placeCustomerOrder(paying.deps, { restaurant: both(), sessionId: SESSION, cart: cartFor(ALI) })).toEqual({ ok: false, problem: "paymentRequested" });
+    expect(paying.seen.pickups).toEqual([]);
+  });
+
+  it("still answers a lost table order with its number before thinking of takeout", async () => {
+    const { deps, seen } = setup({ statuses: ["CLOSED"], alreadyPlaced: 12 });
+    expect(await placeCustomerOrder(deps, { restaurant: both(), sessionId: SESSION, cart: cartFor(ALI) })).toEqual({ ok: true, orderNumber: 12 });
+    expect(seen.pickups).toEqual([]);
+  });
+
+  it("refuses when the restaurant takes neither kind of order", async () => {
+    const { deps } = setup();
+    expect(await placeCustomerOrder(deps, { restaurant: restaurant(false, false), sessionId: null, cart: cartFor(ALI) })).toEqual({ ok: false, problem: "orderingOff" });
   });
 });

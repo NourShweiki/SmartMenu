@@ -102,7 +102,7 @@ Table QR Scan → Create/Join Session → Session Timer Starts → Browse Menu �
 ### AI Feedback Analysis (owner side)
 Categorizes complaints vs. suggestions, groups recurring issues, assigns priority.
 
-### Takeout design (Nour, 2026-10-11: "do what's best with takeout"; these are OUR choices, change them here if they turn out wrong; the rules, the database part and the logic are built (2026-10-12), the screens are not)
+### Takeout design (Nour, 2026-10-11: "do what's best with takeout"; these are OUR choices, change them here if they turn out wrong; built 2026-10-12 except the staff screens' wording)
 - A takeout order belongs to a **pickup visit**: the same thing as a table session, without a table. Instead of a table it carries the customer's **name and mobile number**. Everything built around table sessions keeps working unchanged: orders, "your orders" on the customer's phone, the ready notice, the staff order queue.
 - **Customer flow:** open the restaurant's menu (no QR code needed) → fill the cart → give name and mobile number → place the order → see the order number and follow its status on the same phone → get the ready notice → pick up and pay at the cashier.
 - The pickup visit starts when the first order is placed (not when the menu is opened) and ends by itself when its orders are completed or cancelled.
@@ -115,6 +115,8 @@ Categorizes complaints vs. suggestions, groups recurring issues, assigns priorit
   - The customer's own phone learns the name the order is under, never the phone number back. Staff of the restaurant see both.
   - **The cashier does not cancel**, also not a takeout order: cancelling stays with the owner, the manager and (before the kitchen starts) the waiter. *To confirm with Nour: in a counter run by the cashier alone, an order nobody collects can then only be cancelled by the owner or manager.*
   - The name is 1 to 60 characters; the number must be a Jordanian mobile (077 / 078 / 079), written any usual way.
+  - A table visit that has ended (closed, or past its 2 hours) is no table any more: where the restaurant takes takeout orders, that phone is offered takeout, with a hint to scan the table's code to order to the table. A table whose bill is being prepared is not offered takeout.
+  - The name and number are remembered on the customer's device (per restaurant), not in an account.
 
 ### Open question
 How does **delivery** map onto this model (addresses, fees, driver assignment)? Not designed. Flag this before building delivery.

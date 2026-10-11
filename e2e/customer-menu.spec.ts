@@ -4,6 +4,8 @@ import { addButton, cartBar, dialog, menuRow as row } from "./support/cart";
 
 // The customer menu and cart: public (nobody is signed in), both restaurants, both languages.
 // Expected totals in e2e/support/demo.ts are computed by hand from the seed, not with the app's own formulas.
+// Nobody scans a table here, and both demo restaurants take takeout orders: the cart shows the TAKEOUT estimate (no
+// service charge) and the takeout form. Ordering itself is in takeout.spec.ts (takeout) and place-order.spec.ts (table).
 
 const open = async (page: Page, site: Site, locale: Locale) => {
   await page.goto(`${site.origin}/${locale}/menu`);
@@ -46,14 +48,16 @@ for (const site of ALL_SITES) {
       await addButton(row(page, m.simple[locale]), locale).click();
       await expect(page.getByText(t(locale, "Menu.added", { name: m.simple[locale] }))).toBeVisible();
 
-      await expect(cartBar(page, locale)).toContainText(jd(m.simple.one.total, locale));
+      await expect(cartBar(page, locale)).toContainText(jd(m.simple.pickupOne.total, locale));
       await cartBar(page, locale).click();
       await expect(dialog(page).getByRole("heading", { name: t(locale, "Menu.cart.title") })).toBeVisible();
       await expect(dialog(page)).toContainText(m.simple[locale]);
-      await expectTotals(page, locale, m.simple.one);
-      // Ordering itself comes with the table QR code: the button exists but is off, with the reason.
-      await expect(dialog(page).getByRole("button", { name: t(locale, "Menu.cart.placeOrder") })).toBeDisabled();
-      await expect(dialog(page).getByText(t(locale, "Menu.cart.checkoutSoon"))).toBeVisible();
+      await expectTotals(page, locale, m.simple.pickupOne);
+      // No table was scanned: the cart offers a takeout order (name and number), not "scan your table first".
+      await expect(dialog(page).getByLabel(t(locale, "Menu.pickup.name"), { exact: true })).toBeVisible();
+      await expect(dialog(page).getByLabel(t(locale, "Menu.pickup.phone"), { exact: true })).toBeVisible();
+      await expect(dialog(page).getByRole("button", { name: t(locale, "Menu.cart.placeOrder") })).toBeEnabled();
+      await expect(dialog(page).getByText(t(locale, "Menu.cart.checkoutSoon"))).toHaveCount(0);
     });
 
     test(`${site.key} /${locale}: choices are enforced and change the price`, async ({ page }) => {
@@ -76,7 +80,7 @@ for (const site of ALL_SITES) {
 
       await cartBar(page, locale).click();
       for (const choice of m.withOptions.choose) await expect(dialog(page)).toContainText(choice[locale]);
-      await expectTotals(page, locale, m.withOptions.expected);
+      await expectTotals(page, locale, m.withOptions.pickupExpected);
     });
 
     test(`${site.key} /${locale}: quantities change the totals, and lowering to zero removes the line`, async ({ page }) => {
@@ -85,9 +89,9 @@ for (const site of ALL_SITES) {
       await cartBar(page, locale).click();
 
       await dialog(page).getByRole("button", { name: new RegExp(`^${t(locale, "Menu.increase")}`) }).click();
-      await expectTotals(page, locale, m.simple.two);
+      await expectTotals(page, locale, m.simple.pickupTwo);
       await dialog(page).getByRole("button", { name: new RegExp(`^${t(locale, "Menu.decrease")}`) }).click();
-      await expectTotals(page, locale, m.simple.one);
+      await expectTotals(page, locale, m.simple.pickupOne);
       await dialog(page).getByRole("button", { name: new RegExp(`^${t(locale, "Menu.decrease")}`) }).click(); // 1 -> 0 removes
       await expect(dialog(page).getByText(t(locale, "Menu.cart.empty"))).toBeVisible();
 
@@ -102,11 +106,11 @@ for (const site of ALL_SITES) {
       await expect(cartBar(page, locale)).toBeVisible();
 
       await page.reload();
-      await expect(cartBar(page, locale)).toContainText(jd(m.simple.one.total, locale)); // read back from this browser
+      await expect(cartBar(page, locale)).toContainText(jd(m.simple.pickupOne.total, locale)); // read back from this browser
 
       await page.getByRole("link", { name: t(locale, "LanguageSwitch.label") }).click();
       await expect(page).toHaveURL(new RegExp(`/${other}/menu$`));
-      await expect(cartBar(page, other)).toContainText(jd(m.simple.one.total, other)); // same cart, other language
+      await expect(cartBar(page, other)).toContainText(jd(m.simple.pickupOne.total, other)); // same cart, other language
 
       await cartBar(page, other).click();
       await dialog(page).getByRole("button", { name: t(other, "Menu.cart.remove") }).click();

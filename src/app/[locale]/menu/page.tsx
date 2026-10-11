@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getTranslations } from "next-intl/server";
+import { pickupRates } from "@/domain/order/order";
 import { accentHex } from "@/domain/restaurant/branding";
 import { localized } from "@/domain/shared/localized";
 import { getPublicMenu, menuPhotoUrls, tableSessions } from "@/infrastructure/container";
@@ -25,8 +26,15 @@ export default async function CustomerMenuPage({ params }: { params: Promise<{ l
     // The orders of that visit, for "your orders" (the session id in the cookie is what entitles this device to them).
     sessionId ? tableSessions.orders({ slug: restaurant.slug, sessionId }) : [],
   ]);
-  // The table is whatever the database says now: a session that was closed (the guests left) shows no table.
-  const table = session && session.kind === "TABLE" && session.status !== "CLOSED" ? { label: session.tableLabel } : null;
+  // The visit is whatever the database says now: one that was closed (the guests left, the order was collected)
+  // counts as none. Which way this phone orders mirrors placeCustomerOrder: a live table visit orders for the table;
+  // where the restaurant takes takeout orders, any other phone orders takeout (into its open pickup visit, or anew).
+  const { settings } = restaurant;
+  const live = session && session.status !== "CLOSED" ? session : null;
+  const atTable = live?.kind === "TABLE" && (settings.dineInEnabled || !settings.takeoutEnabled);
+  const visit = !live ? null : atTable ? ({ kind: "TABLE", label: live.kind === "TABLE" ? live.tableLabel : "" } as const) : live.kind === "PICKUP" ? ({ kind: "PICKUP", name: live.customerName } as const) : null;
+  const ordering = atTable ? "table" : !settings.takeoutEnabled ? "none" : live?.kind === "PICKUP" && live.status === "OPEN" ? "pickupOpen" : "pickup";
+  const rates = { taxRateBp: settings.taxRateBp, serviceChargeBp: settings.serviceChargeBp };
   const withPhoto = menu.sections.flatMap((s) => s.items.flatMap(({ item }) => (item.imagePath ? [{ id: item.id, path: item.imagePath }] : [])));
   const urls = menuPhotoUrls(withPhoto.map((p) => p.path));
   const imageUrls = Object.fromEntries(withPhoto.map((p, i) => [p.id, urls[i]!]));
@@ -51,10 +59,12 @@ export default async function CustomerMenuPage({ params }: { params: Promise<{ l
       <CustomerMenu
         restaurantSlug={restaurant.slug}
         sections={menu.sections}
-        rates={{ taxRateBp: restaurant.settings.taxRateBp, serviceChargeBp: restaurant.settings.serviceChargeBp }}
+        rates={ordering === "table" || ordering === "none" ? rates : pickupRates(rates)} // takeout has no service charge
         imageUrls={imageUrls}
-        table={table}
-        orders={table ? sessionOrders : []} // a closed visit shows no table, and no orders of it either
+        visit={visit}
+        ordering={ordering}
+        dineIn={settings.dineInEnabled}
+        orders={visit ? sessionOrders : []} // a closed visit shows nothing, and no orders of it either
         restaurantName={localized(restaurant.name, locale)}
       />
     </main>
