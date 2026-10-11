@@ -1,6 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { UserId } from "@/application/ports/auth-gateway";
-import type { RestaurantClash, RestaurantDirectory, StoreRestaurantError } from "@/application/ports/restaurant-directory";
+import type { RestaurantClash, RestaurantDirectory, RestaurantSummary, StoreRestaurantError } from "@/application/ports/restaurant-directory";
 import type { Restaurant, RestaurantId } from "@/domain/restaurant/restaurant";
 import { err, ok, type Result } from "@/domain/shared/result";
 
@@ -30,6 +30,22 @@ export function toCreateRestaurantPayload(restaurant: Restaurant) {
  */
 export class SupabaseRestaurantDirectory implements RestaurantDirectory {
   constructor(private readonly service: SupabaseClient) {}
+
+  async list(): Promise<RestaurantSummary[]> {
+    const { data, error } = await this.service
+      .from("restaurants")
+      .select("id, slug, name_en, name_ar, created_at")
+      .order("created_at", { ascending: false })
+      .order("slug")
+      .returns<{ id: string; slug: string; name_en: string; name_ar: string; created_at: string }[]>();
+    if (error) throw new Error(`restaurants list failed: ${error.message}`);
+    return data.map((row) => ({
+      id: row.id as RestaurantId,
+      slug: row.slug,
+      name: { en: row.name_en, ar: row.name_ar },
+      createdAt: new Date(row.created_at),
+    }));
+  }
 
   async clash(id: RestaurantId, slug: string): Promise<RestaurantClash | null> {
     const [sameId, sameSlug] = await Promise.all([

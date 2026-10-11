@@ -109,14 +109,17 @@ One codebase serves every restaurant (multi-tenant). Each restaurant lives on it
 - **Guests follow their order on their phone (Phase 5).** After ordering, the menu page shows **Your orders**: every order of the table's visit with how far it has got, on every phone at that table.
   - When an order is ready, a notice appears on the page by itself, with a sound and a vibration where the phone allows it, and as a system notification if the guest asked for one. If staff cancel an order, the guest is told to ask a member of staff.
   - A phone only ever sees the orders of its own table's visit. The system notification works while the menu page is still open in the browser; reaching a locked phone needs push messages, which come with the installable app.
-- **Browser tests.** 136 automated end-to-end tests drive a real browser through the app on both demo restaurants, in English and Arabic: login, language switch, roles, menu, settings, branding, the customer menu with its cart, tables with QR scanning, placing an order, the staff order screen, the open tables screen, and guests following their orders. They change data and put it back. Run with `npm run test:e2e` (needs the local database): the tests build the app for production and start that build themselves, so they always check the current code in the form users get.
+- **Setup tool for the SmartMenu team (Phase 6, in progress).** On the platform's own address (`/en/setup`), founders sign in, see every restaurant, and create a new one: names, web address, business type (dine-in or takeout, which sets the starting settings) and the owner's email.
+  - The restaurant, its settings and the owner's account are created together or not at all. The owner's temporary password is shown once, to pass on.
+  - Only founders get in; a restaurant's staff are refused like a wrong password, and the tool does not exist on a restaurant's own address.
+- **Browser tests.** 140 automated end-to-end tests drive a real browser through the app on both demo restaurants, in English and Arabic: login, language switch, roles, menu, settings, branding, the customer menu with its cart, tables with QR scanning, placing an order, the staff order screen, the open tables screen, guests following their orders, and the team's setup tool. They change data and put it back. Run with `npm run test:e2e` (needs the local database): the tests build the app for production and start that build themselves, so they always check the current code in the form users get.
 - **Reliable updates after a save.** In production builds a bug in the React version bundled with our framework could leave a page showing old content after a successful save, until a reload. A small built-in guard now makes the page catch up by itself; the browser tests run against a production build to keep it that way.
 - **Quality gates.** CI runs typecheck, lint (including architecture-layer import rules), unit tests and a production build on every push. Database security tests (pgTAP) and integration tests run locally.
 
 ### ⬜ Not done yet (next up)
 
 - **Phase 6 (in progress): onboarding a new restaurant in under a day.** In this order:
-  1. the founders' tool to create a restaurant with its first owner (database and app logic are done: a restaurant, its settings and its owner account with a temporary password are created together or not at all, and only by a founder; the screen comes next)
+  1. the founders' tool to create a restaurant with its first owner (done, see above; still to come here: changing a password and issuing a new temporary one)
   2. staff accounts managed by the owner
   3. takeout ordering (designed: a pickup order with the customer's name and mobile number, followed on their phone like a table order)
   4. a setup checklist for the owner

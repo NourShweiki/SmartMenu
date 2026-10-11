@@ -40,6 +40,7 @@ import { makeMoveOrderStatus } from "@/application/use-cases/orders/move-order-s
 import { makeFindPlacedOrder, makePlaceOrder } from "@/application/use-cases/orders/place-order";
 import type { StaffActor } from "@/application/use-cases/permissions";
 import { makeCreateRestaurant } from "@/application/use-cases/platform/create-restaurant";
+import { makeGetFounderContext, makeListRestaurants, makeSignInFounder } from "@/application/use-cases/platform/founder-access";
 import { makeGetRestaurantSettings } from "@/application/use-cases/settings/get-restaurant-settings";
 import { makeUpdateRestaurantSettings } from "@/application/use-cases/settings/update-restaurant-settings";
 import type { SettingsActor } from "@/application/use-cases/settings/shared";
@@ -311,6 +312,11 @@ async function platformDeps() {
 }
 
 export const platform = {
+  /** Founders sign in on the platform's own address; anybody else is refused like a wrong password. */
+  signIn: async (...args: Parameters<ReturnType<typeof makeSignInFounder>>) => makeSignInFounder(await platformDeps())(...args),
+  /** The signed-in founder, or why not: every setup page and action starts here. */
+  founder: async () => makeGetFounderContext(await platformDeps())(),
+  listRestaurants: async () => makeListRestaurants(await platformDeps())(),
   /** A founder creates a restaurant with its first owner (see makeCreateRestaurant). */
   createRestaurant: async (...args: Parameters<ReturnType<typeof makeCreateRestaurant>>) =>
     makeCreateRestaurant(await platformDeps())(...args),

@@ -33,3 +33,16 @@ export const getCurrentSite = cache(async (): Promise<Site> => {
   const result = await getPublicRestaurant({ slug });
   return result.ok ? { kind: "restaurant", restaurant: result.value } : { kind: "unknown" };
 });
+
+/**
+ * The address of a restaurant's own site (`https://<slug>.<root domain>`), with the scheme and port of the request
+ * being answered, so links work the same on a developer's machine and in production. The root domain comes from the
+ * server's configuration, never from the request.
+ */
+export async function restaurantOrigin(slug: string): Promise<string> {
+  const h = await headers();
+  const port = (await requestHost()).match(/:\d{1,5}$/)?.[0] ?? "";
+  const forwarded = h.get("x-forwarded-proto")?.split(",")[0]?.trim();
+  const scheme = forwarded === "http" || forwarded === "https" ? forwarded : appRootDomain() === "localhost" ? "http" : "https";
+  return `${scheme}://${slug}.${appRootDomain()}${port}`;
+}

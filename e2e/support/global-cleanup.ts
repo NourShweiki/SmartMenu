@@ -1,7 +1,8 @@
 import { createClient } from "@supabase/supabase-js";
 
 /**
- * Removes what earlier browser test runs left in the LOCAL database: every table the tests made (they are all
+ * Removes what earlier browser test runs left in the LOCAL database: the restaurants and owner accounts the setup-tool
+ * tests made ("e2e-..."), and every table the tests made (they are all
  * labelled "E2E ...") with its visits and their orders. Runs before the suite (so a run that was killed heals on
  * the next one) and after it (so a run leaves the demo data as it found it).
  *
@@ -10,8 +11,8 @@ import { createClient } from "@supabase/supabase-js";
  * unfinished order and open visit each time. A hundred leftovers made the suite crawl and time out (2026-10-11).
  *
  * It works straight on the database with the service-role key from `.env.local`, like the integration tests. It
- * only ever touches rows that hang off an "E2E ..." table; the seeded demo tables and everything on them are left
- * alone. Without the key it does nothing (the tests still run, the leftovers stay).
+ * only ever touches rows that hang off an "E2E ..." table, "e2e-..." restaurants and "e2e-...@test.local" accounts;
+ * the seeded demo restaurants, accounts and tables and everything on them are left alone. Without the key it does nothing (the tests still run, the leftovers stay).
  */
 export default async function removeTestLeftovers(): Promise<void> {
   try {
@@ -38,5 +39,15 @@ export default async function removeTestLeftovers(): Promise<void> {
     }
     await db.from("table_sessions").delete().in("table_id", batch);
     await db.from("restaurant_tables").delete().in("id", batch);
+  }
+
+  // Restaurants the setup-tool tests created (address "e2e-...") with everything that hangs off them, and the owner
+  // accounts made for them ("e2e-...@test.local"). No screen deletes a restaurant, so this is the only way out.
+  const { error: restaurantError } = await db.from("restaurants").delete().like("slug", "e2e-%");
+  if (restaurantError) throw new Error(`cleaning test restaurants: ${restaurantError.message}`);
+  const { data: accounts, error: accountError } = await db.auth.admin.listUsers({ page: 1, perPage: 1000 });
+  if (accountError) throw new Error(`cleaning test accounts: ${accountError.message}`);
+  for (const user of accounts.users) {
+    if (user.email?.startsWith("e2e-") && user.email.endsWith("@test.local")) await db.auth.admin.deleteUser(user.id);
   }
 }

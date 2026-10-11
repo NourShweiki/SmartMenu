@@ -52,6 +52,7 @@ function world(options: {
     },
   };
   const restaurants: RestaurantDirectory = {
+    list: async () => [],
     clash: async () => options.clash ?? null,
     async create(actorId, restaurant, ownerId) {
       if (options.store) return options.store();
