@@ -29,11 +29,14 @@ select table_privs_are('public', 'restaurant_tables', 'authenticated', array['SE
 select table_privs_are('public', 'table_sessions', 'authenticated', array['SELECT'], 'table_sessions: read only (status is a column grant)');
 
 -- ── Who may change which column of the original tables ──
-insert into auth.users (id, email) values ('aaaaaaaa-0000-4000-8000-0000000000f1', 'priv-owner@test.local');
+insert into auth.users (id, email) values
+  ('aaaaaaaa-0000-4000-8000-0000000000f1', 'priv-owner@test.local'),
+  ('aaaaaaaa-0000-4000-8000-0000000000f2', 'priv-waiter@test.local');
 insert into public.restaurants (id, slug, name_en, name_ar) values
   ('aaaaaaaa-6666-4000-8000-000000000000', 'priv-a', 'Priv A', 'صلاحيات أ');
 insert into public.restaurant_members (restaurant_id, user_id, role) values
-  ('aaaaaaaa-6666-4000-8000-000000000000', 'aaaaaaaa-0000-4000-8000-0000000000f1', 'OWNER');
+  ('aaaaaaaa-6666-4000-8000-000000000000', 'aaaaaaaa-0000-4000-8000-0000000000f1', 'OWNER'),
+  ('aaaaaaaa-6666-4000-8000-000000000000', 'aaaaaaaa-0000-4000-8000-0000000000f2', 'WAITER');
 insert into public.restaurant_settings (restaurant_id) values ('aaaaaaaa-6666-4000-8000-000000000000');
 
 set local role authenticated;
@@ -49,7 +52,8 @@ select lives_ok($$ update public.restaurant_settings set tax_rate_bp = 1000 wher
   'owner can change settings');
 select throws_ok($$ update public.restaurant_settings set restaurant_id = 'bbbbbbbb-6666-4000-8000-000000000000' where restaurant_id = 'aaaaaaaa-6666-4000-8000-000000000000' $$,
   '42501', null, 'settings cannot be moved to another restaurant');
-select lives_ok($$ update public.restaurant_members set role = 'MANAGER' where user_id = 'aaaaaaaa-0000-4000-8000-0000000000f1' $$,
+-- A colleague's role: nobody may change their own (staff_management.test.sql).
+select lives_ok($$ update public.restaurant_members set role = 'MANAGER' where user_id = 'aaaaaaaa-0000-4000-8000-0000000000f2' $$,
   'a member role can be changed');
 select throws_ok($$ update public.restaurant_members set restaurant_id = 'bbbbbbbb-6666-4000-8000-000000000000' $$,
   '42501', null, 'a member row cannot be moved to another restaurant');

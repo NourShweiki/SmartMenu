@@ -203,7 +203,9 @@ describe.skipIf(!process.env.SUPABASE_SERVICE_ROLE_KEY)("founders' setup tool ag
     expect(await directory.create(FOUNDER, draft(id, `itest-${run}-free`), ownerId)).toEqual({ ok: false, error: { type: "ALREADY_CREATED" } });
     expect(await directory.create(FOUNDER, draft(crypto.randomUUID(), slug), ownerId)).toEqual({ ok: false, error: { type: "SLUG_TAKEN" } });
 
-    await accounts.remove(ownerId);
-    expect(await emailExists(`itest-${run}-store@test.local`)).toBe(false);
+    // The account now owns a restaurant: it cannot be deleted from under it (a restaurant keeps an owner).
+    // The sweep after the tests removes the restaurant first, then the account.
+    await expect(accounts.remove(ownerId)).rejects.toThrow(/removing the account failed/);
+    expect(await emailExists(`itest-${run}-store@test.local`)).toBe(true);
   });
 });
