@@ -134,11 +134,20 @@ export const isSessionExpired = (startedAt: Date, now: Date): boolean =>
   now.getTime() - startedAt.getTime() >= SESSION_MAX_AGE_HOURS * 60 * 60 * 1000;
 
 /**
+ * The status to show and act on. A visit that ran out of time counts as CLOSED even while its stored status still
+ * says OPEN or PAYMENT_REQUESTED: nobody "closes" an expired visit, the database simply treats it as closed
+ * wherever it is used (the public lookup reports it as CLOSED, an order into it is refused, the next scan starts a
+ * new one). Staff must see the same thing the guests' phones see.
+ */
+export const effectiveSessionStatus = (session: Pick<TableSession, "status" | "startedAt">, now: Date): SessionStatus =>
+  session.status !== "CLOSED" && isSessionExpired(session.startedAt, now) ? "CLOSED" : session.status;
+
+/**
  * New orders are only accepted while the session is OPEN and has not run out of time. ASSUMPTION to confirm: after
  * "ready to pay" is signalled the bill is final, so ordering stops until the table is closed and a new visit starts.
  */
 export const acceptsOrders = (session: Pick<TableSession, "status" | "startedAt">, now: Date): boolean =>
-  session.status === "OPEN" && !isSessionExpired(session.startedAt, now);
+  effectiveSessionStatus(session, now) === "OPEN";
 
 /**
  * The permission needed to move a session to a status (mirrors the database policy): the floor signals payment

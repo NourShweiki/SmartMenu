@@ -10,18 +10,23 @@ import { createPublicClient, createServiceClient } from "./client";
 import { newTableToken } from "../random-token";
 import { SupabaseTableRepository } from "./supabase-table-repository";
 import { SupabaseTableSessionGateway } from "./supabase-table-session-gateway";
+import { SupabaseTableSessionRepository } from "./supabase-table-session-repository";
+import type { TableSessionId } from "@/domain/table-session/table-session";
 
 const GRILL = "11111111-1111-4000-8000-000000000001" as RestaurantId;
 const COFFEE = "22222222-2222-4000-8000-000000000002" as RestaurantId;
 const PASSWORD = "smartmenu-demo-2026"; // supabase/seed.sql
 const enabled = !!process.env.NEXT_PUBLIC_SUPABASE_URL && !!process.env.SUPABASE_SERVICE_ROLE_KEY;
 
-async function repoFor(email: string) {
+async function clientFor(email: string) {
   const db = createPublicClient();
   const { error } = await db.auth.signInWithPassword({ email, password: PASSWORD });
   if (error) throw error;
-  return new SupabaseTableRepository(db);
+  return db;
 }
+const repoFor = async (email: string) => new SupabaseTableRepository(await clientFor(email));
+/** The staff side of table sessions, as this signed-in person. */
+const sessionsFor = async (email: string) => new SupabaseTableSessionRepository(await clientFor(email));
 const deps = { newId: () => crypto.randomUUID(), newToken: newTableToken };
 const NOW = new Date();
 const SEEDED_TOKEN = "grill-table-1-demo-token-0001"; // supabase/seed.sql
@@ -114,6 +119,41 @@ describe.skipIf(!enabled)("tables and sessions against local Supabase", () => {
     expect(await gateway.join("demo-dinein", fresh.token)).toBeNull();
     expect(await owner.update({ ...fresh, isActive: true })).toBe("OK");
     expect((await gateway.join("demo-dinein", fresh.token))?.sessionId).toBe(a!.sessionId);
+  });
+
+  it("staff read a visit with its table's label (also after the table is deleted); other restaurants and visitors get nothing", async () => {
+    const owner = await repoFor("owner@demo-dinein.test");
+    const made = createTable(GRILL, "IT-T-Staff", deps, NOW);
+    if (!made.ok) throw new Error("fixture");
+    const table = made.value;
+    await owner.insert(table);
+    const visit = await new SupabaseTableSessionGateway(createPublicClient()).join("demo-dinein", table.token); // a guest scans
+    const id = visit!.sessionId;
+
+    // Every role reads it (the cashier bills by table); unknown ids and junk are simply not there.
+    for (const email of ["waiter@demo-dinein.test", "cashier@demo-dinein.test", "owner@demo-dinein.test"]) {
+      const found = await (await sessionsFor(email)).findWithTables(GRILL, [id, id, crypto.randomUUID() as TableSessionId, "junk" as TableSessionId]);
+      expect(found).toHaveLength(1);
+      expect(found[0]).toMatchObject({ tableLabel: "IT-T-Staff", session: { id, restaurantId: GRILL, tableId: table.id, status: "OPEN", endedAt: null } });
+      expect(found[0]!.session.startedAt).toBeInstanceOf(Date);
+    }
+    const waiter = await sessionsFor("waiter@demo-dinein.test");
+    expect(await waiter.findWithTables(GRILL, [])).toEqual([]);
+
+    // Renamed: the current label. Deleted (soft): the label is still there, an old order keeps its table.
+    expect(await owner.update({ ...table, label: "IT-T-Staff 2" })).toBe("OK");
+    expect((await waiter.findWithTables(GRILL, [id]))[0]?.tableLabel).toBe("IT-T-Staff 2");
+    expect(await owner.update({ ...table, label: "IT-T-Staff 2", deletedAt: NOW })).toBe("OK");
+    expect((await waiter.findWithTables(GRILL, [id]))[0]?.tableLabel).toBe("IT-T-Staff 2");
+
+    // Demo Coffee's owner: nothing, whichever restaurant they name.
+    const coffee = await sessionsFor("owner@demo-takeout.test");
+    expect(await coffee.findWithTables(GRILL, [id])).toEqual([]);
+    expect(await coffee.findWithTables(COFFEE, [id])).toEqual([]);
+    // A visitor who is not signed in has no access to the table at all: the database refuses outright.
+    await expect(new SupabaseTableSessionRepository(createPublicClient()).findWithTables(GRILL, [id])).rejects.toThrow(/permission denied/);
+    // Naming the wrong restaurant finds nothing even for its own staff.
+    expect(await waiter.findWithTables(COFFEE, [id])).toEqual([]);
   });
 
   it("knows the seeded demo tables: Demo Grill's scan works, Demo Coffee (dine-in off) refuses", async () => {

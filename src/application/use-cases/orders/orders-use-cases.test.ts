@@ -12,7 +12,9 @@ import { createOption, createOptionGroup, type MenuOption, type OptionGroup } fr
 import { ORDER_FLOW, type Order, type OrderId, type OrderStatus, type TableSessionId } from "@/domain/order/order";
 import type { RestaurantId } from "@/domain/restaurant/restaurant";
 import type { Role } from "@/domain/restaurant/role";
-import { makeGetStaffOrders } from "./get-staff-orders";
+import type { SessionAtTable, TableSessionRepository } from "@/application/ports/table-session-repository";
+import type { TableId } from "@/domain/table-session/table-session";
+import { makeGetStaffOrderList } from "./get-staff-order-list";
 import { makeMoveOrderStatus } from "./move-order-status";
 import { makeFindPlacedOrder, makePlaceOrder } from "./place-order";
 
@@ -345,28 +347,92 @@ describe("moveOrderStatus", () => {
   });
 });
 
-// ─── getStaffOrders ─────────────────────────────────────────────────────
+// ─── getStaffOrderList (orders with their table) ────────────────────────
 
-describe("getStaffOrders", () => {
-  it("returns the open queue (not COMPLETED) of the actor's restaurant only", async () => {
-    const a = await orderAt("PREPARING");
+const SESSION_2 = "33333333-3333-4000-8000-000000000033" as TableSessionId;
+
+/** A visit at a table, started a given number of minutes before NOW. */
+function visit(id: TableSessionId, label: string, over: Partial<SessionAtTable["session"]> & { minutesAgo?: number } = {}): SessionAtTable {
+  const { minutesAgo = 10, ...rest } = over;
+  return {
+    tableLabel: label,
+    session: {
+      id,
+      restaurantId: R,
+      tableId: `table-${label}` as TableId,
+      status: "OPEN",
+      startedAt: new Date(NOW.getTime() - minutesAgo * 60_000),
+      endedAt: null,
+      ...rest,
+    },
+  };
+}
+function fakeSessions(visits: SessionAtTable[]) {
+  const asked: { restaurantId: string; sessionIds: string[] }[] = [];
+  const repo: TableSessionRepository = {
+    findWithTables: async (restaurantId, sessionIds) => {
+      asked.push({ restaurantId, sessionIds: [...sessionIds] });
+      return visits.filter((v) => sessionIds.includes(v.session.id));
+    },
+  };
+  return { repo, asked };
+}
+
+describe("getStaffOrderList", () => {
+  it("gives every order in the open queue its table, asking once for all the tables", async () => {
+    const first = await orderAt("NEW");
+    const second = await orderAt("PREPARING");
+    const elsewhere = await orderAt("READY");
     const done = await orderAt("COMPLETED");
     const foreign = await orderAt("NEW", OTHER);
-    const all = fakeOrders([...a.state.orders, ...done.state.orders, ...foreign.state.orders]);
-    const get = makeGetStaffOrders({ orders: all.repo });
+    const orders = fakeOrders([
+      ...first.state.orders,
+      ...second.state.orders, // same table as the first
+      ...elsewhere.state.orders.map((o) => ({ ...o, sessionId: SESSION_2 })),
+      ...done.state.orders,
+      ...foreign.state.orders,
+    ]);
+    const sessions = fakeSessions([visit(SESSION, "7"), visit(SESSION_2, "Terrace", { status: "PAYMENT_REQUESTED" })]);
+    const list = await makeGetStaffOrderList({ orders: orders.repo, sessions: sessions.repo, clock })(actor("WAITER"));
 
-    const open = await get(actor("CASHIER"));
-    expect(open.map((o) => o.status)).toEqual(["PREPARING"]);
-    expect(open.every((o) => o.restaurantId === R)).toBe(true);
+    expect(list.map((e) => [e.order.status, e.table?.label, e.table?.sessionStatus])).toEqual([
+      ["NEW", "7", "OPEN"],
+      ["PREPARING", "7", "OPEN"],
+      ["READY", "Terrace", "PAYMENT_REQUESTED"],
+    ]);
+    expect(list.map((e) => e.table?.sessionId)).toEqual([SESSION, SESSION, SESSION_2]);
+    expect(sessions.asked).toEqual([{ restaurantId: R, sessionIds: [SESSION, SESSION_2] }]); // one lookup, each table once
   });
 
-  it("returns one table session's orders, completed ones included", async () => {
+  it("shows a visit that ran out of time as CLOSED, whatever its stored status says", async () => {
+    const a = await orderAt("SERVED");
+    const sessions = fakeSessions([visit(SESSION, "7", { minutesAgo: 121 })]); // stored as OPEN, started over 2 hours ago
+    const [entry] = await makeGetStaffOrderList({ orders: fakeOrders(a.state.orders).repo, sessions: sessions.repo, clock })(actor("CASHIER"));
+    expect(entry?.table).toEqual({ sessionId: SESSION, label: "7", sessionStatus: "CLOSED" });
+  });
+
+  it("returns one table session's orders (the running bill), completed ones included", async () => {
     const a = await orderAt("SERVED");
     const done = await orderAt("COMPLETED");
-    const all = fakeOrders([...a.state.orders, ...done.state.orders]);
-    const orders = await makeGetStaffOrders({ orders: all.repo })(actor("WAITER"), { sessionId: SESSION });
-    expect(orders.map((o) => o.status)).toEqual(["SERVED", "COMPLETED"]);
-    expect(await makeGetStaffOrders({ orders: all.repo })(actor("WAITER"), { sessionId: "other" as TableSessionId })).toEqual([]);
+    const deps = { orders: fakeOrders([...a.state.orders, ...done.state.orders]).repo, sessions: fakeSessions([visit(SESSION, "7")]).repo, clock };
+    const bill = await makeGetStaffOrderList(deps)(actor("CASHIER"), { sessionId: SESSION });
+    expect(bill.map((e) => [e.order.status, e.table?.label])).toEqual([["SERVED", "7"], ["COMPLETED", "7"]]);
+    expect(await makeGetStaffOrderList(deps)(actor("CASHIER"), { sessionId: "other" as TableSessionId })).toEqual([]);
+  });
+
+  it("still lists an order whose table cannot be read, and never uses another restaurant's table", async () => {
+    const a = await orderAt("NEW");
+    const orders = fakeOrders(a.state.orders).repo;
+    // The store knows nothing about the visit.
+    expect((await makeGetStaffOrderList({ orders, sessions: fakeSessions([]).repo, clock })(actor("WAITER"))).map((e) => e.table)).toEqual([null]);
+    // The store (wrongly) hands back a visit of another restaurant under the same id.
+    const wrong = fakeSessions([visit(SESSION, "Not ours", { restaurantId: OTHER })]);
+    expect((await makeGetStaffOrderList({ orders, sessions: wrong.repo, clock })(actor("WAITER"))).map((e) => e.table)).toEqual([null]);
+  });
+
+  it("does not ask about tables when there is nothing to show", async () => {
+    const sessions = fakeSessions([visit(SESSION, "7")]);
+    expect(await makeGetStaffOrderList({ orders: fakeOrders().repo, sessions: sessions.repo, clock })(actor("OWNER"))).toEqual([]);
+    expect(sessions.asked).toEqual([]);
   });
 });
-

@@ -32,7 +32,7 @@ import { makeGetBranding } from "@/application/use-cases/branding/get-branding";
 import { makeRemoveRestaurantLogo, makeSetRestaurantLogo } from "@/application/use-cases/branding/set-restaurant-logo";
 import { makeUpdateBranding } from "@/application/use-cases/branding/update-branding";
 import type { BrandingActor } from "@/application/use-cases/branding/shared";
-import { makeGetStaffOrders } from "@/application/use-cases/orders/get-staff-orders";
+import { makeGetStaffOrderList } from "@/application/use-cases/orders/get-staff-order-list";
 import { makeMoveOrderStatus } from "@/application/use-cases/orders/move-order-status";
 import { makeFindPlacedOrder, makePlaceOrder } from "@/application/use-cases/orders/place-order";
 import type { StaffActor } from "@/application/use-cases/permissions";
@@ -63,6 +63,7 @@ import { LOGOS_BUCKET, SupabasePhotoStorage } from "./supabase/supabase-photo-st
 import { SupabasePublicMenuRepository } from "./supabase/supabase-public-menu-repository";
 import { SupabaseTableRepository } from "./supabase/supabase-table-repository";
 import { SupabaseTableSessionGateway } from "./supabase/supabase-table-session-gateway";
+import { SupabaseTableSessionRepository } from "./supabase/supabase-table-session-repository";
 import { SupabaseRestaurantRepository } from "./supabase/supabase-restaurant-repository";
 import { SupabaseSettingsRepository } from "./supabase/supabase-settings-repository";
 
@@ -190,7 +191,8 @@ export const settings = {
 
 /** Staff reads and status changes run as the signed-in user (RLS applies). */
 async function staffOrderDeps() {
-  return { orders: new SupabaseOrderRepository(await createSessionClient()), clock: systemClock };
+  const db = await createSessionClient();
+  return { orders: new SupabaseOrderRepository(db), sessions: new SupabaseTableSessionRepository(db), clock: systemClock };
 }
 
 /** Customers have no account: their side of ordering runs on the server with the service-role client. */
@@ -218,8 +220,9 @@ export const orders = {
     makeFindPlacedOrder({ orders: customerOrderRepository().orders })(...args),
   moveStatus: async (...args: Parameters<ReturnType<typeof makeMoveOrderStatus>>) =>
     makeMoveOrderStatus(await staffOrderDeps())(...args),
-  getForStaff: async (actor: StaffActor, query?: Parameters<ReturnType<typeof makeGetStaffOrders>>[1]) =>
-    makeGetStaffOrders(await staffOrderDeps())(actor, query),
+  /** The staff order screen's data: the open queue, or one table session's orders, each with its table. */
+  getForStaff: async (actor: StaffActor, query?: Parameters<ReturnType<typeof makeGetStaffOrderList>>[1]) =>
+    makeGetStaffOrderList(await staffOrderDeps())(actor, query),
 };
 
 // ─── Branding (owner) ───────────────────────────────────────────────────

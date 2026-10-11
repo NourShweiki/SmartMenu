@@ -8,12 +8,13 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import type { MenuItemId } from "@/domain/menu/menu";
 import type { OrderId, TableSessionId } from "@/domain/order/order";
 import type { RestaurantId } from "@/domain/restaurant/restaurant";
-import { makeGetStaffOrders } from "@/application/use-cases/orders/get-staff-orders";
+import { makeGetStaffOrderList } from "@/application/use-cases/orders/get-staff-order-list";
 import { makeMoveOrderStatus } from "@/application/use-cases/orders/move-order-status";
 import { makePlaceOrder } from "@/application/use-cases/orders/place-order";
 import { createPublicClient, createServiceClient } from "./client";
 import { SupabaseOrderRepository } from "./supabase-order-repository";
 import { SupabaseOrderingCatalog } from "./supabase-ordering-catalog";
+import { SupabaseTableSessionRepository } from "./supabase-table-session-repository";
 
 const GRILL = "11111111-1111-4000-8000-000000000001" as RestaurantId;
 const PASSWORD = "smartmenu-demo-2026"; // supabase/seed.sql
@@ -23,12 +24,13 @@ const SESSION = "c0ffee00-0000-4000-8000-0000000000aa" as TableSessionId;
 const IT_TABLE = "c0ffee00-0000-4000-8000-0000000000ab";
 const enabled = !!process.env.NEXT_PUBLIC_SUPABASE_URL && !!process.env.SUPABASE_SERVICE_ROLE_KEY;
 
-async function staffRepo(email: string) {
+async function staffClient(email: string) {
   const db = createPublicClient();
   const { error } = await db.auth.signInWithPassword({ email, password: PASSWORD });
   if (error) throw error;
-  return new SupabaseOrderRepository(db);
+  return db;
 }
+const staffRepo = async (email: string) => new SupabaseOrderRepository(await staffClient(email));
 
 describe.skipIf(!enabled)("orders against local Supabase", () => {
   const service = enabled ? createServiceClient() : (undefined as never);
@@ -105,12 +107,21 @@ describe.skipIf(!enabled)("orders against local Supabase", () => {
     expect(await waiterRepo.updateStatus(GRILL, order.id, "SERVED", "COMPLETED")).toBe(false);
 
     // Cashier: reads, cannot move earlier steps (database rule), completes the SERVED order.
-    const cashierRepo = await staffRepo("cashier@demo-dinein.test");
-    expect((await makeGetStaffOrders({ orders: cashierRepo })({ restaurantId: GRILL, role: "CASHIER" })).map((o) => o.id)).toContain(order.id);
+    const cashierDb = await staffClient("cashier@demo-dinein.test");
+    const cashierRepo = new SupabaseOrderRepository(cashierDb);
+    // The staff order list (what the order screen will show): the order is in the open queue WITH its table.
+    const cashierList = makeGetStaffOrderList({ orders: cashierRepo, sessions: new SupabaseTableSessionRepository(cashierDb), clock });
+    const queue = await cashierList({ restaurantId: GRILL, role: "CASHIER" });
+    expect(queue.find((e) => e.order.id === order.id)?.table).toEqual({ sessionId: SESSION, label: "IT-orders", sessionStatus: "OPEN" });
+    expect(queue.every((e) => e.order.restaurantId === GRILL && e.table !== null)).toBe(true);
     const done = await makeMoveOrderStatus({ orders: cashierRepo, clock })({ restaurantId: GRILL, role: "CASHIER" }, { orderId: order.id, to: "COMPLETED" });
     if (!done.ok) throw new Error(JSON.stringify(done.error));
     expect((await cashierRepo.findById(GRILL, order.id))!.status).toBe("COMPLETED");
     expect((await waiterRepo.listOpen(GRILL)).map((o) => o.id)).not.toContain(order.id); // no longer in the open queue
+    // ...but still on the table's bill, where completed orders stay.
+    expect((await cashierList({ restaurantId: GRILL, role: "CASHIER" }, { sessionId: SESSION })).map((e) => [e.order.id, e.order.status, e.table?.label])).toEqual([
+      [order.id, "COMPLETED", "IT-orders"],
+    ]);
     expect(await cashierRepo.updateStatus(GRILL, order.id, "COMPLETED", "NEW")).toBe(false); // cannot go back
   });
 

@@ -3,6 +3,7 @@ import type { RestaurantId } from "@/domain/restaurant/restaurant";
 import { can } from "@/domain/restaurant/role";
 import {
   acceptsOrders,
+  effectiveSessionStatus,
   isSessionExpired,
   SESSION_MAX_AGE_HOURS,
   createTable,
@@ -166,5 +167,24 @@ describe("sessions", () => {
     expect(can("WAITER", permissionToMoveSessionTo("CLOSED"))).toBe(false);
     expect(can("CASHIER", permissionToMoveSessionTo("CLOSED"))).toBe(true);
     expect(can("CASHIER", permissionToMoveSessionTo("PAYMENT_REQUESTED"))).toBe(false);
+  });
+});
+
+describe("effectiveSessionStatus", () => {
+  const start = new Date("2026-10-10T18:00:00Z");
+  const after = (minutes: number) => new Date(start.getTime() + minutes * 60_000);
+
+  it("is the stored status while the visit is within its two hours", () => {
+    for (const status of ["OPEN", "PAYMENT_REQUESTED", "CLOSED"] as const) {
+      expect(effectiveSessionStatus({ status, startedAt: start }, after(0))).toBe(status);
+      expect(effectiveSessionStatus({ status, startedAt: start }, after(119))).toBe(status);
+    }
+  });
+
+  it("is CLOSED once the two hours are over, also for a visit nobody closed", () => {
+    for (const status of ["OPEN", "PAYMENT_REQUESTED", "CLOSED"] as const) {
+      expect(effectiveSessionStatus({ status, startedAt: start }, after(120))).toBe("CLOSED");
+      expect(effectiveSessionStatus({ status, startedAt: start }, after(600))).toBe("CLOSED");
+    }
   });
 });

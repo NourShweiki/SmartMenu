@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import { newTableToken } from "../random-token";
 import { toPublicSession } from "./supabase-table-session-gateway";
 import { toTable, type TableRow } from "./supabase-table-repository";
+import { toSessionAtTable, type SessionAtTableRow } from "./supabase-table-session-repository";
 import { TOKEN_PATTERN } from "@/domain/table-session/table-session";
 
 const row: TableRow = {
@@ -51,5 +52,39 @@ describe("newTableToken", () => {
     for (const token of tokens) expect(token).toMatch(TOKEN_PATTERN);
     expect(new Set(tokens).size).toBe(200);
     expect(tokens[0]!.length).toBeGreaterThanOrEqual(22);
+  });
+});
+
+describe("toSessionAtTable", () => {
+  const sessionRow: SessionAtTableRow = {
+    id: "bbbbbbbb-7c7c-4000-8000-000000000001",
+    restaurant_id: "11111111-1111-4000-8000-000000000001",
+    table_id: row.id,
+    status: "PAYMENT_REQUESTED",
+    started_at: "2026-10-10T18:00:00.000Z",
+    ended_at: null,
+    restaurant_tables: { label: "Terrace 2" },
+  };
+
+  it("maps a visit and the label of its table", () => {
+    expect(toSessionAtTable(sessionRow)).toEqual({
+      tableLabel: "Terrace 2",
+      session: {
+        id: sessionRow.id,
+        restaurantId: sessionRow.restaurant_id,
+        tableId: row.id,
+        status: "PAYMENT_REQUESTED",
+        startedAt: new Date("2026-10-10T18:00:00.000Z"),
+        endedAt: null,
+      },
+    });
+    expect(toSessionAtTable({ ...sessionRow, status: "CLOSED", ended_at: "2026-10-10T19:30:00.000Z" })?.session).toMatchObject({
+      status: "CLOSED",
+      endedAt: new Date("2026-10-10T19:30:00.000Z"),
+    });
+  });
+
+  it("gives nothing for a visit that came without its table", () => {
+    expect(toSessionAtTable({ ...sessionRow, restaurant_tables: null })).toBeNull();
   });
 });
