@@ -52,6 +52,12 @@ export default async function removeTestLeftovers(): Promise<void> {
     await db.from("table_sessions").delete().in("id", batch);
   }
 
+  // Menu items and categories the import tests added to the demo menus ("E2E ..."): items first, then categories.
+  const { error: itemError } = await db.from("menu_items").delete().like("name_en", "E2E %");
+  if (itemError) throw new Error(`cleaning test menu items: ${itemError.message}`);
+  const { error: categoryError } = await db.from("menu_categories").delete().like("name_en", "E2E %");
+  if (categoryError) throw new Error(`cleaning test menu categories: ${categoryError.message}`);
+
   // Restaurants the setup-tool tests created (address "e2e-...") with everything that hangs off them, and the owner
   // accounts made for them ("e2e-...@test.local"). No screen deletes a restaurant, so this is the only way out.
   const { error: restaurantError } = await db.from("restaurants").delete().like("slug", "e2e-%");

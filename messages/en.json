@@ -106,7 +106,8 @@
     "addCategory": "Add category",
     "optionGroups": "Option groups",
     "moveUp": "Move up",
-    "moveDown": "Move down"
+    "moveDown": "Move down",
+    "import": "Import from a spreadsheet"
   },
   "ItemForm": {
     "titleNew": "New item",
@@ -618,6 +619,59 @@
       "self": "You cannot change or remove yourself.",
       "owner": "Owners cannot be changed from this screen.",
       "notResettable": "This person's password cannot be reset from here."
+    }
+  },
+  "MenuImport": {
+    "title": "Import the menu from a spreadsheet",
+    "back": "Menu",
+    "howTo": "Type the menu into a spreadsheet (Excel or Google Sheets), one item per row, save it as a CSV file, and upload it here. You see a preview first; nothing is added until you press Import.",
+    "columnsIntro": "The first row holds the column names:",
+    "rules": {
+      "names": "Every item needs its category and its name in English and in Arabic. The two description columns are optional.",
+      "price": "Prices are in JD, for example 4.5 or 4.500.",
+      "existing": "A category that already exists is used; a new one is created. An item that is already in its category is skipped, so the same file can be imported again.",
+      "limit": "Up to {max} rows per file.",
+      "csv": "In Excel, choose the file type \"CSV UTF-8\" when saving, so Arabic text arrives intact."
+    },
+    "template": "Download a template to start from",
+    "file": "CSV file",
+    "check": "Check the file",
+    "checking": "Checking…",
+    "previewTitle": "Preview ({count} rows)",
+    "allGood": "Every row is fine.",
+    "import": "Import {count} rows",
+    "importing": "Importing…",
+    "fixFirst": "{count, plural, one {# row has} other {# rows have}} a problem. Correct the file and upload it again; nothing was imported.",
+    "imported": "{items, plural, one {# item} other {# items}} added, {categories, plural, =0 {no new category} one {# new category} other {# new categories}}.",
+    "skipped": "{count, plural, one {# item was} other {# items were}} already on the menu and left as they are.",
+    "toMenu": "See the menu",
+    "columns": {
+      "line": "Line",
+      "category": "Category",
+      "item": "Item",
+      "price": "Price",
+      "problems": "Problem"
+    },
+    "rowProblems": {
+      "categoryEn": "category in English missing",
+      "categoryAr": "category in Arabic missing",
+      "nameEn": "name in English missing",
+      "nameAr": "name in Arabic missing",
+      "price": "price is not an amount in JD",
+      "tooLong": "a text is too long"
+    },
+    "fileProblems": {
+      "empty": "Choose a CSV file that has rows in it.",
+      "tooBig": "This file is too large.",
+      "encoding": "This file is not saved as UTF-8, so its Arabic text cannot be read. In Excel, save it as \"CSV UTF-8\".",
+      "header": "The first row must hold the column names. Missing:",
+      "noRows": "The file has column names but no items.",
+      "tooManyRows": "The file has too many rows. Split it into several files."
+    },
+    "importErrors": {
+      "forbidden": "You are not allowed to change the menu.",
+      "row": "Line {line} was refused by the menu rules (a name or description is too long, or the price is out of range). Nothing was imported.",
+      "failed": "The import did not work. Nothing may have been added; check the menu and try again."
     }
   }
 }

@@ -58,6 +58,12 @@ export default async function StaffMenuPage({ params }: { params: Promise<{ loca
               + {t("addCategory")}
             </Link>
             <Link
+              href={`/${locale}/staff/menu/import`}
+              className="ms-2 inline-block rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-semibold hover:bg-gray-100"
+            >
+              {t("import")}
+            </Link>
+            <Link
               href={`/${locale}/staff/menu/options`}
               className="ms-2 inline-block rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-semibold hover:bg-gray-100"
             >

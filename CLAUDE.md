@@ -7,10 +7,11 @@ Then read `docs/PROGRESS.md` to see where work stopped (its **START HERE** secti
 - **Phase 6, onboarding tools.** Done: step 1 (the team's setup tool: create a restaurant, owner's temporary password, change / replace / reissue passwords) and step 2 (staff accounts managed by the owner and manager: `/staff/team`).
 - Step 3 (takeout: a pickup visit = a session WITHOUT a table, with the customer's name and mobile number; customers order without a table, staff see "Takeout" in the queue, the cashier does every step) is done too.
 - Step 4 (the owner's setup checklist on the staff dashboard, worked out from what the restaurant has, never stored) is done too.
-- **Now: step 5, menu import from a spreadsheet** (a CSV file: categories and items with both names, descriptions and prices; preview first, then import).
-- After that: menu import by AI from a photo or PDF (needs an AI key and a cost decision from Nour: build up to it, then ask). **Custom domains are postponed to Phase 7 (Nour, 2026-10-12).**
+- Step 5 (menu import from a spreadsheet: `/staff/menu/import`, a CSV file, preview first, then import; an existing item is skipped) is done too.
+- **Now: step 6, menu import by AI from a photo or PDF**: it should produce the same rows and feed the same preview. It needs an AI key and a cost decision from Nour: build up to the key, then ask.
+- After that: Phase 6 is finished (custom domains moved to Phase 7); write Nour the summary of the whole phase. **Custom domains are postponed to Phase 7 (Nour, 2026-10-12).**
 - **Standing instruction for the rest of Phase 6 (Nour, 2026-10-12):** work through the remaining steps part after part WITHOUT waiting for approval between them; after EACH part update the md files, commit and push; keep using mock menu items and prices (no real restaurant yet); when the whole phase is finished, write Nour a summary of everything done and every change, step by step. Still stop and ask for: anything destructive, anything under "Open Questions", and the AI menu import's key and cost.
-- Last verified counts: 454 unit, 42 integration, 417 database (pgTAP), 163 browser tests.
+- Last verified counts: 467 unit, 42 integration, 417 database (pgTAP), 168 browser tests.
 
 ## Skills — load before the matching work
 - `architecture-rules` — before creating/editing any code file or deciding where code goes

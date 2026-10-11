@@ -25,6 +25,7 @@ import { makeDeleteMenuItem } from "@/application/use-cases/menu/delete-menu-ite
 import { makeEditMenuCategory } from "@/application/use-cases/menu/edit-menu-category";
 import { makeEditMenuItem } from "@/application/use-cases/menu/edit-menu-item";
 import { makeGetStaffMenu } from "@/application/use-cases/menu/get-staff-menu";
+import { makeImportMenu } from "@/application/use-cases/menu/import-menu";
 import { makeMoveMenuCategory } from "@/application/use-cases/menu/move-menu-category";
 import { makeMoveMenuItem } from "@/application/use-cases/menu/move-menu-item";
 import { makeSetMenuCategoryHidden } from "@/application/use-cases/menu/set-menu-category-hidden";
@@ -167,6 +168,8 @@ export function menuPhotoUrls(paths: readonly string[]): string[] {
 
 export const menu = {
   getStaffMenu: async (actor: MenuActor) => makeGetStaffMenu(await menuDeps())(actor),
+  /** Many items at once, from a spreadsheet (see makeImportMenu). */
+  importMenu: async (...args: Parameters<ReturnType<typeof makeImportMenu>>) => makeImportMenu(await menuDeps())(...args),
   addCategory: async (...args: Parameters<ReturnType<typeof makeAddMenuCategory>>) =>
     makeAddMenuCategory(await menuDeps())(...args),
   addItem: async (...args: Parameters<ReturnType<typeof makeAddMenuItem>>) => makeAddMenuItem(await menuDeps())(...args),
