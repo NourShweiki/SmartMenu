@@ -5,6 +5,7 @@ import type { RestaurantDirectory } from "@/application/ports/restaurant-directo
 import type { Clock, PasswordGenerator } from "@/application/ports/system";
 import { createRestaurant, type Restaurant, type RestaurantError } from "@/domain/restaurant/restaurant";
 import type { BusinessType } from "@/domain/restaurant/settings";
+import { normalizeEmail } from "@/domain/shared/email";
 import { err, ok, type LocalizedText, type Result } from "@/domain/shared/result";
 import { isUuid } from "@/domain/shared/uuid";
 
@@ -36,8 +37,6 @@ export type CreateRestaurantError =
   | CreateAccountError
   | RestaurantError;
 
-const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-
 /**
  * A founder sets up a new client: the restaurant with the settings of its business type (preset), and its first
  * owner, who gets a sign-in account with a temporary password.
@@ -59,8 +58,8 @@ export function makeCreateRestaurant(deps: {
     if (!(await deps.admins.isAdmin(actorId))) return err({ type: "NOT_A_FOUNDER" });
 
     if (!isUuid(input.id)) return err({ type: "INVALID_ID" });
-    const ownerEmail = input.ownerEmail.trim().toLowerCase();
-    if (ownerEmail.length > 254 || !EMAIL.test(ownerEmail)) return err({ type: "INVALID_EMAIL" });
+    const ownerEmail = normalizeEmail(input.ownerEmail);
+    if (!ownerEmail) return err({ type: "INVALID_EMAIL" });
 
     const draft = createRestaurant(
       { slug: input.slug, name: input.name, businessType: input.businessType },

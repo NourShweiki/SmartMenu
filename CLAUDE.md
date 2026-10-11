@@ -5,9 +5,9 @@ Then read `docs/PROGRESS.md` to see where work stopped (its **START HERE** secti
 
 ## Where the project is (update this block in every iteration)
 - **Phase 6, onboarding tools.** Step 1 (the team's setup tool: create a restaurant, owner's temporary password, change / replace / reissue passwords) is done.
-- **Now: step 2, staff accounts managed by the owner and manager.** Part A (database rules) is done; next is part B (use cases and adapters), then part C (the screen `/staff/team` with browser tests).
+- **Now: step 2, staff accounts managed by the owner and manager.** Parts A (database rules) and B (use cases and adapters: `team.*` in the container) are done; next is part C (the screen `/staff/team` with browser tests).
 - After that: takeout ordering (designed in PROJECT_SPEC.md §4), setup checklist, menu import (spreadsheet, then AI), custom domains.
-- Last verified counts: 397 unit, 38 integration, 375 database (pgTAP), 145 browser tests.
+- Last verified counts: 413 unit, 40 integration, 375 database (pgTAP), 145 browser tests.
 
 ## Skills — load before the matching work
 - `architecture-rules` — before creating/editing any code file or deciding where code goes

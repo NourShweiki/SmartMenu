@@ -44,6 +44,14 @@ import { makeCreateRestaurant } from "@/application/use-cases/platform/create-re
 import { makeGetFounderContext, makeListRestaurants, makeSignInFounder } from "@/application/use-cases/platform/founder-access";
 import { makeIssueTemporaryPassword } from "@/application/use-cases/platform/issue-temporary-password";
 import { makeGetRestaurantSettings } from "@/application/use-cases/settings/get-restaurant-settings";
+import {
+  makeAddStaffMember,
+  makeChangeStaffRole,
+  makeIssueStaffPassword,
+  makeListStaff,
+  makeRemoveStaffMember,
+  type TeamActor,
+} from "@/application/use-cases/staff/staff-use-cases";
 import { makeUpdateRestaurantSettings } from "@/application/use-cases/settings/update-restaurant-settings";
 import type { SettingsActor } from "@/application/use-cases/settings/shared";
 import { makeAddOption } from "@/application/use-cases/menu/options/add-option";
@@ -77,6 +85,7 @@ import { SupabaseTableSessionGateway } from "./supabase/supabase-table-session-g
 import { SupabaseTableSessionRepository } from "./supabase/supabase-table-session-repository";
 import { SupabaseRestaurantRepository } from "./supabase/supabase-restaurant-repository";
 import { SupabaseSettingsRepository } from "./supabase/supabase-settings-repository";
+import { SupabaseStaffAccountPolicy, SupabaseStaffRepository } from "./supabase/supabase-staff-repository";
 
 export { refreshSessionCookies } from "./supabase/client";
 
@@ -306,6 +315,32 @@ export const tableSessions = {
     makeGetSessionOrders({ sessions: new SupabaseTableSessionGateway(createPublicClient()) })(input),
   listOpen: async (actor: StaffActor) => makeGetOpenVisits(await staffOrderDeps())(actor),
   move: async (...args: Parameters<ReturnType<typeof makeMoveTableSession>>) => makeMoveTableSession(await staffOrderDeps())(...args),
+};
+
+// ─── Staff accounts (owner and manager) ─────────────────────────────────
+
+/**
+ * The staff list and every change to it run as the signed-in owner or manager, so the database decides again. Only
+ * making an account and setting a password need the service-role client, and the two account questions asked before
+ * that (may this account be taken on / reset?) are answered by database functions that check the acting person too.
+ */
+async function teamDeps() {
+  const service = createServiceClient();
+  return {
+    staff: new SupabaseStaffRepository(await createSessionClient()),
+    accounts: new SupabaseAccountDirectory(service),
+    policy: new SupabaseStaffAccountPolicy(service),
+    passwords: { newPassword: newTemporaryPassword },
+  };
+}
+
+export const team = {
+  list: async (actor: TeamActor) => makeListStaff(await teamDeps())(actor),
+  add: async (...args: Parameters<ReturnType<typeof makeAddStaffMember>>) => makeAddStaffMember(await teamDeps())(...args),
+  changeRole: async (...args: Parameters<ReturnType<typeof makeChangeStaffRole>>) => makeChangeStaffRole(await teamDeps())(...args),
+  remove: async (...args: Parameters<ReturnType<typeof makeRemoveStaffMember>>) => makeRemoveStaffMember(await teamDeps())(...args),
+  /** A new temporary password for a member (see makeIssueStaffPassword). */
+  issuePassword: async (...args: Parameters<ReturnType<typeof makeIssueStaffPassword>>) => makeIssueStaffPassword(await teamDeps())(...args),
 };
 
 // ─── Platform (the founders' setup tool) ────────────────────────────────

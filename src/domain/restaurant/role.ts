@@ -39,6 +39,17 @@ export function can(role: Role, permission: Permission): boolean {
   return ROLE_PERMISSIONS[role].includes(permission);
 }
 
+/**
+ * The roles an owner or manager can give from the staff screen. OWNER is not one of them: owners are created by the
+ * founders (decided 2026-10-12).
+ */
+export const ASSIGNABLE_ROLES = ["MANAGER", "WAITER", "CASHIER"] as const;
+export type AssignableRole = (typeof ASSIGNABLE_ROLES)[number];
+
+export function isAssignableRole(value: string): value is AssignableRole {
+  return (ASSIGNABLE_ROLES as readonly string[]).includes(value);
+}
+
 export function isRole(value: string): value is Role {
   return (ROLES as readonly string[]).includes(value);
 }

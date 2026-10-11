@@ -21,7 +21,7 @@ One codebase serves every restaurant (multi-tenant). Each restaurant lives on it
 | 3 | Menu & owner portal | ✅ Done |
 | 4 | Customer ordering (menu, cart, dine-in QR, takeout) | ✅ Dine-in done · takeout is designed and gets built inside Phase 6 |
 | 5 | Staff order screen (live orders, sound alert, order-ready notice) | ✅ Done (SMS left out for now, on purpose) |
-| 6 | Onboarding tools (setup tool, staff accounts, takeout, checklist, menu import, custom domains) | 🟡 In progress: step 1 of 7 done (the team's setup tool, with passwords); step 2 (staff accounts) has its database rules |
+| 6 | Onboarding tools (setup tool, staff accounts, takeout, checklist, menu import, custom domains) | 🟡 In progress: step 1 of 7 done (the team's setup tool, with passwords); step 2 (staff accounts): rules and logic built and tested, the screen is next |
 | 7 | Installable app (PWA) & push notifications | ⬜ Not started |
 | 8 | Hardening (security review, load tests, monitoring, backups) | ⬜ Not started |
 | 9–10 | Pilot restaurant, launch | ⬜ Not started |
@@ -65,7 +65,7 @@ One codebase serves every restaurant (multi-tenant). Each restaurant lives on it
 - The phone only sends what is in the cart. The restaurant, the table, the prices and the rates all come from the server's own side.
 
 #### Quality
-- **Automated tests:** 397 unit tests, 38 integration tests against a real local database, 375 database security tests (tenant isolation, roles, privileges), and 145 end-to-end tests that drive a real browser through both demo restaurants in English and Arabic.
+- **Automated tests:** 413 unit tests, 40 integration tests against a real local database, 375 database security tests (tenant isolation, roles, privileges), and 145 end-to-end tests that drive a real browser through both demo restaurants in English and Arabic.
 - The browser tests build the app for production and start that build themselves, so they check the code in the form users get; they remove everything they create.
 - **CI** runs typecheck, lint (including the architecture-layer import rules), unit tests and a production build on every push. Database, integration and browser tests run locally (CI has no database yet).
 
@@ -73,7 +73,7 @@ One codebase serves every restaurant (multi-tenant). Each restaurant lives on it
 
 - **Phase 6 (in progress): onboarding a new restaurant in under a day.** In this order:
   1. ~~the team's setup tool: create a restaurant with its first owner, change passwords, replace a temporary password at first sign-in, issue a new temporary password~~ ✅
-  2. **in progress:** staff accounts managed by the owner and the manager. The rules are decided and the database part is built; the logic and the screen come next, so today a restaurant's other staff can still only be added in the database. The rules:
+  2. **in progress:** staff accounts managed by the owner and the manager. The rules are decided, and the database part and the logic behind it are built and tested against a real database (adding a member with a temporary password, changing a role, removing, re-hiring, a new temporary password). Only the screen is missing, so today a restaurant's other staff can still only be added in the database. The rules:
      - the owner and the manager add managers, waiters and cashiers, each with a temporary password; owners are created by the SmartMenu team
      - nobody can change or remove themselves, and a restaurant always keeps at least one owner
      - an email that is in use at another restaurant is refused; somebody who was removed can be hired again
