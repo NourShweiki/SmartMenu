@@ -42,6 +42,17 @@ export default async function StaffHomePage({ params }: { params: Promise<{ loca
         </Link>
 
         <Link
+          href={`/${locale}/staff/open-tables`}
+          className="flex items-center justify-between rounded-2xl bg-white p-6 shadow-sm ring-1 ring-gray-200 hover:ring-gray-400"
+        >
+          <span>
+            <span className="block text-lg font-semibold">{t("openTablesLink")}</span>
+            <span className="block text-sm text-gray-500">{t("openTablesLinkHint")}</span>
+          </span>
+          <span aria-hidden className="inline-block text-xl text-gray-400 rtl:-scale-x-100">→</span>
+        </Link>
+
+        <Link
           href={`/${locale}/staff/menu`}
           className="flex items-center justify-between rounded-2xl bg-white p-6 shadow-sm ring-1 ring-gray-200 hover:ring-gray-400"
         >

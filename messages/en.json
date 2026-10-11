@@ -35,7 +35,9 @@
     "tablesLink": "Tables and QR codes",
     "tablesLinkHint": "Add tables and print their QR codes",
     "ordersLink": "Orders",
-    "ordersLinkHint": "Incoming orders and their status"
+    "ordersLinkHint": "Incoming orders and their status",
+    "openTablesLink": "Open tables",
+    "openTablesLinkHint": "Bills, ready to pay, and closing a table"
   },
   "Settings": {
     "title": "Restaurant settings",
@@ -412,5 +414,31 @@
       "paymentRequested": "Bill requested",
       "ended": "Visit ended"
     }
+  },
+  "OpenTables": {
+    "title": "Open tables",
+    "back": "Staff dashboard",
+    "refresh": "Refresh",
+    "hint": "Tables with guests, oldest first, each with its running bill.",
+    "empty": "No open tables right now.",
+    "table": "Table {label}",
+    "since": "Since <time></time>",
+    "state": {
+      "open": "Open",
+      "paymentRequested": "Bill requested",
+      "timedOut": "Time is up"
+    },
+    "timedOutHint": "This visit passed the 2-hour limit: guests can no longer order here. Close it once its orders are settled.",
+    "noOrders": "No orders yet.",
+    "order": "Order {number}",
+    "subtotal": "Subtotal",
+    "service": "Service charge",
+    "tax": "Tax",
+    "total": "Total",
+    "requestPayment": "Ready to pay",
+    "close": "Close table",
+    "closeConfirm": "Close table {label}? The visit ends, and the next scan of its code starts a new one.",
+    "unfinished": "{count, plural, one {# order is not completed yet. Complete it before closing.} other {# orders are not completed yet. Complete them before closing.}}",
+    "goToOrders": "Go to orders"
   }
 }

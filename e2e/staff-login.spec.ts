@@ -38,8 +38,10 @@ for (const site of ALL_SITES) {
       await expect(page).toHaveURL(new RegExp(`/${locale}/staff/login$`));
       await page.goto(`${site.origin}/${locale}/staff/menu`);
       await expect(page).toHaveURL(new RegExp(`/${locale}/staff/login$`));
-      await page.goto(`${site.origin}/${locale}/staff/orders`);
-      await expect(page).toHaveURL(new RegExp(`/${locale}/staff/login$`));
+      for (const screen of ["orders", "open-tables"]) {
+        await page.goto(`${site.origin}/${locale}/staff/${screen}`);
+        await expect(page).toHaveURL(new RegExp(`/${locale}/staff/login$`));
+      }
     });
   }
 }
