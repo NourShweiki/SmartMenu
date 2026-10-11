@@ -1,7 +1,7 @@
 import { expect, test } from "@playwright/test";
 import { placeAnOrder } from "./support/cart";
 import { jd, LOCALES, SITES, t } from "./support/demo";
-import { orderCard as card, ORDERS, refresh, staffAt, takeOrderThrough } from "./support/staff";
+import { cancelButton, cancelOrderOn, orderCard as card, ORDERS, refresh, staffAt, tableCard, takeOrderThrough } from "./support/staff";
 import { addTable, guest, openTables, removeTable, scanUrl, tableLabel, tableRow } from "./support/tables";
 
 // The staff order screen. A guest places a real order at a table the test made, and staff move it along.
@@ -58,6 +58,48 @@ for (const locale of LOCALES) {
     }
   });
 
+  test(`grill /${locale}: the waiter cancels a new order with a reason; it leaves the queue, is crossed out at zero on the bill, and the table can be closed`, async ({ page, browser }) => {
+    const site = SITES.grill;
+    const m = site.menu.simple;
+    const name = tableLabel();
+    await openTables(page, site, "en");
+    try {
+      await addTable(page, "en", name);
+      const g = await guest(browser);
+      await g.page.goto(await scanUrl(tableRow(page, "en", name)));
+      await g.page.goto(`${site.origin}/${locale}/menu`);
+      const number = await placeAnOrder(g.page, locale, m[locale]);
+      await g.context.close();
+
+      const waiter = await staffAt(browser, site, site.waiter, locale, ORDERS);
+      const mine = card(waiter.page, locale, number);
+      // The first press only opens the question; "Keep the order" closes it again and nothing happened.
+      await cancelButton(waiter.page, locale, number).click();
+      await expect(mine.getByLabel(t(locale, "StaffOrders.cancel.reasonLabel"))).toBeVisible();
+      await mine.getByRole("button", { name: t(locale, "StaffOrders.cancel.keep"), exact: true }).click();
+      await expect(mine.getByLabel(t(locale, "StaffOrders.cancel.reasonLabel"))).toHaveCount(0);
+      await expect(mine).toContainText(t(locale, "StaffOrders.status.NEW"));
+      // With a reason, it is cancelled and leaves the queue.
+      await cancelOrderOn(waiter.page, locale, number, "ITEM_UNAVAILABLE");
+      await refresh(waiter.page, locale, ORDERS);
+      await expect(mine).toHaveCount(0);
+      await waiter.context.close();
+
+      // On the table's bill the order is still listed, as cancelled, and nothing is owed.
+      await page.goto(`${site.origin}/${locale}/staff/open-tables`); // the owner, signed in on this page
+      const table = tableCard(page, locale, name);
+      await expect(table).toContainText(t(locale, "OpenTables.order", { number }));
+      await expect(table).toContainText(t(locale, "StaffOrders.status.CANCELLED"));
+      await expect(table.locator("dl")).toContainText(jd(0, locale));
+      await expect(table.locator("dl")).not.toContainText(jd(m.one.total, locale));
+      // Nothing unfinished is left: the table can be closed ("are you sure?" is answered yes on the owner's page).
+      await table.getByRole("button", { name: t(locale, "OpenTables.close"), exact: true }).click();
+      await expect(table).toHaveCount(0);
+    } finally {
+      await removeTable(page, site, "en", name);
+    }
+  });
+
   test(`coffee /${locale}: the order screen is there and empty (no table ordering at Demo Coffee)`, async ({ browser }) => {
     const site = SITES.coffee;
     const owner = await staffAt(browser, site, site.owner, locale, ORDERS);
@@ -82,6 +124,44 @@ test("the owner can take an order through every step alone, including completing
 
     await page.goto(`${site.origin}/en/staff/orders`); // the owner is signed in on this page already
     await takeOrderThrough(page, "en", number, ["CONFIRMED", "PREPARING", "READY", "SERVED", "COMPLETED"]);
+  } finally {
+    await removeTable(page, site, "en", name);
+  }
+});
+
+test("who may cancel: the cashier never, the waiter only before the kitchen starts, the owner also after", async ({ page, browser }) => {
+  const site = SITES.grill;
+  const name = tableLabel();
+  await openTables(page, site, "en");
+  try {
+    await addTable(page, "en", name);
+    const g = await guest(browser);
+    await g.page.goto(await scanUrl(tableRow(page, "en", name)));
+    await g.page.goto(`${site.origin}/en/menu`);
+    const number = await placeAnOrder(g.page, "en", site.menu.simple.en);
+    await g.context.close();
+
+    const cashier = await staffAt(browser, site, site.cashier, "en", ORDERS);
+    await expect(card(cashier.page, "en", number)).toBeVisible();
+    await expect(cancelButton(cashier.page, "en", number)).toHaveCount(0);
+    await cashier.context.close();
+
+    const waiter = await staffAt(browser, site, site.waiter, "en", ORDERS);
+    await expect(cancelButton(waiter.page, "en", number)).toBeVisible(); // new
+    await takeOrderThrough(waiter.page, "en", number, ["CONFIRMED"]);
+    await expect(cancelButton(waiter.page, "en", number)).toBeVisible(); // confirmed: still before the kitchen
+    await takeOrderThrough(waiter.page, "en", number, ["PREPARING"]);
+    await expect(cancelButton(waiter.page, "en", number)).toHaveCount(0); // the kitchen has started
+    await waiter.context.close();
+
+    await page.goto(`${site.origin}/en/staff/orders`); // the owner
+    await expect(card(page, "en", number)).toContainText(t("en", "StaffOrders.status.PREPARING"));
+    await cancelOrderOn(page, "en", number, "MISTAKE");
+
+    // Tidy up: the table has nothing unfinished now, close its visit.
+    await page.goto(`${site.origin}/en/staff/open-tables`);
+    await tableCard(page, "en", name).getByRole("button", { name: t("en", "OpenTables.close"), exact: true }).click();
+    await expect(tableCard(page, "en", name)).toHaveCount(0);
   } finally {
     await removeTable(page, site, "en", name);
   }

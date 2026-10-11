@@ -6,6 +6,7 @@ import { orders } from "@/infrastructure/container";
 import { DEFAULT_LOCALE, isLocale } from "@/interface/web/i18n/locales";
 import { requireStaff } from "./require-staff";
 
+// Moving along the flow only: cancelling is its own action below, never a "status" a form can name.
 const isStatus = (value: string): value is OrderStatus => (ORDER_FLOW as readonly string[]).includes(value);
 
 /**
@@ -21,6 +22,21 @@ export async function moveOrderAction(locale: string, orderId: string, to: strin
   const { staff } = await requireStaff(l);
   if (isStatus(to)) {
     await orders.moveStatus({ restaurantId: staff.restaurantId, role: staff.role }, { orderId: orderId as OrderId, to });
+  }
+  revalidatePath(`/${l}/staff/orders`);
+}
+
+/**
+ * "Cancel order" with its reason. Same rules as the status buttons: only WHICH order and WHY come from the form;
+ * who may cancel what is decided by the use case and again by the database. Returns nothing: the cancelled order
+ * leaves the queue; an order that could not be cancelled stays, in its real state.
+ */
+export async function cancelOrderAction(locale: string, orderId: string, form: FormData): Promise<void> {
+  const l = isLocale(locale) ? locale : DEFAULT_LOCALE;
+  const { staff } = await requireStaff(l);
+  const reason = form.get("reason");
+  if (typeof reason === "string") {
+    await orders.cancel({ restaurantId: staff.restaurantId, role: staff.role }, { orderId: orderId as OrderId, reason });
   }
   revalidatePath(`/${l}/staff/orders`);
 }

@@ -45,8 +45,20 @@ describe("buildOrderQueue", () => {
         totalFils: 7656,
         next: "CONFIRMED",
         waitingFor: null,
+        canCancel: true,
       },
     ]);
+  });
+
+  it("offers Cancel to the waiter before the kitchen starts, to owner and manager until completed, never to the cashier", () => {
+    const statuses = ["NEW", "CONFIRMED", "PREPARING", "READY", "SERVED", "COMPLETED"] as const;
+    const offered = (role: (typeof ROLES)[number]) => buildOrderQueue(statuses.map((s, i) => entry(i, s)), role).live.map((o) => o.canCancel);
+    expect(offered("WAITER")).toEqual([true, true, false, false, false, false]);
+    expect(offered("OWNER")).toEqual([true, true, true, true, true, false]);
+    expect(offered("MANAGER")).toEqual([true, true, true, true, true, false]);
+    expect(offered("CASHIER")).toEqual([false, false, false, false, false, false]);
+    // Leftover orders of visits that are over can be cancelled the same way: that is how they get settled.
+    expect(buildOrderQueue([entry(1, "NEW", "CLOSED")], "WAITER").ended.map((o) => o.canCancel)).toEqual([true]);
   });
 
   it("gives each role exactly its own button: the floor up to SERVED, the cashier only COMPLETED, owner and manager both", () => {

@@ -49,3 +49,16 @@ export async function takeOrderThrough(page: Page, locale: Locale, number: numbe
     else await expect(card).toContainText(t(locale, `StaffOrders.status.${step}`));
   }
 }
+
+export type CancelReason = "GUEST_CHANGED_MIND" | "ITEM_UNAVAILABLE" | "MISTAKE" | "OTHER";
+export const cancelButton = (page: Page, locale: Locale, number: number) =>
+  orderCard(page, locale, number).getByRole("button", { name: t(locale, "StaffOrders.cancel.open"), exact: true });
+
+/** On the order screen: opens "Cancel order" on a card, picks the reason and confirms; the order leaves the queue. */
+export async function cancelOrderOn(page: Page, locale: Locale, number: number, reason: CancelReason) {
+  const card = orderCard(page, locale, number);
+  await cancelButton(page, locale, number).click();
+  await card.getByLabel(t(locale, "StaffOrders.cancel.reasonLabel")).selectOption({ label: t(locale, `StaffOrders.cancel.reasons.${reason}`) });
+  await card.getByRole("button", { name: t(locale, "StaffOrders.cancel.confirm"), exact: true }).click();
+  await expect(card).toHaveCount(0);
+}

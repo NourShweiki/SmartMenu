@@ -65,15 +65,19 @@ export async function OpenTablesView({ locale, tables }: { locale: Locale; table
           ) : (
             <>
               <ul className="divide-y divide-gray-100">
-                {table.orders.map((order) => (
-                  <li key={order.id} className="flex flex-wrap items-center justify-between gap-2 py-2">
-                    <span className="flex flex-wrap items-center gap-2">
-                      <bdi className="font-semibold">{t("order", { number: order.number })}</bdi>
-                      <span className="text-sm text-gray-600">{orderText(`status.${order.status}`)}</span>
-                    </span>
-                    <bdi className="tabular-nums">{formatPrice(order.totalFils, locale)}</bdi>
-                  </li>
-                ))}
+                {table.orders.map((order) => {
+                  // A cancelled order stays on the list, crossed out: its amount is not part of the bill below.
+                  const cancelled = order.status === "CANCELLED";
+                  return (
+                    <li key={order.id} className={`flex flex-wrap items-center justify-between gap-2 py-2 ${cancelled ? "text-gray-400" : ""}`}>
+                      <span className="flex flex-wrap items-center gap-2">
+                        <bdi className={`font-semibold ${cancelled ? "line-through" : ""}`}>{t("order", { number: order.number })}</bdi>
+                        <span className={`text-sm ${cancelled ? "" : "text-gray-600"}`}>{orderText(`status.${order.status}`)}</span>
+                      </span>
+                      <bdi className={`tabular-nums ${cancelled ? "line-through" : ""}`}>{formatPrice(order.totalFils, locale)}</bdi>
+                    </li>
+                  );
+                })}
               </ul>
               <dl className="flex flex-col gap-1 border-t border-gray-200 pt-3">
                 {money(t("subtotal"), table.bill.subtotalFils)}

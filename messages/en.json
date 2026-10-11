@@ -385,7 +385,7 @@
     "empty": "No open orders right now.",
     "liveTitle": "Open orders",
     "endedTitle": "Orders from visits that have ended",
-    "endedHint": "The visit at these tables is over, but these orders were never completed.",
+    "endedHint": "The visit at these tables is over, but these orders were never completed. Complete or cancel them.",
     "order": "Order {number}",
     "table": "Table {label}",
     "noTable": "Table unknown",
@@ -414,6 +414,18 @@
     "visit": {
       "paymentRequested": "Bill requested",
       "ended": "Visit ended"
+    },
+    "cancel": {
+      "open": "Cancel order",
+      "reasonLabel": "Why is it cancelled?",
+      "reasons": {
+        "GUEST_CHANGED_MIND": "Guest changed their mind",
+        "ITEM_UNAVAILABLE": "Item not available",
+        "MISTAKE": "Entered by mistake",
+        "OTHER": "Other"
+      },
+      "confirm": "Cancel this order",
+      "keep": "Keep the order"
     }
   },
   "OpenTables": {
@@ -439,7 +451,7 @@
     "requestPayment": "Ready to pay",
     "close": "Close table",
     "closeConfirm": "Close table {label}? The visit ends, and the next scan of its code starts a new one.",
-    "unfinished": "{count, plural, one {# order is not completed yet. Complete it before closing.} other {# orders are not completed yet. Complete them before closing.}}",
+    "unfinished": "{count, plural, one {# order is not finished yet. Complete or cancel it before closing.} other {# orders are not finished yet. Complete or cancel them before closing.}}",
     "goToOrders": "Go to orders"
   }
 }

@@ -1,10 +1,11 @@
 import { getTranslations } from "next-intl/server";
-import type { OrderStatus } from "@/domain/order/order";
+import { CANCEL_REASONS, type OrderStatus } from "@/domain/order/order";
 import { localized } from "@/domain/shared/localized";
 import { PendingSubmit } from "@/interface/web/components/pending-submit";
 import { formatDayTime, formatPrice, formatTime } from "@/interface/web/format";
 import type { Locale } from "@/interface/web/i18n/locales";
-import { moveOrderAction } from "./order-queue-actions";
+import { CancelOrder } from "./cancel-order";
+import { cancelOrderAction, moveOrderAction } from "./order-queue-actions";
 import type { OrderQueue, QueueOrder } from "./order-queue-model";
 
 // How urgent a status looks: NEW asks for attention, SERVED is nearly done.
@@ -25,6 +26,8 @@ const ENDED_SHOWN_OPEN = 5;
 export async function OrderQueueView({ locale, queue }: { locale: Locale; queue: OrderQueue }) {
   const t = await getTranslations("StaffOrders");
   const common = await getTranslations("Common");
+  const cancelLabels = { open: t("cancel.open"), reason: t("cancel.reasonLabel"), confirm: t("cancel.confirm"), keep: t("cancel.keep"), working: common("saving") };
+  const cancelReasons = CANCEL_REASONS.map((value) => ({ value, label: t(`cancel.reasons.${value}`) }));
 
   const card = (order: QueueOrder) => (
     <li key={order.id} className="flex flex-col gap-3 p-4" aria-label={t("order", { number: order.number })}>
@@ -76,6 +79,8 @@ export async function OrderQueueView({ locale, queue }: { locale: Locale; queue:
           order.waitingFor && <p className="text-sm text-gray-500">{t(`waiting.${order.waitingFor}`)}</p>
         )}
       </div>
+
+      {order.canCancel && <CancelOrder action={cancelOrderAction.bind(null, locale, order.id)} reasons={cancelReasons} labels={cancelLabels} />}
     </li>
   );
 

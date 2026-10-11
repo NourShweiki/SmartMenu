@@ -1,5 +1,5 @@
 import type { StaffOrderEntry } from "@/application/use-cases/orders/get-staff-order-list";
-import { nextStatus, permissionToMoveTo, type OrderStatus } from "@/domain/order/order";
+import { nextStatus, permissionToCancel, permissionToMoveTo, type OrderStatus } from "@/domain/order/order";
 import { can, type Role } from "@/domain/restaurant/role";
 import type { Fils } from "@/domain/shared/money";
 import type { LocalizedText } from "@/domain/shared/result";
@@ -23,6 +23,11 @@ export type QueueOrder = {
    * "cashier" = it is served and waits for payment; "floor" = the floor staff move it (confirm ... served).
    */
   readonly waitingFor: "cashier" | "floor" | null;
+  /**
+   * May this person cancel the order as it is now? (The waiter before the kitchen starts; owner and manager any
+   * order that is not completed; the cashier never. The use case and the database decide again.)
+   */
+  readonly canCancel: boolean;
 };
 
 export type OrderQueue = {
@@ -46,6 +51,7 @@ export function buildOrderQueue(entries: readonly StaffOrderEntry[], role: Role)
   for (const { order, table } of entries) {
     const step = nextStatus(order.status);
     const mine = step !== null && can(role, permissionToMoveTo(step));
+    const cancelPermission = permissionToCancel(order.status);
     const row: QueueOrder = {
       id: order.id,
       number: order.number,
@@ -57,6 +63,7 @@ export function buildOrderQueue(entries: readonly StaffOrderEntry[], role: Role)
       totalFils: order.totalFils,
       next: mine ? step : null,
       waitingFor: step === null || mine ? null : permissionToMoveTo(step) === "payments:close" ? "cashier" : "floor",
+      canCancel: cancelPermission !== null && can(role, cancelPermission),
     };
     (row.visit === "ended" ? ended : live).push(row);
   }
