@@ -116,10 +116,9 @@ One codebase serves every restaurant (multi-tenant). Each restaurant lives on it
 ### ⬜ Not done yet (next up)
 
 - **Next: to be decided.** Phase 5 (the staff order screen and everything around it) is done, except SMS, which was left out on purpose for now. Candidates are the onboarding tools (Phase 6) and takeout ordering, which waits for a design decision.
-- **Phase 4+:** everything customer-facing, including:
+- **Still to come:**
   - takeout
-  - the live staff order screen
-  - SMS / push notifications
+  - SMS, and push notifications that reach a locked phone
   - reports
   - loyalty points
   - AI menu import and ordering assistant
