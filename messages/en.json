@@ -672,6 +672,24 @@
       "forbidden": "You are not allowed to change the menu.",
       "row": "Line {line} was refused by the menu rules (a name or description is too long, or the price is out of range). Nothing was imported.",
       "failed": "The import did not work. Nothing may have been added; check the menu and try again."
+    },
+    "ai": {
+      "title": "Or: draft it from a photo or PDF",
+      "intro": "Upload a photo or a PDF of your printed menu. An AI model reads it and drafts the rows for you. You see the same preview and decide what is imported.",
+      "file": "Photo (JPG, PNG, WebP) or PDF of the menu",
+      "draft": "Draft the menu",
+      "drafting": "Reading the menu… this can take a minute",
+      "unavailable": "Drafting the menu from a photo or PDF is not switched on for this installation yet.",
+      "checkNote": "This preview was drafted by AI from your file. It can misread a name or a price: check every line against your menu before importing. To correct something, import it and edit the item, or type the menu into a spreadsheet instead.",
+      "problems": {
+        "notConfigured": "Drafting from a photo is not switched on.",
+        "fileEmpty": "Choose a photo or a PDF of your menu.",
+        "fileTooLarge": "This file is too large (5 MB at most). Take a smaller photo or upload one page at a time.",
+        "fileType": "This is not a photo (JPG, PNG, WebP) or a PDF.",
+        "nothingFound": "No menu items could be read from this file. Try a sharper photo, or a page at a time.",
+        "serviceFailed": "The AI service did not answer. Please try again in a moment.",
+        "forbidden": "You are not allowed to change the menu."
+      }
     }
   }
 }

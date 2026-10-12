@@ -8,7 +8,7 @@ import type { MenuImportState } from "./menu-import-model";
 type ImportAction = (state: MenuImportState, form: FormData) => Promise<MenuImportState>;
 
 /** Upload a CSV file, look at the preview with every problem named, then import. */
-export function MenuImportForm({ action }: { action: ImportAction }) {
+export function MenuImportForm({ action, aiAvailable }: { action: ImportAction; aiAvailable: boolean }) {
   const t = useTranslations("MenuImport");
   const locale = useLocale();
   const [state, formAction, pending] = useActionState(action, {});
@@ -54,11 +54,44 @@ export function MenuImportForm({ action }: { action: ImportAction }) {
         </div>
       </form>
 
+      <section aria-labelledby="import-ai" className="flex flex-col gap-3 border-t border-gray-200 pt-5">
+        <h2 id="import-ai" className="text-lg font-semibold">
+          {t("ai.title")}
+        </h2>
+        {aiAvailable ? (
+          <form action={formAction} className="flex flex-col gap-3">
+            <input type="hidden" name="intent" value="draft" />
+            <p className="text-sm text-gray-600">{t("ai.intro")}</p>
+            <label htmlFor="menu-source" className="text-sm font-semibold">
+              {t("ai.file")}
+            </label>
+            <input id="menu-source" name="source" type="file" accept="image/jpeg,image/png,image/webp,application/pdf" required className="rounded-lg border border-gray-300 bg-white p-2 text-sm" />
+            {state.draftProblem && (
+              <p role="alert" className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">
+                {t(`ai.problems.${state.draftProblem}`)}
+              </p>
+            )}
+            <div>
+              <button type="submit" disabled={pending} className="rounded-lg border border-gray-900 bg-white px-5 py-2.5 font-semibold hover:bg-gray-100 disabled:opacity-60">
+                {pending ? t("ai.drafting") : t("ai.draft")}
+              </button>
+            </div>
+          </form>
+        ) : (
+          <p className="text-sm text-gray-600">{t("ai.unavailable")}</p>
+        )}
+      </section>
+
       {state.rows && (
         <section aria-labelledby="import-preview" className="flex flex-col gap-3">
           <h2 id="import-preview" className="text-lg font-semibold">
             {t("previewTitle", { count: state.rows.length })}
           </h2>
+          {state.drafted && (
+            <p role="note" className="rounded-lg bg-amber-50 px-3 py-2 text-sm text-amber-900 ring-1 ring-amber-200">
+              {t("ai.checkNote")}
+            </p>
+          )}
           {state.importError && (
             <p role="alert" className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">
               {t(`importErrors.${state.importError.kind}`, { line: state.importError.line ?? 0 })}

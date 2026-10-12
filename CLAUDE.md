@@ -4,14 +4,11 @@ Read `PROJECT_SPEC.md` at the start of every session. It is the source of truth.
 Then read `docs/PROGRESS.md` to see where work stopped (its **START HERE** section at the top says what is done, what the next task is, how to run everything, and the pitfalls), and update it at the end of every iteration.
 
 ## Where the project is (update this block in every iteration)
-- **Phase 6, onboarding tools.** Done: step 1 (the team's setup tool: create a restaurant, owner's temporary password, change / replace / reissue passwords) and step 2 (staff accounts managed by the owner and manager: `/staff/team`).
-- Step 3 (takeout: a pickup visit = a session WITHOUT a table, with the customer's name and mobile number; customers order without a table, staff see "Takeout" in the queue, the cashier does every step) is done too.
-- Step 4 (the owner's setup checklist on the staff dashboard, worked out from what the restaurant has, never stored) is done too.
-- Step 5 (menu import from a spreadsheet: `/staff/menu/import`, a CSV file, preview first, then import; an existing item is skipped) is done too.
-- **Now: step 6, menu import by AI from a photo or PDF**: it should produce the same rows and feed the same preview. It needs an AI key and a cost decision from Nour: build up to the key, then ask.
-- After that: Phase 6 is finished (custom domains moved to Phase 7); write Nour the summary of the whole phase. **Custom domains are postponed to Phase 7 (Nour, 2026-10-12).**
-- **Standing instruction for the rest of Phase 6 (Nour, 2026-10-12):** work through the remaining steps part after part WITHOUT waiting for approval between them; after EACH part update the md files, commit and push; keep using mock menu items and prices (no real restaurant yet); when the whole phase is finished, write Nour a summary of everything done and every change, step by step. Still stop and ask for: anything destructive, anything under "Open Questions", and the AI menu import's key and cost.
-- Last verified counts: 467 unit, 42 integration, 417 database (pgTAP), 168 browser tests.
+- **Phase 6 (onboarding tools) is built** (2026-10-12): the team's setup tool, staff accounts, takeout, the owner's setup checklist, menu import from a spreadsheet, and menu import by AI. Summary for Nour: `docs/PHASE_6_SUMMARY.md`.
+- **One thing is unproven:** the AI menu draft (`src/infrastructure/ai/anthropic-menu-draft-gateway.ts`) has never been run against the real service. It needs `ANTHROPIC_API_KEY` in `.env.local` and Nour's decision on cost; then try one real menu photo and fix whatever the real service says.
+- Custom domains were moved to Phase 7 (Nour, 2026-10-12).
+- **Next: ask Nour.** The standing instruction to work without approval covered Phase 6 only; a new phase needs Nour's go-ahead. Open items and questions: `docs/PHASE_6_SUMMARY.md` and START HERE in `docs/PROGRESS.md`.
+- Last verified counts: 476 unit, 42 integration, 417 database (pgTAP), 168 browser tests.
 
 ## Skills — load before the matching work
 - `architecture-rules` — before creating/editing any code file or deciding where code goes

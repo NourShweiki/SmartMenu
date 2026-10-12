@@ -28,6 +28,12 @@ for (const site of ALL_SITES) {
       await expect(page.getByRole("heading", { level: 1 })).toHaveText(t(locale, "MenuImport.title"));
       await expect(page.getByRole("link", { name: t(locale, "MenuImport.template"), exact: true })).toHaveAttribute("href", "/menu-import-template.csv");
 
+      // Drafting from a photo or PDF needs an AI key on the server. The test machine has none: the page says so and
+      // offers no upload for it. (With a key the upload appears; the real service is not called by any test.)
+      await expect(page.getByRole("heading", { name: t(locale, "MenuImport.ai.title"), exact: true })).toBeVisible();
+      await expect(page.getByText(t(locale, "MenuImport.ai.unavailable"))).toBeVisible();
+      await expect(page.getByLabel(t(locale, "MenuImport.ai.file"), { exact: true })).toHaveCount(0);
+
       // A file without the column names: refused, saying which are missing.
       await upload(page, locale, { name: "menu.csv", mimeType: "text/csv", buffer: Buffer.from("name,price\nTea,2\n", "utf8") });
       await expect(page.getByRole("alert").filter({ hasText: t(locale, "MenuImport.fileProblems.header") })).toContainText("category_en");

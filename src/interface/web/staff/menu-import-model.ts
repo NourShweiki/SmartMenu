@@ -1,3 +1,4 @@
+import type { DraftMenuError } from "@/application/use-cases/menu/draft-menu-from-file";
 import { MAX_IMPORT_ROWS, type MenuImportError, type MenuImportRow } from "@/application/use-cases/menu/import-menu";
 import { parsePriceInput } from "@/interface/web/price-input";
 
@@ -131,6 +132,10 @@ export type MenuImportState = {
   rows?: readonly PreviewRow[];
   /** True when every row is fine: the import button is offered. */
   ready?: boolean;
+  /** The preview was drafted by AI from a photo or PDF: the screen says to check every line. */
+  drafted?: boolean;
+  /** Why a photo or PDF could not be turned into a draft. */
+  draftProblem?: "notConfigured" | "fileEmpty" | "fileTooLarge" | "fileType" | "nothingFound" | "serviceFailed" | "forbidden";
   /** A refusal of the import itself. `line` is the file line of a row the menu rules refused. */
   importError?: { kind: "forbidden" | "row" | "failed"; line?: number };
   imported?: { categoriesAdded: number; itemsAdded: number; itemsSkipped: number };
@@ -141,4 +146,24 @@ export function importProblem(error: MenuImportError): NonNullable<MenuImportSta
   if (error.type === "FORBIDDEN") return { kind: "forbidden" };
   if (error.type === "ROW_INVALID") return { kind: "row", line: error.row + 1 };
   return { kind: "failed" };
+}
+
+/** Why a draft could not be made, as what the screen shows. */
+export function draftProblem(error: DraftMenuError): NonNullable<MenuImportState["draftProblem"]> {
+  switch (error.type) {
+    case "NOT_CONFIGURED":
+      return "notConfigured";
+    case "FILE_EMPTY":
+      return "fileEmpty";
+    case "FILE_TOO_LARGE":
+      return "fileTooLarge";
+    case "FILE_TYPE_NOT_ALLOWED":
+      return "fileType";
+    case "NOTHING_FOUND":
+      return "nothingFound";
+    case "FORBIDDEN":
+      return "forbidden";
+    default:
+      return "serviceFailed";
+  }
 }

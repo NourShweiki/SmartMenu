@@ -4,6 +4,7 @@ import { getTranslations } from "next-intl/server";
 import { MAX_IMPORT_ROWS } from "@/application/use-cases/menu/import-menu";
 import { can } from "@/domain/restaurant/role";
 import { localized } from "@/domain/shared/localized";
+import { menuDraftAvailable } from "@/infrastructure/container";
 import { initLocale } from "@/interface/web/i18n/init-locale";
 import { menuImportAction } from "@/interface/web/staff/menu-import-actions";
 import { MenuImportForm } from "@/interface/web/staff/menu-import-form";
@@ -49,7 +50,7 @@ export default async function MenuImportPage({ params }: { params: Promise<{ loc
         </section>
 
         <div className="rounded-2xl bg-white p-6 shadow-sm ring-1 ring-gray-200">
-          <MenuImportForm action={menuImportAction.bind(null, locale)} />
+          <MenuImportForm action={menuImportAction.bind(null, locale)} aiAvailable={menuDraftAvailable()} />
         </div>
       </div>
     </main>

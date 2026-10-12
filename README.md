@@ -5,13 +5,13 @@ It is the first product toward a full restaurant "Super POS". It runs **alongsid
 
 One codebase serves every restaurant (multi-tenant). Each restaurant lives on its own subdomain (`<restaurant>.ourapp.com`), and its behaviour is set in the database, never by custom code.
 
-> Full product spec: [`PROJECT_SPEC.md`](PROJECT_SPEC.md) · Detailed working log: [`docs/PROGRESS.md`](docs/PROGRESS.md)
+> Full product spec: [`PROJECT_SPEC.md`](PROJECT_SPEC.md) · Detailed working log: [`docs/PROGRESS.md`](docs/PROGRESS.md) · What Phase 6 added: [`docs/PHASE_6_SUMMARY.md`](docs/PHASE_6_SUMMARY.md)
 
 ---
 
 ## Status
 
-**Current phase: 6 — Onboarding tools.** Dine-in and takeout both work end to end: a guest scans a table, orders, follows the order on their phone; staff run the orders and the tables; the owner manages menu, branding and settings; the SmartMenu team can create a new restaurant with its owner in a minute. Everything runs on a developer machine for now (no cloud deployment yet).
+**Current phase: 6 — Onboarding tools, built; one piece (menu import by AI) waits for an AI key to be tried for real.** Dine-in and takeout both work end to end: a guest scans a table, orders, follows the order on their phone; staff run the orders and the tables; the owner manages menu, branding and settings; the SmartMenu team can create a new restaurant with its owner in a minute. Everything runs on a developer machine for now (no cloud deployment yet).
 
 | Phase | What | Status |
 |---|---|---|
@@ -21,7 +21,7 @@ One codebase serves every restaurant (multi-tenant). Each restaurant lives on it
 | 3 | Menu & owner portal | ✅ Done |
 | 4 | Customer ordering (menu, cart, dine-in QR, takeout) | ✅ Dine-in done · takeout is designed and gets built inside Phase 6 |
 | 5 | Staff order screen (live orders, sound alert, order-ready notice) | ✅ Done (SMS left out for now, on purpose) |
-| 6 | Onboarding tools (setup tool, staff accounts, takeout, checklist, menu import) | 🟡 In progress: step 1 of 7 done (the team's setup tool, with passwords); steps 1 to 5 of 6 done (the team's setup tool; staff accounts; takeout; the owner's setup checklist; menu import from a spreadsheet); menu import by AI is next |
+| 6 | Onboarding tools (setup tool, staff accounts, takeout, checklist, menu import) | 🟡 Built: the team's setup tool, staff accounts, takeout, the owner's setup checklist, menu import from a spreadsheet. Menu import by AI is built but not yet run against the real AI service (needs a key) |
 | 7 | Installable app (PWA) & push notifications, custom domains | ⬜ Not started |
 | 8 | Hardening (security review, load tests, monitoring, backups) | ⬜ Not started |
 | 9–10 | Pilot restaurant, launch | ⬜ Not started |
@@ -56,6 +56,7 @@ One codebase serves every restaurant (multi-tenant). Each restaurant lives on it
 - **Setup checklist (owner).** While the restaurant is being set up, the dashboard lists what is still missing before the first order, each line with a link to the screen that fixes it: an item on the menu, tables with QR codes (only where there is table ordering), a logo or written details, staff (optional), a test order. Each line ticks itself when the thing exists; the list disappears once the restaurant is ready.
 - **Menu.** Categories and items with Arabic + English names and descriptions, prices, photos, hide / show, soft delete, reorder. Prices are typed in JD (`4.5`, `4.500`, or Arabic digits `٤٫٥`).
 - **Menu import from a spreadsheet.** Type the menu into Excel or Google Sheets (category, name, description in both languages, price), save it as a CSV file and upload it under **Menu → Import from a spreadsheet**. A preview shows every row and names every problem; nothing is added until **Import** is pressed. New categories are created, existing ones are used, and an item that is already there is skipped, so the same file can be imported twice. A template can be downloaded from the page.
+- **Menu draft by AI (built, not yet proven).** On the same import page a photo or PDF of the printed menu can be uploaded; an AI model drafts the rows and they go into the same preview, to be checked before importing. It only appears when an AI key is configured on the server (`ANTHROPIC_API_KEY`, see `.env.example`); without one the page says it is not switched on. It has never been run against the real service.
 - **Option groups.** Reusable groups like "Size" or "Extras" (required or optional, with extra prices), attached to any items.
 - **Staff.** The owner and the manager open **Staff** on the dashboard: who works here, with role and email.
   - **Add a member** by email as manager, waiter or cashier: they get an account with a temporary password, shown once to pass on, and must choose their own at first sign-in.
@@ -76,19 +77,19 @@ One codebase serves every restaurant (multi-tenant). Each restaurant lives on it
 - The phone only sends what is in the cart. The restaurant, the table, the prices and the rates all come from the server's own side.
 
 #### Quality
-- **Automated tests:** 467 unit tests, 42 integration tests against a real local database, 417 database security tests (tenant isolation, roles, privileges), and 168 end-to-end tests that drive a real browser through both demo restaurants in English and Arabic.
+- **Automated tests:** 476 unit tests, 42 integration tests against a real local database, 417 database security tests (tenant isolation, roles, privileges), and 168 end-to-end tests that drive a real browser through both demo restaurants in English and Arabic.
 - The browser tests build the app for production and start that build themselves, so they check the code in the form users get; they remove everything they create.
 - **CI** runs typecheck, lint (including the architecture-layer import rules), unit tests and a production build on every push. Database, integration and browser tests run locally (CI has no database yet).
 
 ### ⬜ Not done yet
 
-- **Phase 6 (in progress): onboarding a new restaurant in under a day.** In this order:
+- **Phase 6: onboarding a new restaurant in under a day.** Built, except for the real-world trial of step 6:
   1. ~~the team's setup tool: create a restaurant with its first owner, change passwords, replace a temporary password at first sign-in, issue a new temporary password~~ ✅
   2. ~~staff accounts managed by the owner and the manager~~ ✅
   3. ~~takeout ordering~~ ✅
   4. ~~a setup checklist for the owner~~ ✅
   5. ~~menu import from a spreadsheet~~ ✅
-  6. **next:** menu import by AI from a photo or PDF (needs an AI key and a decision on cost)
+  6. menu import by AI from a photo or PDF: built; **needs an AI key and a decision on cost before it can be tried for real**
 - **After that:** custom domains (moved to the next phase), the installable app with push notifications that reach a locked phone, SMS, reports, loyalty points, the AI ordering assistant, delivery, and cloud deployment (Vercel + Supabase).
 
 ### Known limits (on purpose, for now)

@@ -25,6 +25,7 @@ import { makeDeleteMenuItem } from "@/application/use-cases/menu/delete-menu-ite
 import { makeEditMenuCategory } from "@/application/use-cases/menu/edit-menu-category";
 import { makeEditMenuItem } from "@/application/use-cases/menu/edit-menu-item";
 import { makeGetStaffMenu } from "@/application/use-cases/menu/get-staff-menu";
+import { makeDraftMenuFromFile } from "@/application/use-cases/menu/draft-menu-from-file";
 import { makeImportMenu } from "@/application/use-cases/menu/import-menu";
 import { makeMoveMenuCategory } from "@/application/use-cases/menu/move-menu-category";
 import { makeMoveMenuItem } from "@/application/use-cases/menu/move-menu-item";
@@ -69,6 +70,7 @@ import type { MenuActor } from "@/application/use-cases/menu/shared";
 import type { RestaurantId } from "@/domain/restaurant/restaurant";
 import { createPublicClient, createServiceClient, createSessionClient } from "./supabase/client";
 import { SupabaseBrandingRepository } from "./supabase/supabase-branding-repository";
+import { AnthropicMenuDraftGateway } from "./ai/anthropic-menu-draft-gateway";
 import { newTableToken, newTemporaryPassword } from "./random-token";
 import { SupabaseAccountDirectory } from "./supabase/supabase-account-directory";
 import { SupabasePasswordGateway } from "./supabase/supabase-password-gateway";
@@ -166,7 +168,18 @@ export function menuPhotoUrls(paths: readonly string[]): string[] {
   return paths.map((path) => photos.publicUrl(path));
 }
 
+/**
+ * The AI service that drafts a menu from a photo or PDF. The key is read from the SERVER's environment on each
+ * call (never bundled, never sent to a browser); without one the service is "not available" and is not offered.
+ */
+const menuDrafts = () => new AnthropicMenuDraftGateway({ apiKey: process.env.ANTHROPIC_API_KEY, model: process.env.MENU_IMPORT_MODEL });
+
+/** Whether the import screen may offer "draft from a photo or PDF". */
+export const menuDraftAvailable = (): boolean => menuDrafts().isAvailable();
+
 export const menu = {
+  /** A DRAFT of the menu from a photo or PDF, as import text for the preview; adds nothing (see makeDraftMenuFromFile). */
+  draftFromFile: (...args: Parameters<ReturnType<typeof makeDraftMenuFromFile>>) => makeDraftMenuFromFile({ drafts: menuDrafts() })(...args),
   getStaffMenu: async (actor: MenuActor) => makeGetStaffMenu(await menuDeps())(actor),
   /** Many items at once, from a spreadsheet (see makeImportMenu). */
   importMenu: async (...args: Parameters<ReturnType<typeof makeImportMenu>>) => makeImportMenu(await menuDeps())(...args),
