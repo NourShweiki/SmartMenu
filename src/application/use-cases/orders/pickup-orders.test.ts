@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import type { OrderRepository } from "@/application/ports/order-repository";
+import { PickupLimitReached, type OrderRepository } from "@/application/ports/order-repository";
 import type { CatalogEntry, OrderingCatalog } from "@/application/ports/ordering-catalog";
 import type { SessionAtTable, TableSessionRepository } from "@/application/ports/table-session-repository";
 import { createCategory, createMenuItem } from "@/domain/menu/menu";
@@ -10,6 +10,7 @@ import type { PickupCustomer } from "@/domain/table-session/pickup";
 import type { TableId } from "@/domain/table-session/table-session";
 import { makeGetOpenVisits } from "../tables/get-open-visits";
 import { makeMoveTableSession } from "../tables/move-table-session";
+import { makeCancelOrder } from "./cancel-order";
 import { makeGetStaffOrderList } from "./get-staff-order-list";
 import { makeMoveOrderStatus } from "./move-order-status";
 import { makePlaceOrder, makePlacePickupOrder } from "./place-order";
@@ -37,7 +38,7 @@ function shop() {
   const entry: CatalogEntry = { item: coffee, category, groups: [] };
   const catalog: OrderingCatalog = { findEntries: async (restaurantId, itemIds) => (restaurantId === R && itemIds.includes(coffee.id) ? [entry] : []) };
 
-  const state = { orders: [] as Order[], keys: new Map<string, string>(), started: [] as { sessionId: string; customer: PickupCustomer }[], next: 0 };
+  const state = { orders: [] as Order[], keys: new Map<string, string>(), started: [] as { sessionId: string; customer: PickupCustomer; clientHash?: string | null }[], next: 0, limit: null as "PHONE" | "DEVICE" | "RESTAURANT" | null };
   const byKey = (sessionId: string, requestId: string) => state.orders.find((o) => o.sessionId === sessionId && state.keys.get(o.id) === requestId);
   const orders: OrderRepository = {
     nextNumber: async () => ++state.next,
@@ -45,7 +46,11 @@ function shop() {
     place: async (order, requestId, pickup) => {
       const earlier = requestId ? byKey(order.sessionId, requestId) : undefined;
       if (earlier) return earlier.id;
-      if (pickup && !state.started.some((s) => s.sessionId === order.sessionId)) state.started.push({ sessionId: order.sessionId, customer: pickup });
+      if (pickup && !state.started.some((s) => s.sessionId === order.sessionId)) {
+        if (state.limit) throw new PickupLimitReached(state.limit); // the store's limits on a NEW visit
+        const { clientHash, ...customer } = pickup;
+        state.started.push({ sessionId: order.sessionId, customer, clientHash });
+      }
       state.orders.push(order);
       if (requestId) state.keys.set(order.id, requestId);
       return order.id;
@@ -61,7 +66,12 @@ function shop() {
       state.orders[state.orders.indexOf(order)] = { ...order, status: to };
       return true;
     },
-    cancel: async () => false,
+    cancel: async (_restaurantId, orderId, from, reason) => {
+      const order = state.orders.find((o) => o.id === orderId);
+      if (!order || order.status !== from) return false;
+      state.orders[state.orders.indexOf(order)] = { ...order, status: "CANCELLED", cancellation: { reason, at: NOW, by: "staff" } };
+      return true;
+    },
   };
   const cart = [{ menuItemId: coffee.id, quantity: 1, selectedOptionIds: [] }];
   return { deps: { orders, catalog, ids, clock }, state, cart };
@@ -89,7 +99,7 @@ describe("placing a takeout (pickup) order", () => {
 
     expect(result.customer).toEqual(ALI);
     expect(result.order).toMatchObject({ sessionId: VISIT, number: 1, status: "NEW", serviceChargeBp: 0, serviceChargeFils: 0, taxRateBp: 1600, subtotalFils: 2500, taxFils: 400, totalFils: 2900 });
-    expect(state.started).toEqual([{ sessionId: VISIT, customer: ALI }]);
+    expect(state.started).toEqual([{ sessionId: VISIT, customer: ALI, clientHash: null }]);
   });
 
   it("is safe to send twice: the same key returns the first order and starts nothing new", async () => {
@@ -124,6 +134,21 @@ describe("placing a takeout (pickup) order", () => {
     // The same cart at a TABLE keeps the service charge: 2.500 + 0.250 + 0.440.
     const atTable = unwrap(await makePlaceOrder(deps)({ restaurantId: R, sessionId: "33333333-3333-4000-8000-000000000003" as TableSessionId, kind: "TABLE", rates: RATES, lines: cart }));
     expect(atTable).toMatchObject({ serviceChargeFils: 250, totalFils: 3190 });
+  });
+});
+
+describe("limits on takeout orders", () => {
+  it("answers with the limit that was reached, having stored nothing, and passes the device's fingerprint on", async () => {
+    const { deps, state, cart } = shop();
+    const input = { restaurantId: R, rates: RATES, lines: cart, requestId: KEY, customer: { name: "Ali Hasan", phone: "0791234567" }, clientHash: "f".repeat(64) };
+    for (const limit of ["PHONE", "DEVICE", "RESTAURANT"] as const) {
+      state.limit = limit;
+      expect(await makePlacePickupOrder(deps)(input)).toEqual({ ok: false, error: { type: "PICKUP_LIMIT", limit } });
+    }
+    expect(state.orders).toEqual([]);
+    state.limit = null;
+    unwrap(await makePlacePickupOrder(deps)(input));
+    expect(state.started[0]?.clientHash).toBe("f".repeat(64));
   });
 });
 
@@ -163,6 +188,21 @@ describe("staff and a pickup order", () => {
     const refused = { ok: false, error: { type: "FORBIDDEN" } };
     expect(await makeMoveOrderStatus({ orders: world.deps.orders, sessions: sessionsOf([tableVisit(TABLE, "7")]), clock })(actor("CASHIER"), { orderId: order.id, to: "CONFIRMED" })).toEqual(refused);
     expect(await makeMoveOrderStatus({ orders: world.deps.orders, sessions: sessionsOf([]), clock })(actor("CASHIER"), { orderId: order.id, to: "CONFIRMED" })).toEqual(refused);
+  });
+
+  it("the cashier cancels a takeout order nobody collected, at any step; never an order at a table", async () => {
+    for (const status of ["NEW", "PREPARING", "READY", "SERVED"] as const) {
+      const { deps, sessions, id } = await placed(status);
+      const result = await makeCancelOrder({ orders: deps.orders, sessions, clock })(actor("CASHIER"), { orderId: id, reason: "NOT_COLLECTED" });
+      expect(result.ok && result.value.status).toBe("CANCELLED");
+    }
+    const world = shop();
+    const TABLE = "33333333-3333-4000-8000-000000000003" as TableSessionId;
+    const order = unwrap(await makePlaceOrder(world.deps)({ restaurantId: R, sessionId: TABLE, kind: "TABLE", rates: RATES, lines: world.cart }));
+    expect(await makeCancelOrder({ orders: world.deps.orders, sessions: sessionsOf([tableVisit(TABLE, "7")]), clock })(actor("CASHIER"), { orderId: order.id, reason: "NOT_COLLECTED" })).toEqual({
+      ok: false,
+      error: { type: "FORBIDDEN" },
+    });
   });
 
   it("a pickup visit is not a table: it is not on the open tables list and staff cannot move it", async () => {

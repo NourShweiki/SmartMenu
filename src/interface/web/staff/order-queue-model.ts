@@ -1,5 +1,5 @@
 import type { StaffOrderEntry } from "@/application/use-cases/orders/get-staff-order-list";
-import { nextStatus, permissionToCancel, permissionsToMoveTo, type OrderStatus } from "@/domain/order/order";
+import { nextStatus, permissionsToCancel, permissionsToMoveTo, type OrderStatus } from "@/domain/order/order";
 import { can, type Role } from "@/domain/restaurant/role";
 import type { Fils } from "@/domain/shared/money";
 import type { LocalizedText } from "@/domain/shared/result";
@@ -28,7 +28,7 @@ export type QueueOrder = {
   readonly waitingFor: "cashier" | "floor" | null;
   /**
    * May this person cancel the order as it is now? (The waiter before the kitchen starts; owner and manager any
-   * order that is not completed; the cashier never. The use case and the database decide again.)
+   * order that is not completed; the cashier only a takeout order. The use case and the database decide again.)
    */
   readonly canCancel: boolean;
 };
@@ -55,7 +55,6 @@ export function buildOrderQueue(entries: readonly StaffOrderEntry[], role: Role)
     const step = nextStatus(order.status);
     // On a takeout order the cashier may take every step (the counter is often the cashier alone).
     const mine = step !== null && permissionsToMoveTo(step, table?.kind ?? "TABLE").some((permission) => can(role, permission));
-    const cancelPermission = permissionToCancel(order.status);
     const row: QueueOrder = {
       id: order.id,
       number: order.number,
@@ -68,7 +67,8 @@ export function buildOrderQueue(entries: readonly StaffOrderEntry[], role: Role)
       totalFils: order.totalFils,
       next: mine ? step : null,
       waitingFor: step === null || mine ? null : step === "COMPLETED" ? "cashier" : "floor",
-      canCancel: cancelPermission !== null && can(role, cancelPermission),
+      // The cashier too, on a takeout order (an order nobody collects).
+      canCancel: permissionsToCancel(order.status, table?.kind ?? "TABLE").some((permission) => can(role, permission)),
     };
     (row.visit === "ended" ? ended : live).push(row);
   }

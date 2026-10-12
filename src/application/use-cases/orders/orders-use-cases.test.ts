@@ -464,7 +464,7 @@ describe("getStaffOrderList", () => {
 describe("cancelOrder", () => {
   const cancelAs = async (role: Role, status: OrderStatus, reason = "GUEST_CHANGED_MIND", restaurantId = R) => {
     const at = await orderAt(status);
-    const result = await makeCancelOrder({ orders: at.repo, clock })(actor(role, restaurantId), { orderId: at.id, reason });
+    const result = await makeCancelOrder({ orders: at.repo, sessions: noVisits, clock })(actor(role, restaurantId), { orderId: at.id, reason });
     return { result, stored: at.state.orders[0]! };
   };
 
@@ -499,7 +499,7 @@ describe("cancelOrder", () => {
       expect((await cancelAs(role, "COMPLETED")).result).toEqual({ ok: false, error: { type: "INVALID_TRANSITION", from: "COMPLETED", to: "CANCELLED" } });
     }
     const at = await orderAt("NEW");
-    const cancel = makeCancelOrder({ orders: at.repo, clock });
+    const cancel = makeCancelOrder({ orders: at.repo, sessions: noVisits, clock });
     expect((await cancel(actor("OWNER"), { orderId: at.id, reason: "MISTAKE" })).ok).toBe(true);
     expect(await cancel(actor("OWNER"), { orderId: at.id, reason: "MISTAKE" })).toEqual({ ok: false, error: { type: "INVALID_TRANSITION", from: "CANCELLED", to: "CANCELLED" } });
   });
@@ -512,13 +512,13 @@ describe("cancelOrder", () => {
   it("reports a conflict when the store does not make the change (someone moved the order first)", async () => {
     const at = await orderAt("NEW");
     at.state.refuseStatus = true;
-    expect(await makeCancelOrder({ orders: at.repo, clock })(actor("WAITER"), { orderId: at.id, reason: "MISTAKE" })).toEqual({ ok: false, error: { type: "CONFLICT" } });
+    expect(await makeCancelOrder({ orders: at.repo, sessions: noVisits, clock })(actor("WAITER"), { orderId: at.id, reason: "MISTAKE" })).toEqual({ ok: false, error: { type: "CONFLICT" } });
     expect(at.state.orders[0]!.status).toBe("NEW");
   });
 
   it("takes a cancelled order out of the staff queue but leaves it on the table's bill", async () => {
     const at = await orderAt("CONFIRMED");
-    await makeCancelOrder({ orders: at.repo, clock })(actor("WAITER"), { orderId: at.id, reason: "GUEST_CHANGED_MIND" });
+    await makeCancelOrder({ orders: at.repo, sessions: noVisits, clock })(actor("WAITER"), { orderId: at.id, reason: "GUEST_CHANGED_MIND" });
     const deps = { orders: at.repo, sessions: fakeSessions([visit(SESSION, "7")]).repo, clock };
     expect(await makeGetStaffOrderList(deps)(actor("WAITER"))).toEqual([]);
     expect((await makeGetStaffOrderList(deps)(actor("CASHIER"), { sessionId: SESSION })).map((e) => e.order.status)).toEqual(["CANCELLED"]);

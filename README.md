@@ -48,7 +48,7 @@ One codebase serves every restaurant (multi-tenant). Each restaurant lives on it
   - Each order has one button for the next step that person may take: the waiter moves an order from new to confirmed, preparing, ready and served; the cashier completes it after payment; the owner and manager can do every step.
   - **Cancelling** asks for a reason. The waiter may cancel before the kitchen starts, the owner and manager any order that is not completed, the cashier never. A cancelled order is kept, crossed out at zero on the bill.
   - The screen keeps itself up to date: a new order appears within about 5 seconds, with a notice and (once switched on) a sound.
-- **Takeout orders** appear in the same Orders screen, marked **Takeout** with the customer's name and a number to call. The steps are the same, with "handed over" instead of "served"; the cashier can do every step of a takeout order (a takeout counter is often one person). When the last order is completed or cancelled, the customer's pickup order ends by itself.
+- **Takeout orders** appear in the same Orders screen, marked **Takeout** with the customer's name and a number to call. The steps are the same, with "handed over" instead of "served"; the cashier can do every step of a takeout order (a takeout counter is often one person). The cashier can also cancel a takeout order nobody came for (reason "not collected"), never an order at a table. When the last order is completed or cancelled, the customer's pickup order ends by itself.
 - **Open tables screen.** Every table that has guests, with its orders and running bill. The waiter marks a table **ready to pay** (its guests can then no longer order); the cashier **closes the table** after payment. A table cannot be closed while an order is unfinished. A visit closes by itself after 2 hours.
 - **Sold out.** Owner, manager and waiters mark items sold out / back in stock during service.
 
@@ -73,12 +73,14 @@ One codebase serves every restaurant (multi-tenant). Each restaurant lives on it
   - No service charge on takeout; the estimate in the cart shows that.
   - The order is followed on the same phone like a table order, and while it is in progress the customer can add to it without typing their name again. Name and number are remembered on the device for next time.
   - On a restaurant with both, a phone that scanned a table orders for the table; any other phone orders takeout.
+  - **Limits against fake orders:** one phone number can have two takeout orders in progress at a restaurant, one device can start three in ten minutes, and a restaurant takes no new takeout orders while twenty are still waiting to be confirmed. The customer is told why and what to do.
 - **Following the order.** The menu page shows **Your orders** with how far each has got, on every phone at the table. When an order is ready a notice appears by itself (with a sound, a vibration, and a system notification where the phone allows it); a cancelled order is announced too.
 - The phone only sends what is in the cart. The restaurant, the table, the prices and the rates all come from the server's own side.
 
 #### Quality
-- **Automated tests:** 476 unit tests, 42 integration tests against a real local database, 417 database security tests (tenant isolation, roles, privileges), and 168 end-to-end tests that drive a real browser through both demo restaurants in English and Arabic.
+- **Automated tests:** 479 unit tests, 43 integration tests against a real local database, 438 database security tests (tenant isolation, roles, privileges), and 168 end-to-end tests that drive a real browser through both demo restaurants in English and Arabic.
 - The browser tests build the app for production and start that build themselves, so they check the code in the form users get; they remove everything they create.
+- **Reliable updates after a save.** In production builds a bug in the React version bundled with our framework could leave a page showing old content after a successful save, until a reload. A small built-in guard makes the page catch up by itself; the browser tests run against a production build to keep it that way. On slow phones the same bug could leave "Place order" on "Sending…" for up to 15 seconds although the server had answered at once; the guard was strengthened (measured: 1 slow order in 25 before, none in 90 after).
 - **CI** runs typecheck, lint (including the architecture-layer import rules), unit tests and a production build on every push. Database, integration and browser tests run locally (CI has no database yet).
 
 ### ⬜ Not done yet

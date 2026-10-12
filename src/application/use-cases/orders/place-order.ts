@@ -1,4 +1,4 @@
-import type { OrderRepository } from "@/application/ports/order-repository";
+import { PickupLimitReached, type OrderRepository, type PickupLimit, type PickupStart } from "@/application/ports/order-repository";
 import type { OrderingCatalog } from "@/application/ports/ordering-catalog";
 import type { Clock, IdGenerator } from "@/application/ports/system";
 import type { MenuItemId } from "@/domain/menu/menu";
@@ -68,9 +68,16 @@ export type PlacePickupOrderInput = {
   requestId: string;
   /** Name and mobile number as the customer typed them. */
   customer: { name: string; phone: string };
+  /** A hash of the network address the order came from, when the server knows it (only used to limit abuse). */
+  clientHash?: string | null;
 };
 
-export type PlacePickupOrderError = OrderUseCaseError | PickupError | { type: "INVALID_REQUEST" };
+export type PlacePickupOrderError =
+  | OrderUseCaseError
+  | PickupError
+  | { type: "INVALID_REQUEST" }
+  /** Too many takeout orders in progress: from this phone number, from this device, or waiting at the restaurant. */
+  | { type: "PICKUP_LIMIT"; limit: PickupLimit };
 
 /**
  * A takeout customer places an order without a table: the order starts its own PICKUP visit, stored together with
@@ -87,17 +94,23 @@ export function makePlacePickupOrder(deps: PlaceDeps) {
     if (!customer.ok) return customer;
 
     const sessionId = input.requestId.toLowerCase() as TableSessionId;
-    const order = await place(
-      deps,
-      { restaurantId: input.restaurantId, sessionId, kind: "PICKUP", rates: input.rates, lines: input.lines, requestId: input.requestId },
-      customer.value,
-    );
-    return order.ok ? ok({ order: order.value, customer: customer.value }) : order;
+    try {
+      const order = await place(
+        deps,
+        { restaurantId: input.restaurantId, sessionId, kind: "PICKUP", rates: input.rates, lines: input.lines, requestId: input.requestId },
+        { ...customer.value, clientHash: input.clientHash ?? null },
+      );
+      return order.ok ? ok({ order: order.value, customer: customer.value }) : order;
+    } catch (error) {
+      // An expected refusal, not a fault: the store's limits on starting takeout orders.
+      if (error instanceof PickupLimitReached) return err({ type: "PICKUP_LIMIT", limit: error.limit });
+      throw error;
+    }
   };
 }
 
 /** Both ways of ordering. With `startPickupFor`, the order's session is started with it, as that customer's pickup visit. */
-async function place(deps: PlaceDeps, input: PlaceOrderInput, startPickupFor?: PickupCustomer): Promise<Result<Order, OrderUseCaseError>> {
+async function place(deps: PlaceDeps, input: PlaceOrderInput, startPickupFor?: PickupStart): Promise<Result<Order, OrderUseCaseError>> {
   if (input.requestId) {
     const earlier = await deps.orders.findByRequest(input.restaurantId, input.sessionId, input.requestId);
     if (earlier) return ok(earlier);

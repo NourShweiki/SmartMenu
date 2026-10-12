@@ -1,5 +1,5 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
-import type { OrderHistory, OrderRepository } from "@/application/ports/order-repository";
+import { PickupLimitReached, type OrderHistory, type OrderRepository, type PickupLimit, type PickupStart } from "@/application/ports/order-repository";
 import type { MenuItemId } from "@/domain/menu/menu";
 import type { OptionId } from "@/domain/menu/options";
 import type {
@@ -14,7 +14,6 @@ import type {
 } from "@/domain/order/order";
 import type { RestaurantId } from "@/domain/restaurant/restaurant";
 import type { Fils } from "@/domain/shared/money";
-import type { PickupCustomer } from "@/domain/table-session/pickup";
 import { REFUSED } from "./postgres-errors";
 import { UUID } from "./supabase-options-repository";
 
@@ -113,12 +112,15 @@ export function toOrder(row: OrderRow): Order {
  * The jsonb payload of public.place_order (migrations 20261010140000 and 20261011100000). Array order = receipt
  * order. `requestId` is the device's key for this submission (null = none: every call is a new order).
  */
-export function toPlaceOrderPayload(order: Order, requestId?: string, pickup?: PickupCustomer) {
+/** The database's refusals of a new pickup visit (SQLSTATE), as the port names them. */
+const PICKUP_LIMITS: Record<string, PickupLimit> = { PK001: "PHONE", PK002: "DEVICE", PK003: "RESTAURANT" };
+
+export function toPlaceOrderPayload(order: Order, requestId?: string, pickup?: PickupStart) {
   return {
     id: order.id,
     client_request_id: requestId ?? null,
     // Present = "start this order's session as a pickup visit for this customer, unless it is already there".
-    ...(pickup && { pickup: { customer_name: pickup.name, customer_phone: pickup.phone } }),
+    ...(pickup && { pickup: { customer_name: pickup.name, customer_phone: pickup.phone, ...(pickup.clientHash && { client_hash: pickup.clientHash }) } }),
     restaurant_id: order.restaurantId,
     session_id: order.sessionId,
     number: order.number,
@@ -170,9 +172,13 @@ export class SupabaseOrderRepository implements OrderRepository, OrderHistory {
     return data as number;
   }
 
-  async place(order: Order, requestId?: string, pickup?: PickupCustomer): Promise<OrderId> {
+  async place(order: Order, requestId?: string, pickup?: PickupStart): Promise<OrderId> {
     const { data, error } = await this.server().rpc("place_order", { p_order: toPlaceOrderPayload(order, requestId, pickup) });
-    if (error) throw new Error(`place_order failed: ${error.message}`);
+    if (error) {
+      const limit = PICKUP_LIMITS[error.code];
+      if (limit) throw new PickupLimitReached(limit);
+      throw new Error(`place_order failed: ${error.message}`);
+    }
     // The function names the order now stored for this request: ours, or an earlier one with the same key.
     if (typeof data !== "string") throw new Error("place_order returned no order id");
     return data as OrderId;

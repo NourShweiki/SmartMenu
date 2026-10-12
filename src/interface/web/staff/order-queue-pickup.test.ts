@@ -32,9 +32,11 @@ describe("buildOrderQueue with a pickup order", () => {
     expect(row("NEW", "TABLE", "CASHIER").waitingFor).toBe("floor");
   });
 
-  it("keeps the waiter to the steps up to served, and the cashier out of cancelling", () => {
+  it("keeps the waiter to the steps up to served; the cashier may cancel a takeout order, never one at a table", () => {
     expect(unfinished.map((status) => row(status, "PICKUP", "WAITER").next)).toEqual(["CONFIRMED", "PREPARING", "READY", "SERVED", null]);
     expect(row("SERVED", "PICKUP", "WAITER").waitingFor).toBe("cashier");
-    expect(unfinished.map((status) => row(status, "PICKUP", "CASHIER").canCancel)).toEqual([false, false, false, false, false]);
+    expect(unfinished.map((status) => row(status, "PICKUP", "CASHIER").canCancel)).toEqual([true, true, true, true, true]);
+    expect(unfinished.map((status) => row(status, "TABLE", "CASHIER").canCancel)).toEqual([false, false, false, false, false]);
+    expect(unfinished.map((status) => row(status, "PICKUP", "WAITER").canCancel)).toEqual([true, true, false, false, false]);
   });
 });

@@ -346,7 +346,9 @@
         "failed": "We could not send your order. Please try again, or ask a member of staff.",
         "nameRequired": "Please enter your name.",
         "nameInvalid": "Please enter a shorter name, with letters only.",
-        "phoneInvalid": "Please enter a Jordanian mobile number, for example 079 123 4567."
+        "phoneInvalid": "Please enter a Jordanian mobile number, for example 079 123 4567.",
+        "tooManyOrders": "You already have takeout orders in progress. Please wait until they are ready, or ask at the counter.",
+        "restaurantBusy": "The restaurant has a lot of takeout orders waiting right now. Please try again in a few minutes, or order at the counter."
       },
       "pickupBody": "We have your order. Collect it and pay at the cashier. This page shows when it is ready."
     },
@@ -472,6 +474,7 @@
         "GUEST_CHANGED_MIND": "Guest changed their mind",
         "ITEM_UNAVAILABLE": "Item not available",
         "MISTAKE": "Entered by mistake",
+        "NOT_COLLECTED": "Not collected",
         "OTHER": "Other"
       },
       "confirm": "Cancel this order",

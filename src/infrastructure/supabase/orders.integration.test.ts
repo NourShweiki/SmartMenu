@@ -35,6 +35,9 @@ async function staffClient(email: string) {
 }
 const staffRepo = async (email: string) => new SupabaseOrderRepository(await staffClient(email));
 
+/** These orders are all at a table: the visit need not be read to know that (a visit that cannot be read counts as a table). */
+const atATable = { findWithTables: async () => [] };
+
 describe.skipIf(!enabled)("orders against local Supabase", () => {
   const service = enabled ? createServiceClient() : (undefined as never);
   let counterBefore: number | null = null;
@@ -235,7 +238,7 @@ describe.skipIf(!enabled)("orders against local Supabase", () => {
 
     // The waiter cancels a NEW order: kept, with the reason, and the database stamps when and who.
     const fresh = await placeOne();
-    const cancelled = await makeCancelOrder({ orders: waiterRepo, clock })(waiter, { orderId: fresh.id, reason: "GUEST_CHANGED_MIND" });
+    const cancelled = await makeCancelOrder({ orders: waiterRepo, sessions: atATable, clock })(waiter, { orderId: fresh.id, reason: "GUEST_CHANGED_MIND" });
     if (!cancelled.ok) throw new Error(JSON.stringify(cancelled.error));
     expect(cancelled.value).toMatchObject({ status: "CANCELLED", cancellation: { reason: "GUEST_CHANGED_MIND", by: waiterId }, totalFils: fresh.totalFils });
     expect(cancelled.value.cancellation!.at).toBeInstanceOf(Date);
@@ -247,17 +250,17 @@ describe.skipIf(!enabled)("orders against local Supabase", () => {
 
     // The cashier never cancels: refused by the use case, and by the DATABASE when the use case is bypassed.
     const second = await placeOne();
-    expect(await makeCancelOrder({ orders: cashierRepo, clock })(cashier, { orderId: second.id, reason: "MISTAKE" })).toEqual({ ok: false, error: { type: "FORBIDDEN" } });
+    expect(await makeCancelOrder({ orders: cashierRepo, sessions: atATable, clock })(cashier, { orderId: second.id, reason: "MISTAKE" })).toEqual({ ok: false, error: { type: "FORBIDDEN" } });
     expect(await cashierRepo.cancel(GRILL, second.id, "NEW", "MISTAKE")).toBe(false);
     // Another restaurant's owner cannot either.
     expect(await (await staffRepo("owner@demo-takeout.test")).cancel(GRILL, second.id, "NEW", "MISTAKE")).toBe(false);
 
     // Once the kitchen has started, the waiter is refused (use case and database); the owner may.
     for (const to of ["CONFIRMED", "PREPARING"] as const) expect(await ownerRepo.updateStatus(GRILL, second.id, to === "CONFIRMED" ? "NEW" : "CONFIRMED", to)).toBe(true);
-    expect(await makeCancelOrder({ orders: waiterRepo, clock })(waiter, { orderId: second.id, reason: "MISTAKE" })).toEqual({ ok: false, error: { type: "FORBIDDEN" } });
+    expect(await makeCancelOrder({ orders: waiterRepo, sessions: atATable, clock })(waiter, { orderId: second.id, reason: "MISTAKE" })).toEqual({ ok: false, error: { type: "FORBIDDEN" } });
     expect(await waiterRepo.cancel(GRILL, second.id, "PREPARING", "MISTAKE")).toBe(false);
     expect((await waiterRepo.findById(GRILL, second.id))!.status).toBe("PREPARING");
-    expect((await makeCancelOrder({ orders: ownerRepo, clock })(owner, { orderId: second.id, reason: "ITEM_UNAVAILABLE" })).ok).toBe(true);
+    expect((await makeCancelOrder({ orders: ownerRepo, sessions: atATable, clock })(owner, { orderId: second.id, reason: "ITEM_UNAVAILABLE" })).ok).toBe(true);
 
     // A cancelled order leaves the queue, stays on the table's bill, and counts as zero there.
     const sessions = new SupabaseTableSessionRepository(cashierDb);
@@ -275,7 +278,7 @@ describe.skipIf(!enabled)("orders against local Supabase", () => {
     expect(await sessions.updateStatus(GRILL, SESSION, "OPEN", "CLOSED")).toBe(false); // the use case bypassed: the trigger says no
     // The owner cancels everything that is still unfinished in this visit (this test's order and any left by the others).
     for (const o of (await ownerRepo.listBySession(GRILL, SESSION)).filter((x) => x.status !== "COMPLETED" && x.status !== "CANCELLED")) {
-      expect((await makeCancelOrder({ orders: ownerRepo, clock })(owner, { orderId: o.id, reason: "OTHER" })).ok).toBe(true);
+      expect((await makeCancelOrder({ orders: ownerRepo, sessions: atATable, clock })(owner, { orderId: o.id, reason: "OTHER" })).ok).toBe(true);
     }
     expect((await ownerRepo.findById(GRILL, third.id))!.status).toBe("CANCELLED");
     expect((await visit()).unfinished).toBe(0);

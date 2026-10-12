@@ -18,6 +18,13 @@ import { useEffect, useState } from "react";
  * updates its own state right after each request to our own server has completely finished. If nothing was waiting,
  * that costs one empty re-render.
  */
+/**
+ * When to nudge React after one of our own requests has finished: every quarter second for ten seconds. Each nudge
+ * is one empty re-render of this component (it shows nothing), so the cost is nil; what matters is that one of them
+ * lands AFTER the render that lost the message, however slow the device is.
+ */
+const NUDGE_AFTER_MS = Array.from({ length: 40 }, (_, i) => i * 250);
+
 export function StuckRenderGuard() {
   const [, nudge] = useState(0);
 
@@ -38,8 +45,12 @@ export function StuckRenderGuard() {
         .getEntries()
         .some((entry) => (entry as PerformanceResourceTiming).initiatorType === "fetch" && entry.name.startsWith(window.location.origin));
       if (!ownRequestFinished) return;
-      nudgeIn(0);
-      nudgeIn(250); // again, in case the first one landed while React was still inside the render that loses the message
+      // Many times, not once: a nudge that lands while React is still inside the render that loses the message is
+      // lost with it, and on a slow phone that can be seconds after the reply. Measured 2026-10-12 with the CPU
+      // slowed 8 times, placing a first takeout order: with nudges at 0 and 250 ms only, 1 in 25 stayed on
+      // "Sending..." for 15 seconds although the server had answered in under one; with this schedule, 0 in 90
+      // (slowest: 2 seconds).
+      for (const ms of NUDGE_AFTER_MS) nudgeIn(ms);
     });
     observer.observe({ type: "resource" });
     return () => {

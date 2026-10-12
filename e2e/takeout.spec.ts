@@ -1,7 +1,7 @@
 import { expect, test, type Browser, type Page } from "@playwright/test";
 import { addButton, cartBar, confirmation, dialog, menuRow, placeAnOrder, placeButton } from "./support/cart";
 import { ALL_SITES, jd, LOCALES, signIn, SITES, t, type Locale, type Site } from "./support/demo";
-import { cancelOrderOn, orderCard, ORDERS, staffAt, tableCard } from "./support/staff";
+import { cancelButton, cancelOrderOn, orderCard, ORDERS, staffAt, tableCard } from "./support/staff";
 import { addTable, guest, openTables, removeTable, scanUrl, tableLabel, tableRow } from "./support/tables";
 
 // Takeout from the customer's side: no table, a name and a mobile number, an order number, and the order followed on
@@ -168,6 +168,9 @@ test("grill: the cashier alone takes a takeout order through every step, and sti
     // The table order waits for the floor staff: no button for the cashier. The takeout order has one for every step.
     await expect(orderCard(till.page, "en", tableOrder).getByRole("button", { name: t("en", "StaffOrders.action.CONFIRMED"), exact: true })).toHaveCount(0);
     await expect(orderCard(till.page, "en", tableOrder)).toContainText(t("en", "StaffOrders.waiting.floor"));
+    // Cancelling too: the cashier may cancel a takeout order (nobody came for it), never an order at a table.
+    await expect(cancelButton(till.page, "en", number)).toBeVisible();
+    await expect(cancelButton(till.page, "en", tableOrder)).toHaveCount(0);
     await takeTakeoutThrough(till.page, "en", number);
     await till.context.close();
     await phone.context.close();

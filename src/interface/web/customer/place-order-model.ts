@@ -18,6 +18,8 @@ export type PlaceOrderProblem =
   | "nameRequired" // takeout: no name given
   | "nameInvalid" // takeout: a name that is too long or has characters that cannot be in one
   | "phoneInvalid" // takeout: not a Jordanian mobile number
+  | "tooManyOrders" // takeout: this number or this device already has orders in progress
+  | "restaurantBusy" // takeout: too many takeout orders are waiting to be confirmed; try again shortly
   | "failed"; // anything unexpected
 
 export type PlaceOrderOutcome =
@@ -119,7 +121,7 @@ const refuse = (problem: PlaceOrderProblem): Refusal => ({ ok: false, problem })
  */
 export async function placeCustomerOrder(
   deps: PlaceCustomerOrderDeps,
-  input: { restaurant: PublicRestaurant; sessionId: string | null; cart: unknown },
+  input: { restaurant: PublicRestaurant; sessionId: string | null; cart: unknown; /** Hash of the caller's network address, when known. */ clientHash?: string | null },
 ): Promise<PlaceOrderOutcome> {
   const { restaurant, sessionId } = input;
   const { settings } = restaurant;
@@ -176,7 +178,7 @@ export async function placeCustomerOrder(
   const customer = readPickupCustomer(input.cart);
   if (!customer) return refuse("nameRequired");
   try {
-    const result = await deps.placePickup({ restaurantId: restaurant.id, rates, lines, requestId, customer });
+    const result = await deps.placePickup({ restaurantId: restaurant.id, rates, lines, requestId, customer, clientHash: input.clientHash ?? null });
     if (result.ok) return { ok: true, orderNumber: result.value.order.number, startedVisit: result.value.order.sessionId };
     switch (result.error.type) {
       case "NAME_REQUIRED":
@@ -186,6 +188,8 @@ export async function placeCustomerOrder(
         return refuse("nameInvalid");
       case "PHONE_INVALID":
         return refuse("phoneInvalid");
+      case "PICKUP_LIMIT":
+        return refuse(result.error.limit === "RESTAURANT" ? "restaurantBusy" : "tooManyOrders");
       case "INVALID_REQUEST":
         return refuse("failed");
       default:

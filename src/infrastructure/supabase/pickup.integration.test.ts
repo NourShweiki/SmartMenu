@@ -4,6 +4,7 @@
 // It works in a restaurant it makes itself ("itest-pickup-..."), removed before and after with everything in it.
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import type { UserId } from "@/application/ports/auth-gateway";
+import { makeCancelOrder } from "@/application/use-cases/orders/cancel-order";
 import { makeGetStaffOrderList } from "@/application/use-cases/orders/get-staff-order-list";
 import { makeMoveOrderStatus } from "@/application/use-cases/orders/move-order-status";
 import { makePlaceOrder, makePlacePickupOrder } from "@/application/use-cases/orders/place-order";
@@ -144,6 +145,33 @@ describe.skipIf(!process.env.SUPABASE_SERVICE_ROLE_KEY)("takeout (pickup orders)
     expect((await customer.visits.find(slug, visitId))?.status).toBe("CLOSED");
     expect((await customer.visits.orders(slug, visitId)).map((o) => o.status)).toEqual(["COMPLETED", "CANCELLED"]);
     await expect(customer.place({ restaurantId, sessionId: visitId, kind: "PICKUP", rates: RATES, lines: cart, requestId: crypto.randomUUID() })).rejects.toThrow(/place_order failed/);
+  });
+
+  it("limits takeout orders per phone number, and lets the cashier cancel one nobody collected", async () => {
+    const customer = customerSide();
+    const cart = [{ menuItemId: itemId, quantity: 1, selectedOptionIds: [] }];
+    const order = (phone: string) => customer.placePickup({ restaurantId, rates: RATES, lines: cart, requestId: crypto.randomUUID(), customer: { name: "Limit Test", phone } });
+
+    const first = await order("0780000001");
+    const second = await order("0780000001");
+    if (!first.ok || !second.ok) throw new Error("the first two orders of a number should be accepted");
+    // A third visit in progress for the same number is refused; another number is not.
+    expect(await order("078 000 0001")).toEqual({ ok: false, error: { type: "PICKUP_LIMIT", limit: "PHONE" } });
+    const other = await order("0780000002");
+    expect(other.ok).toBe(true);
+
+    // The cashier cancels the first as "not collected" (even though it is being prepared): its visit ends, and the
+    // number can order again.
+    const cashierDb = await staffClient("cashier");
+    const cashier = { restaurantId, role: "CASHIER" } as const;
+    const orders = new SupabaseOrderRepository(cashierDb);
+    const sessions = new SupabaseTableSessionRepository(cashierDb);
+    const move = makeMoveOrderStatus({ orders, sessions, clock });
+    for (const to of ["CONFIRMED", "PREPARING"] as const) expect((await move(cashier, { orderId: first.value.order.id, to })).ok).toBe(true);
+    const cancelled = await makeCancelOrder({ orders, sessions, clock })(cashier, { orderId: first.value.order.id, reason: "NOT_COLLECTED" });
+    expect(cancelled.ok && [cancelled.value.status, cancelled.value.cancellation?.reason]).toEqual(["CANCELLED", "NOT_COLLECTED"]);
+    expect((await customer.visits.find(slug, first.value.order.sessionId))?.status).toBe("CLOSED");
+    expect((await order("0780000001")).ok).toBe(true);
   });
 
   it("refuses a pickup order where takeout is switched off, leaving no visit behind", async () => {

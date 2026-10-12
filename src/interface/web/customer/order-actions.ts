@@ -4,6 +4,7 @@ import { cookies } from "next/headers";
 import { orders, tableSessions } from "@/infrastructure/container";
 import { getCurrentSite } from "@/interface/web/current-site";
 import { getRequestOrigin } from "@/interface/web/tables/scan-url";
+import { clientHashFor } from "./client-hash";
 import { placeCustomerOrder, type PlaceOrderOutcome } from "./place-order-model";
 import { readSessionId, SESSION_COOKIE, sessionCookieOptions } from "./session-cookie";
 
@@ -20,7 +21,7 @@ export async function placeOrderAction(cart: unknown): Promise<PlaceOrderOutcome
   if (site.kind !== "restaurant") return { ok: false, problem: "failed" };
   const outcome = await placeCustomerOrder(
     { findSession: tableSessions.find, place: orders.place, placePickup: orders.placePickup, findPlaced: orders.findPlaced },
-    { restaurant: site.restaurant, sessionId: await readSessionId(), cart },
+    { restaurant: site.restaurant, sessionId: await readSessionId(), cart, clientHash: await clientHashFor(site.restaurant.id) },
   );
   if (outcome.ok && outcome.startedVisit) {
     const secure = (await getRequestOrigin()).startsWith("https://");

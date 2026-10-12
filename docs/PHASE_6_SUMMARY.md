@@ -7,8 +7,8 @@ Written 2026-10-12 for Nour. Phase 6 set out to make it possible to set up a new
 - Five of the six steps are finished and tested. The sixth (menu import by AI) is built but has never been run against the real AI service: it needs an AI key and your decision on cost.
 - Custom domains were moved to Phase 7 by your decision.
 - Everything runs on the local machine. Menus are mock data.
-- Tests at the end of the phase: 476 unit, 42 integration, 417 database, 168 browser tests.
-- The last full browser run passed 167 of 168. The one failure was a takeout order that took over 20 seconds to send; it passed when re-run. The cause is not known (see "Open items").
+- Tests now (after the four fixes below): 479 unit, 43 integration, 438 database, 168 browser tests.
+- The slow takeout order seen in one test run was traced and fixed afterwards (see "After the phase").
 
 ## Step 1: the team's setup tool
 
@@ -87,18 +87,24 @@ Written 2026-10-12 for Nour. Phase 6 set out to make it possible to set up a new
 
 - **Custom domains** go to Phase 7, by your decision.
 
+## After the phase: four fixes (2026-10-12)
+
+You asked for these after reading the summary. All four are done.
+
+- **Slow order placing: found and fixed.** The server always answered in under a second. The page itself got stuck after the reply arrived, because of a known bug in the React version our framework ships; the existing workaround was too weak on slow phones. Measured with a phone slowed down 8 times: before, 1 order in 25 stayed on "Sending…" for 15 seconds; after strengthening the workaround, none in 90 took more than 2 seconds.
+- **Fake takeout orders: three limits.** One phone number can have two takeout orders in progress at a restaurant. One device can start three in ten minutes. A restaurant takes no new takeout orders while twenty are waiting to be confirmed. The customer is told why. The last limit is the one that holds against somebody who invents phone numbers; it also means a flood pauses takeout for real customers until staff clear the queue.
+- **Uncollected takeout orders.** The cashier can now cancel a takeout order, with the new reason "not collected". At a table the cashier still cannot cancel.
+- **Database rebuilt from scratch.** Every database change and the demo data replay cleanly on an empty database, and all database and integration tests pass on it.
+
 ## Open items
 
 None of these blocks the next phase. Each needs a decision or belongs to the hardening phase.
 
 | Item | Why it matters |
 |---|---|
-| Placing an order was very slow once or twice in the test runs (over 20 seconds) | Cause not found. Worth investigating before a pilot. |
-| Takeout orders can be sent by anybody, under any name and number, without limit | Prank orders would reach the kitchen. Decide before a takeout client goes live. |
-| May the cashier cancel a takeout order nobody collects? | Today only the owner or manager can. Your call. |
+| Takeout phone numbers are not verified | The limits bound the damage, but a fake number still gets an order through. A code by SMS would close it. |
 | The team's sign-in is protected by a password only | A second factor belongs in the hardening phase. |
 | One email can own only one restaurant | An owner with two branches needs two emails for now. |
-| The last four database changes have not been replayed from an empty database | Proving it needs a reset, which wipes local data. Say when. |
 | An import never updates an item that already exists | A changed price in the file is ignored. |
 | Nothing records who added, changed or removed staff | An activity log is not built. |
 

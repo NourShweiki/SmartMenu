@@ -51,6 +51,8 @@ function setup(
     placePickup: async (input: PlacePickupOrderInput) => {
       seen.pickups.push(input);
       if (input.customer.phone === "064123456") return err({ type: "PHONE_INVALID" as const });
+      if (input.customer.name === "Busy") return err({ type: "PICKUP_LIMIT" as const, limit: "RESTAURANT" as const });
+      if (input.customer.name === "Again") return err({ type: "PICKUP_LIMIT" as const, limit: input.clientHash ? ("DEVICE" as const) : ("PHONE" as const) });
       if (input.customer.name.trim() === "") return err({ type: "NAME_REQUIRED" as const });
       return ok({ order: { number: 7, sessionId: input.requestId } as unknown as Order });
     },
@@ -245,7 +247,7 @@ describe("placeCustomerOrder: takeout", () => {
     const outcome = await placeCustomerOrder(deps, { restaurant: coffee(), sessionId: null, cart: cartFor(ALI) });
     expect(outcome).toEqual({ ok: true, orderNumber: 7, startedVisit: KEY });
     expect(seen.pickups).toEqual([
-      { restaurantId: R, rates: { taxRateBp: 1600, serviceChargeBp: 1000 }, lines: [{ menuItemId: ITEM, quantity: 2, selectedOptionIds: [OPTION] }], requestId: KEY, customer: ALI },
+      { restaurantId: R, rates: { taxRateBp: 1600, serviceChargeBp: 1000 }, lines: [{ menuItemId: ITEM, quantity: 2, selectedOptionIds: [OPTION] }], requestId: KEY, customer: ALI, clientHash: null },
     ]);
     expect(seen.placed).toEqual([]); // not the table path
     expect(seen.finds).toEqual([]); // no cookie: nothing to look up
@@ -259,6 +261,15 @@ describe("placeCustomerOrder: takeout", () => {
     expect(seen.pickups).toEqual([]); // nothing was even tried
     expect(await attempt({ name: "  ", phone: "0791234567" })).toEqual({ ok: false, problem: "nameRequired" });
     expect(await attempt({ name: "Ali", phone: "064123456" })).toEqual({ ok: false, problem: "phoneInvalid" });
+  });
+
+  it("tells the customer when a limit on takeout orders was reached, and passes the device's fingerprint on", async () => {
+    const { deps, seen } = setup();
+    const attempt = (name: string, clientHash?: string) => placeCustomerOrder(deps, { restaurant: coffee(), sessionId: null, cart: cartFor({ name, phone: "0791234567" }), clientHash });
+    expect(await attempt("Again")).toEqual({ ok: false, problem: "tooManyOrders" });
+    expect(await attempt("Again", "a".repeat(64))).toEqual({ ok: false, problem: "tooManyOrders" });
+    expect(await attempt("Busy")).toEqual({ ok: false, problem: "restaurantBusy" });
+    expect(seen.pickups.map((p) => p.clientHash)).toEqual([null, "a".repeat(64), null]);
   });
 
   it("adds to the pickup visit the phone already holds, without asking for the name again", async () => {

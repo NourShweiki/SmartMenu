@@ -108,7 +108,7 @@ select is((select customer_phone from public.table_sessions where id = pg_temp.s
 select lives_ok($$ update public.orders set status = 'CONFIRMED' where id = pg_temp.o(1) $$, 'the cashier confirms a pickup order');
 select is((select status::text from public.orders where id = pg_temp.o(1)), 'CONFIRMED', 'it is confirmed');
 select throws_ok($$ update public.orders set status = 'READY' where id = pg_temp.o(1) $$, '23514', null, 'still one step at a time');
-select throws_ok($$ update public.orders set status = 'CANCELLED', cancel_reason = 'OTHER' where id = pg_temp.o(1) $$, '42501', null, 'the cashier does not cancel');
+select throws_ok($$ update public.orders set status = 'CANCELLED', cancel_reason = 'OTHER' where id = pg_temp.o(8) $$, '42501', null, 'the cashier does not cancel an order at a table (a takeout order: see takeout_limits.test.sql)');
 select throws_ok($$ update public.orders set status = 'CONFIRMED' where id = pg_temp.o(8) $$, '42501', null, 'and still does not confirm an order at a table');
 select lives_ok($$ update public.orders set status = 'PREPARING' where id = pg_temp.o(1) $$, 'preparing');
 select lives_ok($$ update public.orders set status = 'READY' where id = pg_temp.o(1) $$, 'ready');

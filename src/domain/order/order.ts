@@ -31,7 +31,7 @@ export const ORDER_STATUSES = [...ORDER_FLOW, "CANCELLED"] as const;
 export type OrderStatus = (typeof ORDER_STATUSES)[number];
 
 /** Why an order was cancelled: staff pick one (a fixed list, so it can be counted in reports later). */
-export const CANCEL_REASONS = ["GUEST_CHANGED_MIND", "ITEM_UNAVAILABLE", "MISTAKE", "OTHER"] as const;
+export const CANCEL_REASONS = ["GUEST_CHANGED_MIND", "ITEM_UNAVAILABLE", "MISTAKE", "NOT_COLLECTED", "OTHER"] as const;
 export type CancelReason = (typeof CANCEL_REASONS)[number];
 export const isCancelReason = (value: string): value is CancelReason => (CANCEL_REASONS as readonly string[]).includes(value);
 
@@ -353,4 +353,16 @@ export const pickupRates = (rates: OrderRates): OrderRates => ({ ...rates, servi
 export function permissionsToMoveTo(status: OrderStatus, kind: SessionKind): readonly Extract<Permission, "orders:confirm" | "payments:close">[] {
   if (status === "COMPLETED") return ["payments:close"];
   return kind === "PICKUP" ? ["orders:confirm", "payments:close"] : ["orders:confirm"];
+}
+
+/**
+ * The permissions that each allow cancelling an order at this status, for an order of this kind of visit. At a
+ * table: exactly `permissionToCancel`. A PICKUP (takeout) order can also be cancelled by whoever closes payments
+ * (the cashier), at any step before it is completed: a takeout counter is often the cashier alone, and an order
+ * nobody collects must not wait for the owner (decided 2026-10-12). Empty = nobody can.
+ */
+export function permissionsToCancel(status: OrderStatus, kind: SessionKind): readonly Permission[] {
+  const base = permissionToCancel(status);
+  if (!base) return [];
+  return kind === "PICKUP" ? [base, "payments:close"] : [base];
 }

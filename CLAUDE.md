@@ -7,8 +7,9 @@ Then read `docs/PROGRESS.md` to see where work stopped (its **START HERE** secti
 - **Phase 6 (onboarding tools) is built** (2026-10-12): the team's setup tool, staff accounts, takeout, the owner's setup checklist, menu import from a spreadsheet, and menu import by AI. Summary for Nour: `docs/PHASE_6_SUMMARY.md`.
 - **One thing is unproven:** the AI menu draft (`src/infrastructure/ai/anthropic-menu-draft-gateway.ts`) has never been run against the real service. It needs `ANTHROPIC_API_KEY` in `.env.local` and Nour's decision on cost; then try one real menu photo and fix whatever the real service says.
 - Custom domains were moved to Phase 7 (Nour, 2026-10-12).
+- After Phase 6 (Nour, 2026-10-12): the slow "Place order" was found and fixed (`StuckRenderGuard`), takeout orders got limits against abuse (database: `check_pickup_limits`), the cashier may cancel a takeout order, and the local database was rebuilt from scratch (every migration and the seed replay cleanly).
 - **Next: ask Nour.** The standing instruction to work without approval covered Phase 6 only; a new phase needs Nour's go-ahead. Open items and questions: `docs/PHASE_6_SUMMARY.md` and START HERE in `docs/PROGRESS.md`.
-- Last verified counts: 476 unit, 42 integration, 417 database (pgTAP), 168 browser tests.
+- Last verified counts: 479 unit, 43 integration, 438 database (pgTAP), 168 browser tests.
 
 ## Skills — load before the matching work
 - `architecture-rules` — before creating/editing any code file or deciding where code goes

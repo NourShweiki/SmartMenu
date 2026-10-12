@@ -16,7 +16,7 @@ export interface OrderRepository {
    * the id of the EARLIER order when the same key was already used in this table session. In that case nothing
    * was written: a repeated submission is the same order, not a second one.
    */
-  place(order: Order, requestId?: string, pickup?: PickupCustomer): Promise<OrderId>;
+  place(order: Order, requestId?: string, pickup?: PickupStart): Promise<OrderId>;
   /** The order already placed in this table session with this request key, or null. */
   findByRequest(restaurantId: RestaurantId, sessionId: TableSessionId, requestId: string): Promise<Order | null>;
   findById(restaurantId: RestaurantId, orderId: OrderId): Promise<Order | null>;
@@ -42,4 +42,20 @@ export interface OrderRepository {
 /** Whether a restaurant has ever taken an order (the setup checklist's "place a test order"). One cheap question. */
 export interface OrderHistory {
   hasAny(restaurantId: RestaurantId): Promise<boolean>;
+}
+
+/**
+ * "Start this order's session as a pickup visit": the customer, and (when the server knows it) a hash of the network
+ * address the order came from, which is only used to limit how many visits one device starts.
+ */
+export type PickupStart = PickupCustomer & { readonly clientHash?: string | null };
+
+/** Which limit on starting a takeout order was reached (the store enforces them: see migration takeout_limits). */
+export type PickupLimit = "PHONE" | "DEVICE" | "RESTAURANT";
+
+/** Thrown by `place` when a new pickup visit may not start right now. Nothing was stored. */
+export class PickupLimitReached extends Error {
+  constructor(readonly limit: PickupLimit) {
+    super(`takeout limit reached: ${limit}`);
+  }
 }
