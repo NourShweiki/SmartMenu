@@ -3,14 +3,14 @@
 -- Run with: npx supabase test db
 begin;
 create extension if not exists pgtap with schema extensions;
-select plan(41);
+select plan(43);
 
 -- ── anon: nothing on any app table ──
 select table_privs_are('public', t, 'anon', array[]::text[], 'anon has no privileges on ' || t)
 from unnest(array['restaurants', 'restaurant_settings', 'restaurant_members', 'menu_categories', 'menu_items',
                   'option_groups', 'options', 'menu_item_option_groups',
                   'orders', 'order_items', 'order_item_options', 'order_counters',
-                  'restaurant_tables', 'table_sessions']) as t;
+                  'restaurant_tables', 'table_sessions', 'service_requests']) as t;
 
 -- ── authenticated: exactly what the app needs (column-level UPDATE grants are checked below) ──
 select table_privs_are('public', 'restaurants', 'authenticated', array['SELECT'], 'restaurants: read only');
@@ -27,6 +27,7 @@ select table_privs_are('public', 'order_item_options', 'authenticated', array['S
 select table_privs_are('public', 'order_counters', 'authenticated', array[]::text[], 'order_counters: no access at all');
 select table_privs_are('public', 'restaurant_tables', 'authenticated', array['SELECT', 'INSERT'], 'restaurant_tables: no table-wide UPDATE or DELETE');
 select table_privs_are('public', 'table_sessions', 'authenticated', array['SELECT'], 'table_sessions: read only (status is a column grant)');
+select table_privs_are('public', 'service_requests', 'authenticated', array['SELECT'], 'service_requests: read only (status is a column grant)');
 
 -- ── Who may change which column of the original tables ──
 insert into auth.users (id, email) values

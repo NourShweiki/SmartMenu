@@ -7,13 +7,21 @@ import { localized } from "@/domain/shared/localized";
 import { getPublicMenu, isOrderingAssistantAvailable, menuPhotoUrls, tableSessions } from "@/infrastructure/container";
 import { LanguageSwitch } from "@/interface/web/components/language-switch";
 import { CustomerMenu } from "@/interface/web/customer/customer-menu";
+import { resolveVisit } from "@/interface/web/customer/ordering-mode";
 import { readSessionId } from "@/interface/web/customer/session-cookie";
 import { getCurrentSite } from "@/interface/web/current-site";
 import { initLocale } from "@/interface/web/i18n/init-locale";
 
 // The customer-facing menu of a restaurant (public: no login). Restaurant from the host, menu from the public read path.
-export default async function CustomerMenuPage({ params }: { params: Promise<{ locale: string }> }) {
+export default async function CustomerMenuPage({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ locale: string }>;
+  searchParams: Promise<{ assistant?: string }>;
+}) {
   const locale = await initLocale(params);
+  const openAssistant = (await searchParams).assistant === "1"; // the home page's "smart assistant" card opens the chat straight away
   const site = await getCurrentSite();
   if (site.kind !== "restaurant") notFound();
   const { restaurant } = site;
@@ -27,13 +35,10 @@ export default async function CustomerMenuPage({ params }: { params: Promise<{ l
     sessionId ? tableSessions.orders({ slug: restaurant.slug, sessionId }) : [],
   ]);
   // The visit is whatever the database says now: one that was closed (the guests left, the order was collected)
-  // counts as none. Which way this phone orders mirrors placeCustomerOrder: a live table visit orders for the table;
-  // where the restaurant takes takeout orders, any other phone orders takeout (into its open pickup visit, or anew).
+  // counts as none. Which way this phone orders is decided in one place, shared with the home page (see resolveVisit).
   const { settings } = restaurant;
-  const live = session && session.status !== "CLOSED" ? session : null;
-  const atTable = live?.kind === "TABLE" && (settings.dineInEnabled || !settings.takeoutEnabled);
+  const { live, atTable, ordering } = resolveVisit(settings, session);
   const visit = !live ? null : atTable ? ({ kind: "TABLE", label: live.kind === "TABLE" ? live.tableLabel : "" } as const) : live.kind === "PICKUP" ? ({ kind: "PICKUP", name: live.customerName } as const) : null;
-  const ordering = atTable ? "table" : !settings.takeoutEnabled ? "none" : live?.kind === "PICKUP" && live.status === "OPEN" ? "pickupOpen" : "pickup";
   const rates = { taxRateBp: settings.taxRateBp, serviceChargeBp: settings.serviceChargeBp };
   const withPhoto = menu.sections.flatMap((s) => s.items.flatMap(({ item }) => (item.imagePath ? [{ id: item.id, path: item.imagePath }] : [])));
   const urls = menuPhotoUrls(withPhoto.map((p) => p.path));
@@ -51,8 +56,16 @@ export default async function CustomerMenuPage({ params }: { params: Promise<{ l
           </Link>
           <h1 className="text-2xl font-semibold">{t("title")}</h1>
         </div>
-        <div className="rounded-full bg-white text-gray-900">
-          <LanguageSwitch locale={locale} path="/menu" />
+        <div className="flex items-center gap-2">
+          {/* Services (waiter, cleaning, bill) are for guests at a table; until the home page offers them, this is the way in. */}
+          {visit?.kind === "TABLE" && (
+            <Link href={`/${locale}/services`} className="rounded-full bg-white px-4 py-1.5 text-sm font-semibold text-gray-900 hover:bg-gray-100">
+              {t("servicesLink")}
+            </Link>
+          )}
+          <div className="rounded-full bg-white text-gray-900">
+            <LanguageSwitch locale={locale} path="/menu" />
+          </div>
         </div>
       </header>
 
@@ -67,6 +80,7 @@ export default async function CustomerMenuPage({ params }: { params: Promise<{ l
         orders={visit ? sessionOrders : []} // a closed visit shows nothing, and no orders of it either
         restaurantName={localized(restaurant.name, locale)}
         assistantEnabled={ordering !== "none" && isOrderingAssistantAvailable()} // nothing can be ordered here when "none"
+        openAssistant={openAssistant}
       />
     </main>
   );
