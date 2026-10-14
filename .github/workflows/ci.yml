@@ -75,7 +75,7 @@ jobs:
       - name: Start local Supabase (migrations + seed)
         run: supabase start -x studio,imgproxy,inbucket,edge-runtime,analytics,vector,realtime,meta
 
-      - name: Database tests (pgTAP: tenant isolation, roles, privileges)
+      - name: Database tests (pgTAP - tenant isolation, roles, privileges)
         run: supabase test db
 
       # `npm run test:integration` reads .env.local, so write one from the running Supabase (local keys, not secrets).
