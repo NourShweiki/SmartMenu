@@ -44,3 +44,53 @@ jobs:
 
       - name: Build
         run: npm run build
+
+  # The database rules (tenant isolation, roles, privileges) and the real Supabase adapters. Runs a local Supabase
+  # in Docker on the runner, built from supabase/migrations + supabase/seed.sql, exactly like `npx supabase db reset`.
+  database:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+          cache-dependency-path: |
+            package-lock.json
+            package.json
+
+      - name: Use npm 11
+        run: npm install -g npm@11 && npm -v
+
+      - name: Install dependencies
+        run: npm ci
+
+      - uses: supabase/setup-cli@v1
+        with:
+          version: 2.107.0
+
+      # Only what the tests use: database, auth, REST API, storage and the gateway in front of them.
+      - name: Start local Supabase (migrations + seed)
+        run: supabase start -x studio,imgproxy,inbucket,edge-runtime,analytics,vector,realtime,meta
+
+      - name: Database tests (pgTAP: tenant isolation, roles, privileges)
+        run: supabase test db
+
+      # `npm run test:integration` reads .env.local, so write one from the running Supabase (local keys, not secrets).
+      - name: Write .env.local for the integration tests
+        run: |
+          eval "$(supabase status -o env)"
+          {
+            echo "NEXT_PUBLIC_SUPABASE_URL=$API_URL"
+            echo "NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=$PUBLISHABLE_KEY"
+            echo "SUPABASE_SERVICE_ROLE_KEY=$SERVICE_ROLE_KEY"
+            echo "APP_ROOT_DOMAIN=localhost"
+          } > .env.local
+
+      # REQUIRE_SUPABASE=1: a missing setting fails the run instead of silently skipping every integration test.
+      - name: Integration tests (real Supabase adapters)
+        run: npm run test:integration
+        env:
+          REQUIRE_SUPABASE: "1"
