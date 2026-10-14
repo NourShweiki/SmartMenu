@@ -15,7 +15,8 @@
     "test:watch": "vitest",
     "test:integration": "node --env-file=.env.local node_modules/vitest/vitest.mjs run integration --no-file-parallelism",
     "check": "npm run typecheck && npm run lint && npm run test && npm run build",
-    "test:e2e": "playwright test"
+    "test:e2e": "playwright test",
+    "test:groups": "node scripts/check-test-groups.mjs"
   },
   "dependencies": {
     "@supabase/ssr": "^0.12.7",

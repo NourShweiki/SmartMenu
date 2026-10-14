@@ -55,11 +55,13 @@ Then read `docs/PROGRESS.md` to see where work stopped (its **START HERE** secti
 ## Commands
 - Install: `npm install` (Node 22, see `.nvmrc`)
 - Dev server: `npm run dev` -> http://localhost:3000
-- Unit tests: `npm test` (Vitest, files `src/**/*.test.ts`)
+- Unit tests: `npm test` (Vitest, files `src/**/*.test.ts`); one area: `npx vitest run --project orders`
+- Test areas: every test file (unit, `*.integration.test.ts`, pgTAP) belongs to exactly ONE area in `test-groups.json`; CI runs each area as its own check. A new test file must be added there (`npm run test:groups` checks it; CI fails otherwise).
 - Integration tests (real adapters against the local Supabase; clean up after themselves): `npm run test:integration`
 - Lint: `npm run lint` (also enforces layer import rules)
 - Typecheck: `npm run typecheck`
 - Everything before pushing: `npm run check`
+- `main` is protected: work on a branch, open a PR; it merges only when the `check` and `database` gates are green.
 - E2E (Playwright, real Chrome + local Supabase): `npm run test:e2e` (needs `npx supabase start`, and `npx supabase db reset` for known demo data). Playwright builds the app for production and starts that build itself on port 3100 in its own folder `.next-e2e` (`e2e/support/server.ts`): nothing else has to run, a dev server on port 3000 is not used and not disturbed, and the build adds about a minute. Specs in `e2e/`, helpers in `e2e/support/demo.ts`. Every spec loops over BOTH demo restaurants and /en + /ar; tests that change data put it back. NOT part of `npm run check` / CI. When a screen changes, update or add its spec in the same iteration. The suite also starts a scripted stand-in for the AI service (`e2e/support/fake-gemini.mjs`, port 3199) and gives the test server `GEMINI_API_KEY`/`GEMINI_BASE_URL` pointing at it, so no real key or AI call is ever used. Services need tables: only Demo Grill has them (Demo Coffee is takeout only), so the services specs use Grill (plus "no table" checks on both).
 - Windows PowerShell on Nour's machine blocks `npx.ps1`: use `npx.cmd` (or Command Prompt). After pulling new migrations run `npx supabase db reset` (not only `migration up`), or the setup and tables specs fail on a stale seed.
 - AI assistant settings (`.env.example`): `GEMINI_API_KEY` (preferred) or `ANTHROPIC_API_KEY`, optional `ORDERING_ASSISTANT_MODEL`, `GEMINI_BASE_URL`. Never paste a key in chat or commit it; without a key the assistant is simply not offered.

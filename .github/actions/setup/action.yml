@@ -1,0 +1,22 @@
+name: Set up the project
+description: Node from .nvmrc, npm 11 and the locked dependencies (shared by every CI job).
+runs:
+  using: composite
+  steps:
+    - uses: actions/setup-node@v4
+      with:
+        node-version-file: .nvmrc
+        cache: npm
+        cache-dependency-path: |
+          package-lock.json
+          package.json
+
+    # Node 22 ships npm 10, but our machines use npm 11. npm 10 rejects lock files written by
+    # npm 11 ("Missing: @swc/helpers from lock file"); npm 11 accepts lock files from both.
+    - name: Use npm 11
+      shell: bash
+      run: npm install -g npm@11 && npm -v
+
+    - name: Install dependencies
+      shell: bash
+      run: npm ci

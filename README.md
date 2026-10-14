@@ -78,12 +78,14 @@ One codebase serves every restaurant (multi-tenant). Each restaurant lives on it
 - The phone only sends what is in the cart. The restaurant, the table, the prices and the rates all come from the server's own side.
 
 #### Quality
-- **Automated tests:** 573 unit tests, 45 integration tests against a real local database, 482 database security tests (tenant isolation, roles, privileges), and about 216 end-to-end tests that drive a real browser through both demo restaurants in English and Arabic.
+- **Automated tests:** 647 unit tests, 45 integration tests against a real local database, 482 database security tests (tenant isolation, roles, privileges), and about 216 end-to-end tests that drive a real browser through both demo restaurants in English and Arabic.
 - The browser tests build the app for production and start that build themselves, so they check the code in the form users get; they remove everything they create.
 - **Reliable updates after a save.** In production builds a bug in the React version bundled with our framework could leave a page showing old content after a successful save, until a reload. A small built-in guard makes the page catch up by itself; the browser tests run against a production build to keep it that way. On slow phones the same bug could leave "Place order" on "Sending…" for up to 15 seconds although the server had answered at once; the guard was strengthened (measured: 1 slow order in 25 before, none in 90 after).
-- **CI** runs on every push and pull request, in two jobs; either one failing turns the pipeline red:
-  - **check:** typecheck, lint (including the architecture-layer import rules), unit tests and a production build.
-  - **database:** starts a real Supabase in Docker from our migrations and demo seed, then runs the database security tests and the integration tests. If the database settings are missing, the job fails instead of silently skipping the tests.
+- **CI** runs on every push and pull request. Every area of the app is its own check, so a red check says what broke:
+  - **Typecheck**, **Lint & architecture rules**, **Production build**.
+  - **Unit - <area>** and **Database - <area>** for each area: Platform & data security, Staff, roles & passwords, Menu, Orders & takeout, Tables & visits, Settings & branding, Guest services, AI assistant, Shared basics. The database checks start a real Supabase in Docker from our migrations and demo seed and run that area's security tests and integration tests.
+  - **Test groups:** every test file must belong to exactly one area (listed in `test-groups.json`), so no test is ever left out of CI.
+  - **check** and **database** collect all of the above; `main` only accepts a pull request when both are green.
   - The browser (end-to-end) tests still run on developer machines only.
 
 ### ⬜ Not done yet
