@@ -45,6 +45,7 @@ import type { StaffActor } from "@/application/use-cases/permissions";
 import { makeCreateRestaurant } from "@/application/use-cases/platform/create-restaurant";
 import { makeGetFounderContext, makeListRestaurants, makeSignInFounder } from "@/application/use-cases/platform/founder-access";
 import { makeIssueTemporaryPassword } from "@/application/use-cases/platform/issue-temporary-password";
+import { makeAskOrderingAssistant, type AskOrderingAssistantInput } from "@/application/use-cases/ask-ordering-assistant";
 import { makeGetRestaurantSettings } from "@/application/use-cases/settings/get-restaurant-settings";
 import { makeGetSetupChecklist } from "@/application/use-cases/setup/get-setup-checklist";
 import {
@@ -71,6 +72,8 @@ import type { RestaurantId } from "@/domain/restaurant/restaurant";
 import { createPublicClient, createServiceClient, createSessionClient } from "./supabase/client";
 import { SupabaseBrandingRepository } from "./supabase/supabase-branding-repository";
 import { AnthropicMenuDraftGateway } from "./ai/anthropic-menu-draft-gateway";
+import { AnthropicOrderingAssistant } from "./ai/anthropic-ordering-assistant";
+import { GeminiOrderingAssistant } from "./ai/gemini-ordering-assistant";
 import { newTableToken, newTemporaryPassword } from "./random-token";
 import { SupabaseAccountDirectory } from "./supabase/supabase-account-directory";
 import { SupabasePasswordGateway } from "./supabase/supabase-password-gateway";
@@ -106,6 +109,25 @@ export function getPublicRestaurant(input: GetPublicRestaurantInput) {
 /** The public menu (what a customer sees), read through the narrow public database function: no login, no table access. */
 export function getPublicMenu(restaurant: { id: RestaurantId; slug: string }) {
   return makeGetPublicMenu({ menu: new SupabasePublicMenuRepository(createPublicClient()) })(restaurant);
+}
+
+/**
+ * The AI ordering assistant: reads the customer's chat and the public menu, and returns a reply plus the cart with
+ * the (checked) suggestions added. Public like the menu: the restaurant MUST come from the host and the rates from
+ * its settings. The AI behind it is Gemini when GEMINI_API_KEY is set, otherwise Claude (ANTHROPIC_API_KEY);
+ * with neither it answers NOT_CONFIGURED.
+ */
+export function askOrderingAssistant(input: AskOrderingAssistantInput) {
+  const model = process.env.ORDERING_ASSISTANT_MODEL;
+  const assistant = process.env.GEMINI_API_KEY
+    ? new GeminiOrderingAssistant({ apiKey: process.env.GEMINI_API_KEY, model, baseUrl: process.env.GEMINI_BASE_URL })
+    : new AnthropicOrderingAssistant({ apiKey: process.env.ANTHROPIC_API_KEY, model });
+  return makeAskOrderingAssistant({ menu: new SupabasePublicMenuRepository(createPublicClient()), assistant })(input);
+}
+
+/** Whether the customer menu should offer the assistant at all: an AI key is configured on this server. */
+export function isOrderingAssistantAvailable(): boolean {
+  return Boolean(process.env.GEMINI_API_KEY || process.env.ANTHROPIC_API_KEY);
 }
 
 /** Auth + membership adapters sharing the signed-in user's cookie session. */

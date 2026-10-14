@@ -4,7 +4,7 @@ import { getTranslations } from "next-intl/server";
 import { pickupRates } from "@/domain/order/order";
 import { accentHex } from "@/domain/restaurant/branding";
 import { localized } from "@/domain/shared/localized";
-import { getPublicMenu, menuPhotoUrls, tableSessions } from "@/infrastructure/container";
+import { getPublicMenu, isOrderingAssistantAvailable, menuPhotoUrls, tableSessions } from "@/infrastructure/container";
 import { LanguageSwitch } from "@/interface/web/components/language-switch";
 import { CustomerMenu } from "@/interface/web/customer/customer-menu";
 import { readSessionId } from "@/interface/web/customer/session-cookie";
@@ -66,6 +66,7 @@ export default async function CustomerMenuPage({ params }: { params: Promise<{ l
         dineIn={settings.dineInEnabled}
         orders={visit ? sessionOrders : []} // a closed visit shows nothing, and no orders of it either
         restaurantName={localized(restaurant.name, locale)}
+        assistantEnabled={ordering !== "none" && isOrderingAssistantAvailable()} // nothing can be ordered here when "none"
       />
     </main>
   );

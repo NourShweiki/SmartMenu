@@ -92,6 +92,7 @@ One codebase serves every restaurant (multi-tenant). Each restaurant lives on it
   4. ~~a setup checklist for the owner~~ ✅
   5. ~~menu import from a spreadsheet~~ ✅
   6. menu import by AI from a photo or PDF: built; **needs an AI key and a decision on cost before it can be tried for real**
+- **AI ordering assistant (working, being tested):** on the customer menu an "Ask the assistant" card opens a chat. The customer types what they want, in Arabic or English, and the assistant answers questions about the menu and adds what was asked to the cart. It can never invent an item, a price or an option: every suggestion is checked against the real, live menu, a required choice (like the milk for a cappuccino) is asked for first, and the customer still reviews the cart and places the order themselves. It uses Google's Gemini (or Claude) through a key kept on the server. Tried by hand in Arabic on the demo coffee shop; automatic browser tests and billing for the AI key are still to do.
 - **After that:** custom domains (moved to the next phase), the installable app with push notifications that reach a locked phone, SMS, reports, loyalty points, the AI ordering assistant, delivery, and cloud deployment (Vercel + Supabase).
 
 ### Known limits (on purpose, for now)
