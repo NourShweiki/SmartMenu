@@ -9,63 +9,82 @@ concurrency:
   group: ci-${{ github.ref }}
   cancel-in-progress: true
 
+# Every area of the app (test-groups.json) is its own check, so a red check names what broke:
+#   "Unit - Orders & takeout", "Database - Orders & takeout", "Typecheck", "Lint & architecture rules", ...
+# The two jobs at the bottom, "check" and "database", only collect those results: they are the checks the
+# ruleset on main requires, so their names must not change.
 jobs:
-  check:
+  groups:
+    name: Test groups
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    outputs:
+      unit: ${{ steps.areas.outputs.unit }}
+      database: ${{ steps.areas.outputs.database }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/setup
+      # Fails when a test file is in no area (it would never run in CI) or in two.
+      - name: Every test belongs to exactly one area
+        id: areas
+        run: node scripts/check-test-groups.mjs --matrix
+
+  typecheck:
+    name: Typecheck
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/setup
+      - run: npm run typecheck
+
+  lint:
+    name: Lint & architecture rules
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/setup
+      - run: npm run lint
+
+  build:
+    name: Production build
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
+      - uses: ./.github/actions/setup
+      - run: npm run build
 
-      - uses: actions/setup-node@v4
-        with:
-          node-version-file: .nvmrc
-          cache: npm
-          cache-dependency-path: |
-            package-lock.json
-            package.json
-
-      # Node 22 ships npm 10, but our machines use npm 11. npm 10 rejects lock files written by
-      # npm 11 ("Missing: @swc/helpers from lock file"); npm 11 accepts lock files from both.
-      - name: Use npm 11
-        run: npm install -g npm@11 && npm -v
-
-      - name: Install dependencies
-        run: |
-          if [ -f package-lock.json ]; then npm ci; else npm install; fi
-
-      - name: Typecheck
-        run: npm run typecheck
-
-      - name: Lint (incl. architecture import rules)
-        run: npm run lint
-
-      - name: Unit tests
-        run: npm test
-
-      - name: Build
-        run: npm run build
-
-  # The database rules (tenant isolation, roles, privileges) and the real Supabase adapters. Runs a local Supabase
-  # in Docker on the runner, built from supabase/migrations + supabase/seed.sql, exactly like `npx supabase db reset`.
-  database:
+  unit:
+    name: Unit - ${{ matrix.area.name }}
+    needs: groups
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 10
+    strategy:
+      fail-fast: false # one broken area must not hide the state of the others
+      matrix:
+        area: ${{ fromJSON(needs.groups.outputs.unit) }}
     steps:
       - uses: actions/checkout@v4
+      - uses: ./.github/actions/setup
+      - name: Unit tests (${{ matrix.area.id }})
+        run: npx vitest run --project ${{ matrix.area.id }}
 
-      - uses: actions/setup-node@v4
-        with:
-          node-version-file: .nvmrc
-          cache: npm
-          cache-dependency-path: |
-            package-lock.json
-            package.json
-
-      - name: Use npm 11
-        run: npm install -g npm@11 && npm -v
-
-      - name: Install dependencies
-        run: npm ci
+  # The database rules (tenant isolation, roles, privileges) and the real Supabase adapters, per area. Each job runs
+  # a local Supabase in Docker on the runner, built from supabase/migrations + supabase/seed.sql.
+  db:
+    name: Database - ${{ matrix.area.name }}
+    needs: groups
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        area: ${{ fromJSON(needs.groups.outputs.database) }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/setup
 
       - uses: supabase/setup-cli@v1
         with:
@@ -75,13 +94,11 @@ jobs:
       - name: Start local Supabase (migrations + seed)
         run: supabase start -x studio,imgproxy,inbucket,edge-runtime,analytics,vector,realtime,meta
 
-      - name: Database tests (pgTAP - tenant isolation, roles, privileges)
-        run: supabase test db
-
       # `npm run test:integration` reads .env.local, so write one from the running Supabase (local keys, not secrets).
       - name: Write .env.local for the integration tests
         run: |
           eval "$(supabase status -o env)"
+          test -n "$API_URL" && test -n "$PUBLISHABLE_KEY" && test -n "$SERVICE_ROLE_KEY"
           {
             echo "NEXT_PUBLIC_SUPABASE_URL=$API_URL"
             echo "NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=$PUBLISHABLE_KEY"
@@ -89,8 +106,36 @@ jobs:
             echo "APP_ROOT_DOMAIN=localhost"
           } > .env.local
 
-      # REQUIRE_SUPABASE=1: a missing setting fails the run instead of silently skipping every integration test.
+      - name: Database tests (pgTAP)
+        if: matrix.area.files != ''
+        run: supabase test db ${{ matrix.area.files }}
+
+      # REQUIRE_SUPABASE=1: a missing setting fails the run instead of silently skipping the integration tests.
       - name: Integration tests (real Supabase adapters)
-        run: npm run test:integration
+        if: success() || failure() # also when pgTAP failed, so both results are visible
+        run: npm run test:integration -- --project ${{ matrix.area.id }}
         env:
           REQUIRE_SUPABASE: "1"
+
+  # ── Gates required by the ruleset on main: red when any job they collect is not green (also when skipped). ──
+  check:
+    name: check
+    needs: [groups, typecheck, lint, build, unit]
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - name: All code checks and unit test areas passed
+        run: |
+          echo "Results: ${{ join(needs.*.result, ', ') }}"
+          test "${{ contains(needs.*.result, 'failure') || contains(needs.*.result, 'cancelled') || contains(needs.*.result, 'skipped') }}" = "false"
+
+  database:
+    name: database
+    needs: [groups, db]
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - name: All database test areas passed
+        run: |
+          echo "Results: ${{ join(needs.*.result, ', ') }}"
+          test "${{ contains(needs.*.result, 'failure') || contains(needs.*.result, 'cancelled') || contains(needs.*.result, 'skipped') }}" = "false"

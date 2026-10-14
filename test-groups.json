@@ -1,0 +1,183 @@
+{
+  "$comment": "Every test belongs to exactly ONE area. CI runs each area as its own check ('Unit - Orders & takeout', 'Database - Orders & takeout', ...), so a red check names the broken area. 'unit' = Vitest globs (unit AND *.integration.test.ts files); 'database' = pgTAP files in supabase/tests/database. A new test file that matches no area (or two) fails the 'Test groups' check: add it here. Run `npm run test:groups` to check locally.",
+  "groups": [
+    {
+      "id": "platform",
+      "name": "Platform & data security",
+      "unit": [
+        "src/domain/restaurant/host.test.ts",
+        "src/domain/restaurant/restaurant.test.ts",
+        "src/domain/restaurant/setup-checklist.test.ts",
+        "src/application/use-cases/platform/**/*.test.ts",
+        "src/application/use-cases/setup/**/*.test.ts",
+        "src/interface/web/setup/**/*.test.ts",
+        "src/infrastructure/supabase/supabase-restaurant-repository.test.ts",
+        "src/infrastructure/supabase/platform.integration.test.ts",
+        "src/interface/web/setup/require-founder.test.ts",
+        "src/interface/web/current-site.test.ts"
+      ],
+      "database": [
+        "tenant_isolation",
+        "table_privileges",
+        "create_restaurant",
+        "restaurant_owners"
+      ]
+    },
+    {
+      "id": "staff",
+      "name": "Staff, roles & passwords",
+      "unit": [
+        "src/domain/restaurant/role.test.ts",
+        "src/domain/shared/password.test.ts",
+        "src/domain/shared/email.test.ts",
+        "src/application/use-cases/permissions.test.ts",
+        "src/application/use-cases/staff-auth.test.ts",
+        "src/application/use-cases/change-own-password.test.ts",
+        "src/application/use-cases/staff/**/*.test.ts",
+        "src/interface/web/staff/password-model.test.ts",
+        "src/interface/web/staff/team-model.test.ts",
+        "src/infrastructure/random-token.test.ts",
+        "src/infrastructure/supabase/password.integration.test.ts",
+        "src/infrastructure/supabase/staff-auth.integration.test.ts",
+        "src/infrastructure/supabase/staff.integration.test.ts",
+        "src/interface/web/staff/require-staff.test.ts"
+      ],
+      "database": [
+        "staff_management"
+      ]
+    },
+    {
+      "id": "menu",
+      "name": "Menu, options & import",
+      "unit": [
+        "src/domain/menu/**/*.test.ts",
+        "src/domain/shared/ordering.test.ts",
+        "src/application/use-cases/menu/**/*.test.ts",
+        "src/application/use-cases/get-public-menu.test.ts",
+        "src/interface/web/staff/menu-import-model.test.ts",
+        "src/infrastructure/ai/anthropic-menu-draft-gateway.test.ts",
+        "src/infrastructure/supabase/supabase-public-menu-repository.test.ts",
+        "src/infrastructure/supabase/menu.integration.test.ts",
+        "src/infrastructure/supabase/options.integration.test.ts",
+        "src/infrastructure/supabase/public-menu.integration.test.ts"
+      ],
+      "database": [
+        "menu_isolation",
+        "menu_photos",
+        "options_isolation",
+        "public_menu"
+      ]
+    },
+    {
+      "id": "orders",
+      "name": "Orders & takeout",
+      "unit": [
+        "src/domain/order/**/*.test.ts",
+        "src/domain/cart/cart.test.ts",
+        "src/domain/table-session/pickup.test.ts",
+        "src/application/use-cases/orders/**/*.test.ts",
+        "src/interface/web/customer/place-order-model.test.ts",
+        "src/interface/web/customer/order-updates.test.ts",
+        "src/interface/web/customer/ordering-mode.test.ts",
+        "src/interface/web/customer/request-key.test.ts",
+        "src/interface/web/staff/order-queue-model.test.ts",
+        "src/interface/web/staff/order-queue-pickup.test.ts",
+        "src/interface/web/staff/new-orders.test.ts",
+        "src/infrastructure/supabase/supabase-order-repository.test.ts",
+        "src/infrastructure/customer-order.integration.test.ts",
+        "src/infrastructure/supabase/orders.integration.test.ts",
+        "src/infrastructure/supabase/pickup.integration.test.ts",
+        "src/interface/web/customer/client-hash.test.ts"
+      ],
+      "database": [
+        "orders_isolation",
+        "place_order",
+        "cancel_orders",
+        "takeout_limits",
+        "takeout_pickup",
+        "public_session_orders"
+      ]
+    },
+    {
+      "id": "tables",
+      "name": "Tables, QR codes & visits",
+      "unit": [
+        "src/domain/table-session/table-session.test.ts",
+        "src/application/use-cases/tables/**/*.test.ts",
+        "src/interface/web/staff/open-tables-model.test.ts",
+        "src/interface/web/staff/table-form-model.test.ts",
+        "src/interface/web/tables/**/*.test.ts",
+        "src/infrastructure/supabase/supabase-table-mappers.test.ts",
+        "src/infrastructure/supabase/tables.integration.test.ts"
+      ],
+      "database": [
+        "tables_and_sessions",
+        "session_expiry"
+      ]
+    },
+    {
+      "id": "restaurant",
+      "name": "Settings & branding",
+      "unit": [
+        "src/domain/restaurant/branding.test.ts",
+        "src/application/use-cases/branding/**/*.test.ts",
+        "src/application/use-cases/settings/**/*.test.ts",
+        "src/application/use-cases/get-public-restaurant.test.ts",
+        "src/interface/web/staff/branding-form-model.test.ts",
+        "src/interface/web/staff/settings-form-model.test.ts",
+        "src/interface/web/public-restaurant-view.test.ts",
+        "src/infrastructure/supabase/supabase-settings-repository.test.ts",
+        "src/infrastructure/supabase/branding.integration.test.ts",
+        "src/infrastructure/supabase/settings.integration.test.ts"
+      ],
+      "database": [
+        "branding",
+        "public_restaurant"
+      ]
+    },
+    {
+      "id": "services",
+      "name": "Guest services",
+      "unit": [
+        "src/domain/service-request/**/*.test.ts",
+        "src/application/use-cases/service-requests/**/*.test.ts",
+        "src/interface/web/customer/service-model.test.ts",
+        "src/infrastructure/supabase/supabase-service-request-mappers.test.ts",
+        "src/infrastructure/supabase/service-requests.integration.test.ts"
+      ],
+      "database": [
+        "service_requests"
+      ]
+    },
+    {
+      "id": "assistant",
+      "name": "AI ordering assistant",
+      "unit": [
+        "src/domain/cart/assistant-proposal.test.ts",
+        "src/application/use-cases/ask-ordering-assistant.test.ts",
+        "src/interface/web/customer/assistant-chat-model.test.ts",
+        "src/interface/web/customer/assistant-model.test.ts",
+        "src/infrastructure/ai/anthropic-ordering-assistant.test.ts",
+        "src/infrastructure/ai/gemini-ordering-assistant.test.ts"
+      ],
+      "database": []
+    },
+    {
+      "id": "basics",
+      "name": "Shared basics (money, digits, ids)",
+      "unit": [
+        "src/domain/shared/localized.test.ts",
+        "src/domain/shared/phone.test.ts",
+        "src/domain/shared/uuid.test.ts",
+        "src/interface/web/digits.test.ts",
+        "src/interface/web/format.test.ts",
+        "src/interface/web/price-input.test.ts",
+        "src/interface/web/rate-input.test.ts",
+        "src/interface/web/customer/rate-limit.test.ts",
+        "src/infrastructure/supabase/environment.integration.test.ts",
+        "src/domain/shared/money.test.ts"
+      ],
+      "database": []
+    }
+  ]
+}
