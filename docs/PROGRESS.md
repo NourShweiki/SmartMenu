@@ -565,6 +565,74 @@ Read this after `PROJECT_SPEC.md` at the start of every session. Update it at th
   Full browser run on the rebuilt database: 167 of 168 passed in 13.0 min. The ONE failure: guest-orders.spec.ts grill /ar, the 'order was cancelled' notice did not appear on the guest's phone within 20 s; re-run 3 times in a row the spec passed 9 of 9. NOT explained and not reproduced: watch for it.
   Review (high, 3 findings, none fixed): the restaurant-wide limit lets an attacker PAUSE takeout for real customers (20 fake orders block the queue until staff cancel them: bounded damage, not prevention); the device limit trusts `x-forwarded-for` (correct behind the hosting platform, spoofable if the app is ever exposed directly); the guard now re-renders a component 40 times after every request on every page (measured as harmless; remove the whole guard when a React upgrade fixes the bug).
 
+## AI ordering assistant (started 2026-10-13, Omar; decided: fills the cart AND answers menu questions; Arabic + English incl. Jordanian dialect)
+- Step 1 (domain): `src/domain/cart/assistant-proposal.ts` — `groundProposal(proposed, catalog, rates, existingCart)`. The assistant only
+  proposes ids + quantity; every line is re-checked against the live menu with the cart/order rules. Rejected lines come back with a
+  reason (`UNKNOWN_ITEM`, `ITEM_UNAVAILABLE`, `OPTION_UNAVAILABLE`, `SELECTION_INVALID`, `INVALID_QUANTITY`, `QUANTITY_TOO_HIGH`,
+  `CART_FULL`); one bad line never blocks the others. Prices/names are never taken from the AI. 9 unit tests.
+- Step 2 (port + adapter): `src/application/ports/ordering-assistant.ts` (`OrderingAssistant.reply({menu, history})` ->
+  `{message, proposed}`; errors NOT_CONFIGURED / SERVICE_FAILED / BAD_ANSWER) and `src/infrastructure/ai/anthropic-ordering-assistant.ts`
+  (plain HTTPS, key from `ANTHROPIC_API_KEY`, forced tool call `reply_to_customer` so the answer is structured; system prompt = rules +
+  the live menu JSON; customer text is treated as data). 8 tests with a fake `fetch`. NOT wired into `container.ts` yet and
+  NOT yet run against the real service (needs the key). Open for the use case: cap the history length / message size there.
+- Step 3 (use case): `src/application/use-cases/ask-ordering-assistant.ts` — `makeAskOrderingAssistant({menu, assistant})`. Input:
+  restaurant (from the host), rates, chat history, current cart. Shows the assistant only the public menu (what customers see),
+  cuts the chat to the last 20 turns / 1000 chars each, runs the answer through `groundProposal`, returns
+  `{message, cart, added, rejected}`. Errors: NOT_CONFIGURED / EMPTY_MESSAGE / SERVICE_FAILED. Wired as
+  `askOrderingAssistant(input)` in `container.ts`; optional `ORDERING_ASSISTANT_MODEL` in `.env.example`. 7 tests.
+- Step 4 (server action, not an API route — the project's convention for public customer actions, like `order-actions.ts`; zod is not
+  installed so validation is hand-written and strict): `src/interface/web/customer/assistant-actions.ts` (`askAssistantAction(history, cart)`,
+  restaurant from the host) + pure `assistant-model.ts` (`readHistory` strict, `askAssistant`, outcome/problem types) +
+  `rate-limit.ts` (in-memory sliding window). Limits (every call costs money): 20 questions / 10 min per device, 300 / hour per
+  restaurant; malformed requests are refused before they are counted. Outcome = `{message, cart, added, rejected: reasons[]}` or
+  `{problem: notAvailable | emptyMessage | invalidRequest | tooMany | failed}`. 9 new tests. The limiter is per server instance (not shared
+  across Vercel instances): move it to the database/Upstash before a real launch.
+- Step 4b (Gemini, decided 2026-10-13: Nour has a paid Google AI Studio key, no Anthropic key): `gemini-ordering-assistant.ts`
+  implements the same `OrderingAssistant` port on Google's `generateContent` (key in the `x-goog-api-key` header, forced function
+  call). Prompt, menu JSON, answer schema and reading shared with the Claude adapter in `assistant-shared.ts`. `container.ts` uses
+  Gemini when `GEMINI_API_KEY` is set, otherwise Claude; `ORDERING_ASSISTANT_MODEL` overrides the model. 6 tests.
+  PROVEN LIVE once (one real call): `gemini-3.6-flash` accepted the request and returned a correct structured answer in Arabic
+  (item id + quantity 2). Not yet proven: the full path from the page.
+  MODEL CHOSEN 2026-10-13: default `gemini-3.1-flash-lite` (Nour: "best and cheapest"). A 13-case test (AR dialect, EN, mixed, question,
+  sold-out, missing required option, injection, invented item, multi-line, price question, follow-up, too many extras, allergen
+  question) scored 12/13, 0 unsafe, ~$0.0003 per question, ~11 s per reply (slow: the API was busy). `gemini-2.5-flash` and
+  `-lite` answer 404 for this key (not available to new projects); `3.6-flash` / `3.5-flash-lite` hit 429/503 during the test (unproven,
+  not worse); `3.8-flash` gave 503. TODO: the adapter does not retry on 429/503 yet; reply time ~11 s needs a "typing" state in the chat box.
+- Step 5 (chat box, 2026-10-13): `src/interface/web/customer/assistant-chat.tsx` — a full-width card at the top of the customer menu
+  ("Ask the assistant") opening a native `<dialog>` chat. Not a floating button: on a phone it covered the "Add" buttons. Shown only when
+  an AI key is configured (`isOrderingAssistantAvailable()` in `container.ts`) and this phone can order (`ordering !== "none"`). Sends the
+  chat + cart to `askAssistantAction`, replaces the cart with the returned one (`useCart.replace`), shows app notes ("1 item added",
+  and one translated sentence per distinct rejected reason) and a "Thinking…" state; "View cart" button inside. Pure parts in
+  `assistant-chat-model.ts` (history cap, distinct reasons). Messages: `Menu.assistant.*` in en + ar. Adapters now retry ONCE on 429/503
+  and cut each attempt off after 45 s (`fetchWithRetry` in `assistant-shared.ts`).
+  VERIFIED IN THE BROWSER (demo-takeout, /en and /ar): "بدي اثنين كابتشينو" -> the assistant asked which milk (required option group),
+  "بالحليب العادي" -> "2 cappuccino with regular milk" added; the cart showed Cappuccino x2, 4.500 JD + 0.720 JD tax = 5.220 JD (priced from
+  the database, no service charge for takeout). Unit tests: 523 pass (74 files). NOT covered: a Playwright E2E for the chat (needs the AI
+  stubbed), and the dine-in path (demo-dinein) was only checked for rendering.
+  FINDING: Nour's Google key behaves as FREE TIER (`generate_content_free_tier_requests, limit: 20` per model per day -> 429 for 3.6-flash
+  until ~9.5 h later; many 503s). Before real use: enable billing on the Google Cloud project behind the key (AI Studio -> API keys), and
+  remember free-tier prompts may be used by Google to improve its products — real customer chats must not go through a free-tier key.
+- Step 5b (E2E, 2026-10-14): `e2e/assistant-chat.spec.ts` — 16 tests (grill + coffee x /en + /ar x 4 scenarios: order sentence -> cart priced by
+  the app; item with a required choice; invented item refused with a note; AI failure shown kindly). The AI is a scripted stand-in:
+  `e2e/support/fake-gemini.mjs` (started by `playwright.config.ts` as a second web server; the app is pointed at it with
+  `GEMINI_BASE_URL`; no real key, free, deterministic). The test server also gets `ANTHROPIC_API_KEY=""` (the menu-import spec expects
+  "AI not switched on"). New env var `GEMINI_BASE_URL` (optional, documented in `.env.example`).
+  Full suite run: 166 passed, 18 failed on a STALE database (migrations applied with `migration up`, seed not re-run: 0 founders,
+  3 tables instead of 4). After `npx supabase db reset` those 4 specs (setup, tables, staff-checklist, staff-orders) pass: 42/42.
+  Gotcha: after pulling new migrations run `npx supabase db reset`, not only `migration up`, or setup/tables specs fail.
+- Step 5c (code review of the assistant, 2026-10-14, 10 findings): FIXED 9 — Gemini `maxOutputTokens` 1024 -> 4096 (thinking tokens count
+  against it); a missing `lines` in the AI's answer means "nothing to add" instead of an error; retry only on 503 (a 429 is a used-up quota),
+  one deadline of 45 s for the whole call, the unused first response is cancelled; devices with no known address are no longer one shared
+  rate-limit bucket (the per-restaurant limit still applies); when every suggested line is refused the AI's text is dropped (it would claim
+  "added"); one `orderingAssistant()` helper decides provider AND availability; prompt prices use integer arithmetic; the rate limiter sweeps
+  every 10 s and holds at most 20,000 keys; test-only re-exports removed.
+  NOT FIXED (design): the chat history incl. the assistant's own turns comes from the browser, so a caller can forge "assistant" turns or use
+  the box as a free-form prompt (grounding still stops bad cart lines; costs are bounded by the rate limits). A real fix = server-side chat
+  state or signed turns. Also missing: a unit test for the container's Gemini-vs-Claude choice.
+- Next step (Nour approves): — (done, see Step 5 above; old plan:) chat box on the customer menu page that fills the existing cart (customer still confirms); translated
+  messages for each problem and for rejected reasons (ar + en); only shown when the assistant is configured. This is the first
+  step where the real key is needed.
+
 ## In progress / verify first
 - Nothing is half-built. Waiting for Nour's go-ahead for the next step only (START HERE).
 - After `npx supabase db reset` everybody is signed out: sign in again (demo accounts: `supabase/seed.sql`).

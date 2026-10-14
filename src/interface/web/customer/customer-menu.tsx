@@ -11,6 +11,7 @@ import { MAX_LINE_QUANTITY, type OrderRates } from "@/domain/order/order";
 import { localized } from "@/domain/shared/localized";
 import { formatPrice } from "@/interface/web/format";
 import type { Locale } from "@/interface/web/i18n/locales";
+import { AssistantChat } from "./assistant-chat";
 import { CartPanel, type OrderingMode } from "./cart-panel";
 import { GuestOrders } from "./guest-orders";
 import { OptionPicker } from "./option-picker";
@@ -39,15 +40,17 @@ type Props = {
   orders: readonly PublicOrder[];
   /** The restaurant's name in the guest's language (the body of the "order is ready" notification). */
   restaurantName: string;
+  /** Offer the AI ordering assistant (an AI key is configured, and this phone can order). */
+  assistantEnabled: boolean;
 };
 
 /** The customer menu: browse, add to a cart (with option choices), review the cart with a price preview, place the order. */
-export function CustomerMenu({ restaurantSlug, sections, rates, imageUrls, visit, ordering, dineIn, orders, restaurantName }: Props) {
+export function CustomerMenu({ restaurantSlug, sections, rates, imageUrls, visit, ordering, dineIn, orders, restaurantName, assistantEnabled }: Props) {
   const t = useTranslations("Menu");
   const locale = useLocale() as Locale;
   const tTable = useTranslations("Table");
   const router = useRouter();
-  const { cart, ready, add, setQuantity, remove, clear } = useCart(restaurantSlug);
+  const { cart, ready, add, setQuantity, remove, clear, replace } = useCart(restaurantSlug);
   const [picking, setPicking] = useState<CustomerMenuItem | null>(null);
   const [cartOpen, setCartOpen] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
@@ -126,6 +129,17 @@ export function CustomerMenu({ restaurantSlug, sections, rates, imageUrls, visit
           </p>
         )}
         {visit && orders.length > 0 && <GuestOrders orders={orders} restaurantName={restaurantName} />}
+        {ready && assistantEnabled && sections.length > 0 && (
+          <AssistantChat
+            cart={cart}
+            cartCount={count}
+            onCartChange={(next) => replace(next)}
+            onViewCart={() => {
+              setNotice(null);
+              setCartOpen(true);
+            }}
+          />
+        )}
         {sections.length === 0 && <p className="py-10 text-center text-gray-500">{t("empty")}</p>}
 
         {sections.map(({ category, items }) => (

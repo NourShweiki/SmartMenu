@@ -308,6 +308,34 @@
       "tooMany": "You can order at most {max} of one item.",
       "cartFull": "The cart is full ({max} different items)."
     },
+    "assistant": {
+      "open": "Ask the assistant",
+      "hint": "Tell me what you would like, in Arabic or English.",
+      "title": "Ordering assistant",
+      "close": "Close",
+      "viewCart": "View cart",
+      "intro": "Ask about the menu, or tell me what you would like. I will add it to your cart and you confirm the order yourself.",
+      "placeholder": "Type your message",
+      "send": "Send",
+      "thinking": "Thinking…",
+      "addedToCart": "{count, plural, one {# item} other {# items}} added to your cart.",
+      "errors": {
+        "notAvailable": "The assistant is not available right now. You can still order from the menu.",
+        "emptyMessage": "Please type a message first.",
+        "invalidRequest": "Something went wrong. Please try again.",
+        "tooMany": "You have asked a lot of questions. Please wait a few minutes and try again.",
+        "failed": "The assistant could not answer right now. Please try again, or order from the menu."
+      },
+      "rejected": {
+        "UNKNOWN_ITEM": "One of the items is not on our menu, so it was not added.",
+        "ITEM_UNAVAILABLE": "One of the items is sold out or not available, so it was not added.",
+        "OPTION_UNAVAILABLE": "One of the choices is not available, so that item was not added.",
+        "SELECTION_INVALID": "One item needs its choices completed, so it was not added. Please say which option you want.",
+        "INVALID_QUANTITY": "One of the quantities was not valid, so it was not added.",
+        "QUANTITY_TOO_HIGH": "That is more of one item than can be ordered at once, so it was not added.",
+        "CART_FULL": "Your cart is full, so some items were not added."
+      }
+    },
     "cart": {
       "title": "Your cart",
       "view": "View cart",

@@ -8,6 +8,9 @@
  */
 export const E2E_PORT = 3100;
 
+/** The stand-in for the Gemini API (e2e/support/fake-gemini.mjs): the test server's assistant talks to it, never to Google. */
+export const FAKE_AI_PORT = 3199;
+
 /** Build output of the test server (git-ignored). `next.config.ts` reads the folder name from NEXT_DIST_DIR. */
 export const E2E_DIST_DIR = ".next-e2e";
 

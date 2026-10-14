@@ -71,5 +71,7 @@ export function useCart(restaurantSlug: string) {
     setQuantity: (key: string, quantity: number) => apply((c) => setQuantity(c, key, quantity)),
     remove: (key: string) => apply((c) => ({ ok: true as const, value: removeLine(c, key) })),
     clear: () => apply(() => ({ ok: true as const, value: EMPTY_CART })),
+    /** Takes a whole cart (the assistant's answer: the cart with its checked suggestions added). Re-read through `parseCart`, so a damaged one is cleaned like a saved cart. */
+    replace: (next: Cart) => apply(() => ({ ok: true as const, value: parseCart(next) })),
   };
 }
