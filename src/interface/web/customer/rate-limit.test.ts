@@ -13,6 +13,16 @@ describe("makeRateLimiter", () => {
     expect(limiter.hit("a")).toBe(true);
   });
 
+  it("never holds more than a fixed number of keys: new keys are refused while it is full, known ones keep working", () => {
+    let now = 0;
+    const limiter = makeRateLimiter({ max: 5, windowMs: 60_000, now: () => now });
+    for (let i = 0; i < 20_000; i++) expect(limiter.hit(`k${i}`)).toBe(true);
+    expect(limiter.hit("one-too-many")).toBe(false);
+    expect(limiter.hit("k0")).toBe(true); // already known
+    now = 120_000; // everything has aged out: the next sweep makes room again
+    expect(limiter.hit("one-too-many")).toBe(true);
+  });
+
   it("does not count refused requests (a hammering client is not locked out longer)", () => {
     let now = 0;
     const limiter = makeRateLimiter({ max: 1, windowMs: 1000, now: () => now });

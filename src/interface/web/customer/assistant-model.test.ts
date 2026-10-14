@@ -58,13 +58,23 @@ describe("askAssistant", () => {
     expect((await run()).ok).toBe(true); // the refused request did not use up the device's one allowed question
   });
 
-  it("limits how often one device may ask, and a device without a known address shares one bucket", async () => {
+  it("limits how often one device may ask", async () => {
     const { ask, run } = setup(ok(good), 2);
     expect([(await run()).ok, (await run()).ok, (await run()).ok]).toEqual([true, true, false]);
     expect(await run()).toEqual({ ok: false, problem: "tooMany" });
     expect((await run(history, EMPTY_CART, "other-device")).ok).toBe(true);
     expect(ask).toHaveBeenCalledTimes(3);
-    expect((await run(history, EMPTY_CART, null)).ok).toBe(true);
+  });
+
+  it("does not put every device it cannot tell apart into one shared bucket (they would lock each other out)", async () => {
+    const { run } = setup(ok(good), 2);
+    for (let i = 0; i < 6; i++) expect((await run(history, EMPTY_CART, null)).ok).toBe(true); // more than the device limit of 2
+  });
+
+  it("drops the assistant's words when none of its suggestions could be added (they would not be true)", async () => {
+    const allRefused = { ...good, added: [] };
+    expect(await setup(ok(allRefused)).run()).toMatchObject({ ok: true, message: "", added: 0, rejected: ["UNKNOWN_ITEM"] });
+    expect(await setup(ok({ ...good, added: [], rejected: [] })).run()).toMatchObject({ ok: true, message: "Done" }); // a plain answer keeps its text
   });
 
   it("limits the whole restaurant too, so a visitor who changes address cannot run the bill up", async () => {

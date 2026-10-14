@@ -63,7 +63,7 @@ export function AssistantChat({ cart, cartCount, onCartChange, onViewCart }: Pro
       setEntries((current) => [...current, { role: "note", text: t(`errors.${outcome.problem}`) }]);
       return;
     }
-    const added: ChatEntry[] = [{ role: "assistant", text: outcome.message }];
+    const added: ChatEntry[] = outcome.message ? [{ role: "assistant", text: outcome.message }] : [];
     if (outcome.added > 0) {
       onCartChange(outcome.cart);
       added.push({ role: "note", text: t("addedToCart", { count: outcome.added }) });

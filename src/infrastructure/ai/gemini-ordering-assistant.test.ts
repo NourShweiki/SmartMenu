@@ -83,23 +83,37 @@ describe("GeminiOrderingAssistant", () => {
     expect((fetch.mock.calls[0] as unknown as [string])[0]).toContain("/models/some-model:generateContent");
   });
 
-  it("tries once more when the service is busy (429) or overloaded (503), and not for other errors", async () => {
+  it("tries once more when the service is overloaded (503), and not for other errors", async () => {
     const answer = () => callAnswer({ message: "تمام", lines: [] });
-    const retried = (status: number) => vi.fn().mockResolvedValueOnce(new Response("busy", { status })).mockResolvedValueOnce(answer());
-    for (const status of [429, 503]) {
-      const fetch = retried(status);
-      const result = await new GeminiOrderingAssistant({ apiKey: "k", fetch, retryDelayMs: 0 }).reply({ menu, history });
-      expect(result.ok).toBe(true);
-      expect(fetch).toHaveBeenCalledTimes(2);
-    }
+    const fetch = vi.fn().mockResolvedValueOnce(new Response("busy", { status: 503 })).mockResolvedValueOnce(answer());
+    const result = await new GeminiOrderingAssistant({ apiKey: "k", fetch, retryDelayMs: 0 }).reply({ menu, history });
+    expect(result.ok).toBe(true);
+    expect(fetch).toHaveBeenCalledTimes(2);
+
     const quiet = vi.spyOn(console, "error").mockImplementation(() => {});
     const stillBusy = vi.fn(async () => new Response("busy", { status: 503 }));
     expect(await new GeminiOrderingAssistant({ apiKey: "k", fetch: stillBusy, retryDelayMs: 0 }).reply({ menu, history })).toEqual({ ok: false, error: { type: "SERVICE_FAILED" } });
     expect(stillBusy).toHaveBeenCalledTimes(2); // one retry, not a loop
-    const broken = vi.fn(async () => new Response("no", { status: 500 }));
-    await new GeminiOrderingAssistant({ apiKey: "k", fetch: broken, retryDelayMs: 0 }).reply({ menu, history });
-    expect(broken).toHaveBeenCalledTimes(1);
+    // A 429 means the quota is used up (maybe for the day): a second try would only spend another request.
+    for (const status of [429, 500]) {
+      const failing = vi.fn(async () => new Response("no", { status }));
+      await new GeminiOrderingAssistant({ apiKey: "k", fetch: failing, retryDelayMs: 0 }).reply({ menu, history });
+      expect(failing).toHaveBeenCalledTimes(1);
+    }
     quiet.mockRestore();
+  });
+
+  it("skips the retry when too little of the deadline is left to be useful", async () => {
+    const quiet = vi.spyOn(console, "error").mockImplementation(() => {});
+    const busy = vi.fn(async () => new Response("busy", { status: 503 }));
+    await new GeminiOrderingAssistant({ apiKey: "k", fetch: busy, retryDelayMs: 44_000 }).reply({ menu, history }); // 45 s deadline: 1 s left after the pause
+    expect(busy).toHaveBeenCalledTimes(1);
+    quiet.mockRestore();
+  });
+
+  it("answers a plain question even when the model left the empty 'lines' out", async () => {
+    const fetch = vi.fn(async () => callAnswer({ message: "We have kebab." }));
+    expect(await new GeminiOrderingAssistant({ apiKey: "k", fetch }).reply({ menu, history })).toEqual({ ok: true, value: { message: "We have kebab.", proposed: [] } });
   });
 
   it("gives every attempt a timeout, so a hung call cannot keep a customer waiting for ever", async () => {

@@ -64,7 +64,9 @@ export class GeminiOrderingAssistant implements OrderingAssistant {
             contents: messages.map((m) => ({ role: m.role === "user" ? "user" : "model", parts: [{ text: m.content }] })),
             tools: [{ functionDeclarations: [{ name: TOOL, description: TOOL_DESCRIPTION, parameters: ANSWER_SCHEMA }] }],
             toolConfig: { functionCallingConfig: { mode: "ANY", allowedFunctionNames: [TOOL] } },
-            generationConfig: { maxOutputTokens: 1024 },
+            // Generous on purpose: on Gemini 3.x the model's hidden thinking also counts against this limit, and a cap
+            // that is too small cuts the answer off before the function call is complete.
+            generationConfig: { maxOutputTokens: 4096 },
           }),
         },
         { retryDelayMs: this.deps.retryDelayMs },

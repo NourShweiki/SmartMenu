@@ -3,8 +3,6 @@ import type { PublicMenuSection } from "@/application/ports/public-menu-reposito
 import { err, ok, type Result } from "@/domain/shared/result";
 import { ANSWER_SCHEMA, fetchWithRetry, readAnswerInput, systemPromptFor, TOOL, TOOL_DESCRIPTION, toApiMessages } from "./assistant-shared";
 
-export { menuForPrompt, SYSTEM_PROMPT, toApiMessages } from "./assistant-shared";
-
 const ENDPOINT = "https://api.anthropic.com/v1/messages";
 /** Used unless ORDERING_ASSISTANT_MODEL names another one. */
 export const DEFAULT_MODEL = "claude-sonnet-5-5";

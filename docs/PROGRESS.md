@@ -620,6 +620,15 @@ Read this after `PROJECT_SPEC.md` at the start of every session. Update it at th
   Full suite run: 166 passed, 18 failed on a STALE database (migrations applied with `migration up`, seed not re-run: 0 founders,
   3 tables instead of 4). After `npx supabase db reset` those 4 specs (setup, tables, staff-checklist, staff-orders) pass: 42/42.
   Gotcha: after pulling new migrations run `npx supabase db reset`, not only `migration up`, or setup/tables specs fail.
+- Step 5c (code review of the assistant, 2026-10-14, 10 findings): FIXED 9 — Gemini `maxOutputTokens` 1024 -> 4096 (thinking tokens count
+  against it); a missing `lines` in the AI's answer means "nothing to add" instead of an error; retry only on 503 (a 429 is a used-up quota),
+  one deadline of 45 s for the whole call, the unused first response is cancelled; devices with no known address are no longer one shared
+  rate-limit bucket (the per-restaurant limit still applies); when every suggested line is refused the AI's text is dropped (it would claim
+  "added"); one `orderingAssistant()` helper decides provider AND availability; prompt prices use integer arithmetic; the rate limiter sweeps
+  every 10 s and holds at most 20,000 keys; test-only re-exports removed.
+  NOT FIXED (design): the chat history incl. the assistant's own turns comes from the browser, so a caller can forge "assistant" turns or use
+  the box as a free-form prompt (grounding still stops bad cart lines; costs are bounded by the rate limits). A real fix = server-side chat
+  state or signed turns. Also missing: a unit test for the container's Gemini-vs-Claude choice.
 - Next step (Nour approves): — (done, see Step 5 above; old plan:) chat box on the customer menu page that fills the existing cart (customer still confirms); translated
   messages for each problem and for rejected reasons (ar + en); only shown when the assistant is configured. This is the first
   step where the real key is needed.

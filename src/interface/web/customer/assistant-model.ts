@@ -17,6 +17,7 @@ export type AssistantProblem =
 export type AssistantOutcome =
   | {
       ok: true;
+      /** The assistant's words; empty when none of its suggestions could be added (its text would not be true). */
       message: string;
       /** The customer's cart with the accepted suggestions added: the browser keeps it as its cart. */
       cart: Cart;
@@ -68,8 +69,10 @@ export async function askAssistant(
   const history = readHistory(input.history);
   if (!history) return { ok: false, problem: "invalidRequest" };
 
-  // A device we cannot tell apart (null: local development) shares one bucket; the restaurant limit still applies.
-  if (!deps.deviceLimit.hit(input.clientHash ?? "unknown") || !deps.restaurantLimit.hit(input.restaurant.id)) {
+  // A device we cannot tell apart (no usable address: local development, or a proxy that sends none) gets NO device
+  // limit: putting all of them in one shared bucket would let a few visitors lock everybody else out. The restaurant
+  // limit still bounds the cost.
+  if ((input.clientHash !== null && !deps.deviceLimit.hit(input.clientHash)) || !deps.restaurantLimit.hit(input.restaurant.id)) {
     return { ok: false, problem: "tooMany" };
   }
 
@@ -82,5 +85,8 @@ export async function askAssistant(
   });
   if (!result.ok) return { ok: false, problem: PROBLEM[result.error.type] };
   const { message, cart, added, rejected } = result.value;
-  return { ok: true, message, cart, added: added.length, rejected: rejected.map((r) => r.reason) };
+  // When every suggested line was refused, the assistant's own words ("Added 2 kebabs") would be untrue: send none,
+  // and the chat shows only the app's notes about what could not be added.
+  const nothingAdded = added.length === 0 && rejected.length > 0;
+  return { ok: true, message: nothingAdded ? "" : message, cart, added: added.length, rejected: rejected.map((r) => r.reason) };
 }

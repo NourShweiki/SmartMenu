@@ -3,7 +3,8 @@ import type { PublicMenuSection } from "@/application/ports/public-menu-reposito
 import { createCategory, createMenuItem, setItemSoldOut } from "@/domain/menu/menu";
 import { createOption, createOptionGroup } from "@/domain/menu/options";
 import type { RestaurantId } from "@/domain/restaurant/restaurant";
-import { AnthropicOrderingAssistant, DEFAULT_MODEL, menuForPrompt, readAnswer, toApiMessages } from "./anthropic-ordering-assistant";
+import { AnthropicOrderingAssistant, DEFAULT_MODEL, readAnswer } from "./anthropic-ordering-assistant";
+import { menuForPrompt, toApiMessages } from "./assistant-shared";
 
 // The real service is never called here: `fetch` is a stand-in. What is checked is what we SEND and how we read the
 // answer. Whether the service accepts it is only proven by a run with a real key (not done yet).
@@ -71,7 +72,11 @@ describe("readAnswer", () => {
     expect(readAnswer([{ type: "text", text: "hello" }])).toBeNull();
     expect(readAnswer([{ type: "tool_use", name: "other", input: { message: "x", lines: [] } }])).toBeNull();
     expect(readAnswer([{ type: "tool_use", name: "reply_to_customer", input: { message: 5, lines: [] } }])).toBeNull();
-    expect(readAnswer([{ type: "tool_use", name: "reply_to_customer", input: { message: "x" } }])).toBeNull();
+    expect(readAnswer([{ type: "tool_use", name: "reply_to_customer", input: { message: "x", lines: "none" } }])).toBeNull();
+  });
+
+  it("reads a plain answer whose empty 'lines' was left out as 'nothing to add'", () => {
+    expect(readAnswer([{ type: "tool_use", name: "reply_to_customer", input: { message: "We have kebab and hummus." } }])).toEqual({ message: "We have kebab and hummus.", proposed: [] });
   });
 });
 

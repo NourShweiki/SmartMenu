@@ -25,7 +25,8 @@ Rules:
 /** The system prompt with the live menu appended. */
 export const systemPromptFor = (menu: readonly PublicMenuSection[]) => `${SYSTEM_PROMPT}\n\nMENU:\n${JSON.stringify(menuForPrompt(menu))}`;
 
-const jd = (fils: number) => (fils / 1000).toFixed(3);
+/** Fils as JD for the prompt ("4.500"), by whole-number arithmetic only (data-model rule: no float money math). */
+const jd = (fils: number) => `${fils < 0 ? "-" : ""}${Math.floor(Math.abs(fils) / 1000)}.${String(Math.abs(fils) % 1000).padStart(3, "0")}`;
 
 /** The menu as the model reads it: ids, both-language names, prices in JD, availability and option rules. */
 export function menuForPrompt(menu: readonly PublicMenuSection[]) {
@@ -72,10 +73,12 @@ export const ANSWER_SCHEMA = {
 };
 
 /**
- * Sends one request, and once more after a short pause when the service says it is busy (429) or overloaded (503):
- * on a busy day those usually pass in a second, and the customer should not see an error for them. Every attempt
- * is cut off after `timeoutMs`, so a hung call cannot keep a customer waiting for ever (a timeout throws, as a lost
- * connection does: the adapter turns both into SERVICE_FAILED). Other statuses are returned as they are.
+ * Sends one request, and once more after a short pause when the service says it is overloaded (503): on a busy day
+ * that often passes in a second, and the customer should not see an error for it. A 429 is NOT retried: it means
+ * the quota is used up (possibly for the whole day), so a second try only spends another request.
+ * `timeoutMs` is the deadline for the WHOLE call, retry included, so a customer never waits longer than that (a
+ * timeout throws, as a lost connection does: the adapter turns both into SERVICE_FAILED). The retry is skipped when
+ * too little time is left to be useful. Other statuses are returned as they are.
  */
 export async function fetchWithRetry(
   doFetch: typeof fetch,
@@ -84,10 +87,14 @@ export async function fetchWithRetry(
   opts: { retryDelayMs?: number; timeoutMs?: number } = {},
 ): Promise<Response> {
   const { retryDelayMs = 1000, timeoutMs = 45_000 } = opts;
+  const startedAt = Date.now();
   const first = await doFetch(url, { ...init, signal: AbortSignal.timeout(timeoutMs) });
-  if (first.status !== 429 && first.status !== 503) return first;
+  if (first.status !== 503) return first;
+  const remaining = timeoutMs - (Date.now() - startedAt) - retryDelayMs;
+  if (remaining < 5_000) return first;
+  await first.body?.cancel().catch(() => {}); // release the connection of the answer we are not using
   await new Promise((resolve) => setTimeout(resolve, retryDelayMs));
-  return doFetch(url, { ...init, signal: AbortSignal.timeout(timeoutMs) });
+  return doFetch(url, { ...init, signal: AbortSignal.timeout(remaining) });
 }
 
 /** The chat as the APIs want it: it must start with the customer and alternate, so neighbours of one kind are joined. */
@@ -103,12 +110,18 @@ export function toApiMessages(history: readonly AssistantTurn[]): { role: "user"
   return out;
 }
 
-/** Reads the structured answer the model produced. Anything that is not the shape we asked for is rejected, never repaired. */
+/**
+ * Reads the structured answer the model produced. A wrong shape is rejected, never repaired, with one allowance: a
+ * missing "lines" means "nothing to add" (small models often leave the empty list out of a plain answer), so the
+ * customer still gets the text instead of an error.
+ */
 export function readAnswerInput(input: unknown): AssistantAnswer | null {
   const answer = input as { message?: unknown; lines?: unknown } | null | undefined;
-  if (!answer || typeof answer.message !== "string" || !Array.isArray(answer.lines)) return null;
+  if (!answer || typeof answer.message !== "string") return null;
+  const lines = answer.lines ?? [];
+  if (!Array.isArray(lines)) return null;
   const proposed: ProposedLine[] = [];
-  for (const raw of answer.lines) {
+  for (const raw of lines) {
     const line = (typeof raw === "object" && raw !== null ? raw : {}) as Record<string, unknown>;
     // Odd lines are passed on as they are: groundProposal rejects them and says why.
     proposed.push({ menuItemId: line.menu_item_id as string, optionIds: line.option_ids as string[], quantity: line.quantity as number });
