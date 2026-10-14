@@ -3,6 +3,12 @@
 // e.g. during `next build` in CI.
 import { makeGetPublicRestaurant, type GetPublicRestaurantInput } from "@/application/use-cases/get-public-restaurant";
 import { makeGetPublicMenu } from "@/application/use-cases/get-public-menu";
+import {
+  makeGetGuestServices,
+  makeListWaitingServiceRequests,
+  makeRequestService,
+  makeResolveServiceRequest,
+} from "@/application/use-cases/service-requests/service-request-use-cases";
 import { makeGetOpenVisits } from "@/application/use-cases/tables/get-open-visits";
 import { makeGetPublicSession, makeGetSessionOrders, makeJoinTableSession } from "@/application/use-cases/tables/join-table-session";
 import { makeMoveTableSession } from "@/application/use-cases/tables/move-table-session";
@@ -89,6 +95,8 @@ import { SupabaseOptionsRepository } from "./supabase/supabase-options-repositor
 import { LOGOS_BUCKET, SupabasePhotoStorage } from "./supabase/supabase-photo-storage";
 import { SupabasePublicMenuRepository } from "./supabase/supabase-public-menu-repository";
 import { SupabaseTableRepository } from "./supabase/supabase-table-repository";
+import { SupabaseServiceRequestGateway } from "./supabase/supabase-service-request-gateway";
+import { SupabaseServiceRequestRepository } from "./supabase/supabase-service-request-repository";
 import { SupabaseTableSessionGateway } from "./supabase/supabase-table-session-gateway";
 import { SupabaseTableSessionRepository } from "./supabase/supabase-table-session-repository";
 import { SupabaseRestaurantRepository } from "./supabase/supabase-restaurant-repository";
@@ -373,6 +381,27 @@ export const tableSessions = {
     makeGetSessionOrders({ sessions: new SupabaseTableSessionGateway(createPublicClient()) })(input),
   listOpen: async (actor: StaffActor) => makeGetOpenVisits(await staffOrderDeps())(actor),
   move: async (...args: Parameters<ReturnType<typeof makeMoveTableSession>>) => makeMoveTableSession(await staffOrderDeps())(...args),
+};
+
+// ─── Service requests: call the waiter, clean the table, ask for the bill ─────────
+
+/** Staff side: runs as the signed-in staff member, so the database decides again (owner, manager, waiter; never the cashier). */
+async function serviceRequestDeps() {
+  return { requests: new SupabaseServiceRequestRepository(await createSessionClient()), clock: systemClock };
+}
+
+/**
+ * `request` and `forGuest` are what a guest's phone does at its table: public, no login (narrow public database
+ * functions); the restaurant MUST come from the host and the visit from the phone's session cookie. `listWaiting` and
+ * `resolve` are the waiter's screen.
+ */
+export const serviceRequests = {
+  request: (input: { slug: string; sessionId: string; kind: string }) =>
+    makeRequestService({ gateway: new SupabaseServiceRequestGateway(createPublicClient()) })(input),
+  forGuest: (input: { slug: string; sessionId: string }) =>
+    makeGetGuestServices({ gateway: new SupabaseServiceRequestGateway(createPublicClient()) })(input),
+  listWaiting: async (actor: StaffActor) => makeListWaitingServiceRequests(await serviceRequestDeps())(actor),
+  resolve: async (...args: Parameters<ReturnType<typeof makeResolveServiceRequest>>) => makeResolveServiceRequest(await serviceRequestDeps())(...args),
 };
 
 // ─── Setup checklist (owner) ────────────────────────────────────────────

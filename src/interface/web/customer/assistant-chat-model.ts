@@ -16,5 +16,12 @@ export function toHistory(entries: readonly ChatEntry[]): AssistantTurn[] {
     .slice(-MAX_CLIENT_TURNS);
 }
 
+/** How many "What do you have in <category>?" suggestions the chat offers next to its fixed ones. */
+export const MAX_CATEGORY_SUGGESTIONS = 3;
+
+/** The categories to suggest: tidy names, each once, in menu order, the first few. */
+export const categorySuggestions = (names: readonly string[], max = MAX_CATEGORY_SUGGESTIONS): string[] =>
+  [...new Set(names.map((n) => n.trim()).filter((n) => n !== ""))].slice(0, max);
+
 /** Each reason once, in the order first seen (three unknown items are one sentence, not three). */
 export const distinctReasons = (reasons: readonly RejectionReason[]): RejectionReason[] => [...new Set(reasons)];

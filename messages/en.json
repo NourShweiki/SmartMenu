@@ -5,7 +5,22 @@
     "phone": "Phone",
     "hours": "Opening hours",
     "about": "About us",
-    "viewMenu": "View menu"
+    "optionsLabel": "What would you like to do?",
+    "options": {
+      "assistant": {
+        "title": "Smart assistant",
+        "description": "Tell it what you feel like, in Arabic or English, and it fills your cart."
+      },
+      "menu": {
+        "title": "Our menu",
+        "description": "Browse everything we serve and order."
+      },
+      "services": {
+        "title": "Services",
+        "description": "Call the waiter, ask for the table to be cleaned, or ask for the bill.",
+        "needTable": "For guests at a table: scan the QR code on your table first."
+      }
+    }
   },
   "LanguageSwitch": {
     "label": "العربية"
@@ -286,6 +301,7 @@
   },
   "Menu": {
     "title": "Menu",
+    "servicesLink": "Services",
     "empty": "The menu is not available right now.",
     "add": "Add",
     "soldOut": "Sold out",
@@ -309,8 +325,13 @@
       "cartFull": "The cart is full ({max} different items)."
     },
     "assistant": {
-      "open": "Ask the assistant",
-      "hint": "Tell me what you would like, in Arabic or English.",
+      "suggestions": {
+        "label": "Suggested questions",
+        "recommend": "What do you recommend?",
+        "cheapest": "What is the cheapest item?",
+        "forTwo": "I want to order for two people",
+        "category": "What do you have in {name}?"
+      },
       "title": "Ordering assistant",
       "close": "Close",
       "viewCart": "View cart",
@@ -450,6 +471,44 @@
     "table": "Table {label}",
     "scan": "Scan to order",
     "qrLabel": "QR code for table {label}"
+  },
+  "Services": {
+    "title": "Services",
+    "toMenu": "Back to the menu",
+    "intro": "Need something? Ask here and the staff will come to your table.",
+    "needTableTitle": "Scan your table's QR code",
+    "needTable": "Services are for guests at a table. Scan the QR code on your table, then come back here.",
+    "request": "Request",
+    "sending": "Sending…",
+    "billOnItsWay": "Your bill is being prepared.",
+    "kinds": {
+      "CALL_WAITER": {
+        "title": "Call the waiter",
+        "description": "Someone will come to your table.",
+        "waiting": "The waiter has been called and is on the way.",
+        "done": "The waiter came. Ask again if you need them."
+      },
+      "CLEAN_TABLE": {
+        "title": "Clean the table",
+        "description": "Ask for your table to be cleaned.",
+        "waiting": "Cleaning has been requested.",
+        "done": "Your table was cleaned."
+      },
+      "REQUEST_BILL": {
+        "title": "Ask for the bill",
+        "description": "The bill will be brought to your table.",
+        "waiting": "Your bill has been requested.",
+        "done": "Your bill was brought."
+      }
+    },
+    "errors": {
+      "alreadyRequested": "That is already requested. Please wait a moment.",
+      "sessionEnded": "Your visit at this table has ended. Scan the QR code on the table again.",
+      "notATable": "Scan your table's QR code to use the services.",
+      "invalidRequest": "Something went wrong. Please try again.",
+      "tooMany": "You have asked a lot. Please wait a few minutes and try again.",
+      "failed": "We could not send your request. Please try again, or ask a member of staff."
+    }
   },
   "Table": {
     "banner": "Table {label}",

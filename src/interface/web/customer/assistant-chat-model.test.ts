@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { distinctReasons, MAX_CLIENT_TURNS, toHistory, type ChatEntry } from "./assistant-chat-model";
+import { categorySuggestions, distinctReasons, MAX_CLIENT_TURNS, toHistory, type ChatEntry } from "./assistant-chat-model";
 
 describe("toHistory", () => {
   it("sends the customer's and the assistant's turns, never the app's own notes", () => {
@@ -21,6 +21,14 @@ describe("toHistory", () => {
     const sent = toHistory(entries);
     expect(sent).toHaveLength(MAX_CLIENT_TURNS);
     expect(sent[0]?.text).toBe("5");
+  });
+});
+
+describe("categorySuggestions", () => {
+  it("offers the first few categories, tidy, each once, in menu order", () => {
+    expect(categorySuggestions(["Starters", " Grill ", "Starters", "", "Desserts", "Drinks"])).toEqual(["Starters", "Grill", "Desserts"]);
+    expect(categorySuggestions(["Drinks"], 5)).toEqual(["Drinks"]);
+    expect(categorySuggestions([])).toEqual([]);
   });
 });
 

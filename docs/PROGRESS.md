@@ -633,6 +633,68 @@ Read this after `PROJECT_SPEC.md` at the start of every session. Update it at th
   messages for each problem and for rejected reasons (ar + en); only shown when the assistant is configured. This is the first
   step where the real key is needed.
 
+## Guest services + 3-option home + suggestion chips (requested by Nour 2026-10-14)
+Request: (a) suggestion chips in the assistant's chat; (b) the restaurant home page (`/[locale]`, today only the name + language switch)
+shows 3 choices: 1) the smart assistant, 2) the regular menu, 3) services (clean the table, ask for the bill, call the waiter).
+Decided with Nour: build the SERVICES first, fully (database -> waiter screen), and only for guests who scanned a table QR (a takeout
+visit has no table; the services card then tells them to scan the table code). Spec §4 already has it: guest can request waiter / cleaning
+/ payment; the waiter handles them; the cashier does NOT see them. Permission `service-requests:handle` already exists (owner, manager, waiter).
+- S1 (domain, done 2026-10-14): `src/domain/service-request/service-request.ts` — kinds CALL_WAITER / CLEAN_TABLE / REQUEST_BILL, status OPEN -> DONE,
+  `createServiceRequest(session, kind, openKinds, deps, now)` (table visits only, live visit, one waiting request per kind per visit, no bill
+  request once PAYMENT_REQUESTED), `resolveServiceRequest`, `openKindsOf`, `waitingRequests`. 10 unit tests incl. the role split.
+- S2 (database, done 2026-10-14): migration `20261014100000_service_requests.sql` — table `service_requests` (restaurant_id, session_id, table_id,
+  kind, status OPEN/DONE, created_at, resolved_at; composite FKs to the visit and the table of the SAME restaurant; a partial unique index = one waiting
+  request per kind per visit, also race-safe). Guests have NO table access: `create_service_request(slug, session_id, kind)` (SECURITY DEFINER, anon) applies
+  the domain rules and returns `{ok,id,kind}` / `{ok:false,error}` (INVALID_KIND, NOT_A_TABLE_VISIT, SESSION_ENDED incl. past 2 h, ALREADY_REQUESTED incl.
+  bill after PAYMENT_REQUESTED) / NULL for a session that is not this restaurant's; `get_public_service_requests(slug, session_id)` = that visit's own requests
+  (newest first, max 20). Staff: owner / manager / waiter read and resolve (column grant: status only); the cashier sees nothing. OPEN -> DONE is final and the DB
+  stamps `resolved_at`. Closing a visit (trigger, security definer) resolves its waiting requests; an EXPIRED visit is only closed lazily, so the waiter's list
+  (S3) must leave requests of expired/closed visits out. Tests: `supabase/tests/database/service_requests.test.sql` (42) + `table_privileges.test.sql` (43);
+  `npx supabase test db` -> 20 files, 482 tests, PASS. Applied with `migration up` (a full `db reset` replay not re-proven for this migration).
+- S3 (ports + adapters, done 2026-10-14): ports `ServiceRequestRepository` (staff, runs as the signed-in user: `listWaiting(restaurantId, now)` with the table
+  label, leaving out requests of closed OR expired visits via the domain's `effectiveSessionStatus`; `findById`; `markDone` conditional on OPEN, false when someone
+  else did it first / the DB refused) and `ServiceRequestGateway` (guests, anon client: `create(slug, sessionId, kind)` -> Result with the domain errors or
+  SESSION_NOT_FOUND; `forSession`). Adapters `supabase-service-request-repository.ts` / `-gateway.ts` (pure parsers `toServiceRequest`, `toWaitingRequest`,
+  `toCreateOutcome`, `toPublicServiceRequests`: anything odd = not found, never "a request that looks made"; a non-uuid id answers like an unknown visit). Tests:
+  8 unit (mappers) + 2 integration against local Supabase (`service-requests.integration.test.ts`: guest asks -> waiter sees it with table "1" -> resolves once;
+  cashier and the other restaurant see nothing and cannot resolve; an expired visit leaves the list and takes no new request); the run leaves no data behind.
+  NOT wired into `container.ts` yet (S4).
+- S4 (use cases + wiring, done 2026-10-14): `src/application/use-cases/service-requests/service-request-use-cases.ts` — guests (public): `makeRequestService`
+  (refuses a kind that is not one of the three, or a session id that is not a uuid, WITHOUT touching the database; the DB function does the real checks) and
+  `makeGetGuestServices` (`{requests, waiting: kinds still waiting}`); staff (permission `service-requests:handle`, so the cashier gets FORBIDDEN before anything
+  is read): `makeListWaitingServiceRequests` (own restaurant, current time) and `makeResolveServiceRequest` (REQUEST_NOT_FOUND also for another restaurant's request,
+  ALREADY_DONE, CONFLICT when someone else resolved it first). Wired in `container.ts` as `serviceRequests.request / forGuest / listWaiting / resolve` (guest ones use
+  the public client; the restaurant must come from the host, the visit from the phone's session cookie). 12 unit tests; all unit tests 560 pass; no screen yet.
+- S5 (guest services page, done 2026-10-14): route `/<locale>/services` (`src/app/[locale]/services/page.tsx`): for a guest with a live TABLE visit (the session
+  cookie the scan set) it shows the table banner and three cards (call the waiter / clean the table / ask for the bill); each card is the button, "on its way" while
+  the request waits (the page refreshes itself every 8 s via `LiveRefresh` only while something waits, so it turns into "done" when the waiter resolves it), or
+  "your bill is being prepared" once the waiter signalled ready-to-pay. No table / takeout visit / ended visit -> "Scan your table's QR code" + link to the menu.
+  `service-actions.ts` (`requestServiceAction(kind)`: restaurant from the host, visit from the HttpOnly cookie, the browser sends ONLY the kind; limits 10 per
+  10 min per device and 200 per hour per restaurant, devices with no known address not in a shared bucket) + pure `service-model.ts`; `services-panel.tsx`; texts
+  `Services.*` and `Menu.servicesLink` in en + ar. Until the 3-option home page (S8) the way in is a "Services" link in the menu header, shown only to guests at a table.
+  Tests: 7 unit (`service-model.test.ts`), E2E `e2e/services.spec.ts` (no table -> scan note on both restaurants x en/ar; grill x en/ar: call the waiter ->
+  waiting, no second press, survives a reload, cleaning and bill work; a second phone at the same table sees the waiting request; coffee has no table).
+  `e2e/support/global-cleanup.ts` now deletes service requests before visits (FK). Checked by hand in the browser on /ar (call the waiter -> "on its way").
+- S8 (home page with 3 options, done 2026-10-14, built BEFORE S6 because Nour asked for it next, with a screenshot): the restaurant home page (`/<locale>`,
+  `src/app/[locale]/page.tsx`) now shows, in a `<nav>`, three cards instead of the single "View menu" button: 1) **Smart assistant** (filled with the restaurant's accent;
+  links to `/menu?assistant=1`, which opens the chat at once and then removes the query from the address) — shown when an AI key is configured and something can be
+  ordered; 2) **Our menu** (always); 3) **Services** (waiter / cleaning / bill) — shown only where there are tables (dine-in on, so NOT at takeout-only Demo Coffee);
+  a guest who has not scanned a table sees "scan the QR code on your table first" under it. The "which way does this phone order" logic is now ONE helper,
+  `resolveVisit` (`src/interface/web/customer/ordering-mode.ts`, 5 unit tests), used by the home page and the menu page. The old `Home.viewMenu` text was removed.
+  Texts `Home.options.*` / `Home.optionsLabel` in en + ar. E2E `e2e/home-options.spec.ts`. Checked by hand in the browser (/ar, grill and coffee, assistant card -> chat open).
+- S7 + change (2026-10-14, Nour: "in the normal menu there is an AI assistant, remove it, and in the AI assistant add shortcuts"): (a) the plain menu has NO assistant any
+  more (the "Ask the assistant" card is gone; texts `Menu.assistant.open` / `.hint` removed): the chat is mounted only when the page is opened with `?assistant=1`, i.e. from
+  the home page's "Smart assistant" card; it opens at once and the query is then removed from the address, so a reload shows the plain menu. Once the guest closes the chat,
+  the way back to it is the home page. (b) the chat has **suggested questions**: a sideways-scrolling row of buttons under the messages — "What do you recommend?", "What is the
+  cheapest item?", "I want to order for two people", and up to 3 "What do you have in <category>?" from the menu's own categories (`categorySuggestions` in
+  `assistant-chat-model.ts`, texts `Menu.assistant.suggestions.*`, en + ar); tapping one sends it exactly like typing it. E2E: `assistant-chat.spec.ts` now opens the chat
+  through `?assistant=1` and has 2 more scenarios per restaurant x language (no assistant in the plain menu; suggestions shown and a tap sends it). Open question for Nour:
+  should the chat be reopenable from the menu page after it is closed (today only from the home page)?
+- Next, one at a time (Nour approves each): S6 waiter screen (live list of waiting requests with the table, "done" button, notice/sound like new orders) ->
+  (S6 above, live, with a notice/sound like new orders) -> S7 chips in the chat ->
+  (S8, the 3-option home page, is DONE: see above) -> E2E for the waiter screen and the chips (en + ar, both restaurants).
+- Assumptions to confirm later: asking for the bill before anything was ordered is allowed; no guest-side cancel of a request.
+
 ## In progress / verify first
 - Nothing is half-built. Waiting for Nour's go-ahead for the next step only (START HERE).
 - After `npx supabase db reset` everybody is signed out: sign in again (demo accounts: `supabase/seed.sql`).

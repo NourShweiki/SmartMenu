@@ -36,7 +36,9 @@ export default async function removeTestLeftovers(): Promise<void> {
     const { data: sessions } = await db.from("table_sessions").select("id").in("table_id", batch);
     const sessionIds = (sessions ?? []).map((s) => s.id as string);
     for (let s = 0; s < sessionIds.length; s += 40) {
-      await db.from("orders").delete().in("session_id", sessionIds.slice(s, s + 40)); // lines and options go with them
+      const sessionBatch = sessionIds.slice(s, s + 40);
+      await db.from("service_requests").delete().in("session_id", sessionBatch); // before the visits: they point at them
+      await db.from("orders").delete().in("session_id", sessionBatch); // lines and options go with them
     }
     await db.from("table_sessions").delete().in("table_id", batch);
     await db.from("restaurant_tables").delete().in("id", batch);

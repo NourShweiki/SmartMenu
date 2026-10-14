@@ -13,8 +13,9 @@ const open = async (page: Page, site: Site, locale: Locale) => {
 };
 const chat = (page: Page, locale: Locale) => page.getByRole("dialog", { name: t(locale, "Menu.assistant.title"), exact: true });
 
+/** The way the home page's "Smart assistant" card opens it: the menu page with `?assistant=1` (the plain menu has no assistant). */
 async function openChat(page: Page, locale: Locale) {
-  await page.getByRole("button", { name: t(locale, "Menu.assistant.open"), exact: false }).click();
+  await page.goto(`${new URL(page.url()).origin}/${locale}/menu?assistant=1`);
   await expect(chat(page, locale)).toBeVisible();
 }
 async function say(page: Page, locale: Locale, text: string) {
@@ -44,6 +45,30 @@ for (const site of ALL_SITES) {
       await expect(dialog(page).getByRole("heading", { name: t(locale, "Menu.cart.title") })).toBeVisible();
       await expect(dialog(page)).toContainText(name);
       await expect(dialog(page)).toContainText(jd(m.simple.pickupTwo.total, locale));
+    });
+
+    test(`${site.key} /${locale}: the plain menu has no assistant: no card, no chat`, async ({ page }) => {
+      await open(page, site, locale);
+      await expect(page.getByRole("button", { name: /assistant|المساعد/i })).toHaveCount(0);
+      await expect(page.getByRole("dialog")).toHaveCount(0);
+    });
+
+    test(`${site.key} /${locale}: the chat offers suggested questions, and tapping one sends it`, async ({ page }) => {
+      await open(page, site, locale);
+      const firstCategory = (await page.locator("h2[id^='cat-']").first().innerText()).trim();
+      await openChat(page, locale);
+      const suggestions = chat(page, locale).getByRole("group", { name: t(locale, "Menu.assistant.suggestions.label"), exact: true });
+      await expect(suggestions.getByRole("button", { name: t(locale, "Menu.assistant.suggestions.recommend"), exact: true })).toBeVisible();
+      await expect(suggestions.getByRole("button", { name: t(locale, "Menu.assistant.suggestions.cheapest"), exact: true })).toBeVisible();
+      await expect(suggestions.getByRole("button", { name: t(locale, "Menu.assistant.suggestions.forTwo"), exact: true })).toBeVisible();
+      // One suggestion per menu category (the first few): "What do you have in <category>?"
+      await expect(suggestions.getByRole("button", { name: t(locale, "Menu.assistant.suggestions.category", { name: firstCategory }), exact: true })).toBeVisible();
+
+      // Tapping one sends it as the customer's message, and the assistant answers it (the stand-in finds nothing to add).
+      const question = t(locale, "Menu.assistant.suggestions.recommend");
+      await suggestions.getByRole("button", { name: question, exact: true }).click();
+      await expect(chat(page, locale).getByText(question, { exact: true }).first()).toBeVisible();
+      await expect(chat(page, locale).getByText(locale === "en" ? "I could not find that on the menu." : "لم أجد ذلك في القائمة.", { exact: true })).toBeVisible();
     });
 
     test(`${site.key} /${locale}: an item with choices is added with its required choice made, and the customer still reviews the cart`, async ({ page }) => {

@@ -42,10 +42,12 @@ type Props = {
   restaurantName: string;
   /** Offer the AI ordering assistant (an AI key is configured, and this phone can order). */
   assistantEnabled: boolean;
+  /** Show the assistant's chat, open (the home page's "smart assistant" card). The plain menu has none. */
+  openAssistant?: boolean;
 };
 
 /** The customer menu: browse, add to a cart (with option choices), review the cart with a price preview, place the order. */
-export function CustomerMenu({ restaurantSlug, sections, rates, imageUrls, visit, ordering, dineIn, orders, restaurantName, assistantEnabled }: Props) {
+export function CustomerMenu({ restaurantSlug, sections, rates, imageUrls, visit, ordering, dineIn, orders, restaurantName, assistantEnabled, openAssistant = false }: Props) {
   const t = useTranslations("Menu");
   const locale = useLocale() as Locale;
   const tTable = useTranslations("Table");
@@ -129,17 +131,6 @@ export function CustomerMenu({ restaurantSlug, sections, rates, imageUrls, visit
           </p>
         )}
         {visit && orders.length > 0 && <GuestOrders orders={orders} restaurantName={restaurantName} />}
-        {ready && assistantEnabled && sections.length > 0 && (
-          <AssistantChat
-            cart={cart}
-            cartCount={count}
-            onCartChange={(next) => replace(next)}
-            onViewCart={() => {
-              setNotice(null);
-              setCartOpen(true);
-            }}
-          />
-        )}
         {sections.length === 0 && <p className="py-10 text-center text-gray-500">{t("empty")}</p>}
 
         {sections.map(({ category, items }) => (
@@ -220,6 +211,20 @@ export function CustomerMenu({ restaurantSlug, sections, rates, imageUrls, visit
             </span>
           </button>
         </div>
+      )}
+
+      {/* The assistant is not part of the plain menu: the chat exists only when the home page's "Smart assistant" card asked for it. */}
+      {ready && assistantEnabled && openAssistant && sections.length > 0 && (
+        <AssistantChat
+          categories={sections.map(({ category }) => localized(category.name, locale))}
+          cart={cart}
+          cartCount={count}
+          onCartChange={(next) => replace(next)}
+          onViewCart={() => {
+            setNotice(null);
+            setCartOpen(true);
+          }}
+        />
       )}
 
       <OptionPicker
