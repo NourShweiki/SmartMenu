@@ -56,6 +56,17 @@ jobs:
       - uses: ./.github/actions/setup
       - run: npm run build
 
+  # Known security holes in the packages the app ships with (GitHub's advisory database). Only the production
+  # packages: test tools (vitest, playwright) never reach a visitor. Red on "high" or "critical".
+  audit:
+    name: Security - npm audit
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/setup
+      - run: npm audit --omit=dev --audit-level=high
+
   unit:
     name: Unit - ${{ matrix.area.name }}
     needs: groups
@@ -120,7 +131,7 @@ jobs:
   # ── Gates required by the ruleset on main: red when any job they collect is not green (also when skipped). ──
   check:
     name: check
-    needs: [groups, typecheck, lint, build, unit]
+    needs: [groups, typecheck, lint, build, audit, unit]
     if: always()
     runs-on: ubuntu-latest
     steps:
