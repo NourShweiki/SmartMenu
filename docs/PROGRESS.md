@@ -2,7 +2,8 @@
 
 Read this after `PROJECT_SPEC.md` at the start of every session. Update it at the end of every iteration.
 
-## START HERE (handoff refreshed 2026-10-30: security step 1 merged, Vitest 5 on its branch; next = the ranked security review, ask Nour first)
+## START HERE (handoff refreshed 2026-10-30: security review written; next = fix finding #1, ask Nour first)
+**UPDATE 2026-10-30 (review):** the ranked security review is in `docs/SECURITY_REVIEW.md` (9 findings: 2 high, 4 medium, 3 low; nothing fixed yet). Suggested next iteration: #1, an attempt limit on staff and founder sign-in kept in the database (the same counter can later serve #4, #5 and #7). Step 1b (Vitest 5) is merged (PR #6).
 **UPDATE 2026-10-30:** Vitest 3 -> 5 (and Vite 7 -> 8) on branch `security/vitest-5` (log entry "Security step 1b" below): `npm audit` is clean for ALL packages, so the CI check "Security - npm audit" now covers the test tools too. `vite-tsconfig-paths` is gone (Vite resolves the tsconfig paths itself).
 **UPDATE 2026-10-28:** security step 1 (PR #5, merged 2026-10-30; log entry "Security step 1" below): Next.js 15.5.27 -> 15.5.28 (critical + high advisories), PostCSS lifted via `overrides`, and the CI check "Security - npm audit" inside the `check` gate. Nour still has to switch on Dependabot alerts / security updates, secret scanning and push protection in the repository settings. Next: the ranked security review. The local machine was set up fresh this day (`supabase start` + `.env.local` written from `supabase status`, plus a new `GEMINI_API_KEY`).
 **UPDATE 2026-10-15 (read this first; the 2026-10-14 update and the 2026-10-12 handoff below still hold unless this says otherwise):**
