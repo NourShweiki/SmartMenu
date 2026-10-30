@@ -2,8 +2,9 @@
 
 Read this after `PROJECT_SPEC.md` at the start of every session. Update it at the end of every iteration.
 
-## START HERE (handoff refreshed 2026-10-28: security step 1 = npm audit in CI + Next.js 15.5.28; ask Nour before step 2)
-**UPDATE 2026-10-28:** security step 1 is on branch `security/npm-audit-and-next-patch` (log entry "Security step 1" below): Next.js 15.5.27 -> 15.5.28 (critical + high advisories), PostCSS lifted via `overrides`, and the CI check "Security - npm audit" (production packages, high or worse) inside the `check` gate. Nour still has to switch on Dependabot alerts / security updates, secret scanning and push protection in the repository settings. Next candidates: Vitest 5 (closes the dev-only audit findings), then the ranked security review. The local machine was set up fresh this day (`supabase start` + `.env.local` written from `supabase status`, plus a new `GEMINI_API_KEY`).
+## START HERE (handoff refreshed 2026-10-30: security step 1 merged, Vitest 5 on its branch; next = the ranked security review, ask Nour first)
+**UPDATE 2026-10-30:** Vitest 3 -> 5 (and Vite 7 -> 8) on branch `security/vitest-5` (log entry "Security step 1b" below): `npm audit` is clean for ALL packages, so the CI check "Security - npm audit" now covers the test tools too. `vite-tsconfig-paths` is gone (Vite resolves the tsconfig paths itself).
+**UPDATE 2026-10-28:** security step 1 (PR #5, merged 2026-10-30; log entry "Security step 1" below): Next.js 15.5.27 -> 15.5.28 (critical + high advisories), PostCSS lifted via `overrides`, and the CI check "Security - npm audit" inside the `check` gate. Nour still has to switch on Dependabot alerts / security updates, secret scanning and push protection in the repository settings. Next: the ranked security review. The local machine was set up fresh this day (`supabase start` + `.env.local` written from `supabase status`, plus a new `GEMINI_API_KEY`).
 **UPDATE 2026-10-15 (read this first; the 2026-10-14 update and the 2026-10-12 handoff below still hold unless this says otherwise):**
 - **Nour splits the work between TESTING and SECURITY now.** Testing is set up (PRs #3 and #4, both merged): CI runs typecheck, lint, build, all unit tests, the 482 pgTAP tests and the 45 integration tests, as ONE CHECK PER AREA (`test-groups.json`, 9 areas). Details: CLAUDE.md "Testing, CI and the protected `main`", and the log entries "Testing step 1" and "Testing step 2" below.
 - **`main` is protected** (ruleset "Run CI on every push", made by Nour): branch → PR → green → merge; the required checks are the gate jobs `check` and `database` (never rename them). No direct pushes to `main`, docs included.
@@ -711,6 +712,19 @@ visit has no table; the services card then tells them to scan the table code). S
   (S6 above, live, with a notice/sound like new orders) -> S7 chips in the chat ->
   (S8, the 3-option home page, is DONE: see above) -> E2E for the waiter screen and the chips (en + ar, both restaurants).
 - Assumptions to confirm later: asking for the bill before anything was ordered is allowed; no guest-side cancel of a request.
+
+## Security step 1b: test tools on Vitest 5 (2026-10-30)
+- Clears the dev-only findings left by step 1: vitest 3.2.7 (tinypool, @vitest/mocker) and vite 7.3.6 (launch-editor
+  and server.fs advisories). Now: vitest ^5.0.5, vite 8.3.5 (via `npm audit fix`; Vitest 5 accepts Vite 6-8).
+  `npm audit` (all packages) = 0, so the CI job runs `npm audit --audit-level=high` without `--omit=dev`.
+- Vite 8 breaks two things in `vitest.config.ts`, both fixed there: (1) it reads `jsx: "preserve"` from
+  tsconfig.json (Next's setting) and stops compiling JSX, so `tables/qr.test.ts` (imports `qr.tsx`) failed to parse:
+  `oxc: { jsx: { runtime: "automatic" } }`; (2) `vite-tsconfig-paths` is replaced by Vite's own
+  `resolve: { tsconfigPaths: true }` (package removed). Harmless warning left: Vite's future native config loader
+  would want `vitest.config.mts`.
+- The app's packages are unchanged except nanoid 3.3.19 -> 3.3.20 (a PostCSS dependency). Checked: typecheck, lint,
+  test groups, 647 unit (also one area alone with `--project`), 45 integration, production build. Browser suite not
+  re-run: Playwright and the app do not use Vitest or Vite.
 
 ## Security step 1: npm audit in CI + Next.js patch (Nour chose it 2026-10-28)
 - Found: `npm audit` (production packages) reported 1 critical + 1 high: Next.js <= 15.5.27 (GHSA-2464-fhr4-w9xw,
