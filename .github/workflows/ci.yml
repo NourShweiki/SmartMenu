@@ -56,8 +56,8 @@ jobs:
       - uses: ./.github/actions/setup
       - run: npm run build
 
-  # Known security holes in the packages the app ships with (GitHub's advisory database). Only the production
-  # packages: test tools (vitest, playwright) never reach a visitor. Red on "high" or "critical".
+  # Known security holes in our packages (GitHub's advisory database), the app's and the test tools' (they run on
+  # developer machines and in CI). Red on "high" or "critical".
   audit:
     name: Security - npm audit
     runs-on: ubuntu-latest
@@ -65,7 +65,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: ./.github/actions/setup
-      - run: npm audit --omit=dev --audit-level=high
+      - run: npm audit --audit-level=high
 
   unit:
     name: Unit - ${{ matrix.area.name }}
