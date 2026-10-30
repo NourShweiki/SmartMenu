@@ -27,7 +27,7 @@ export function LoginForm({ action }: { action: Action }) {
 
       {state.error && (
         <p role="alert" className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">
-          {t("invalid")}
+          {state.error === "TOO_MANY_ATTEMPTS" ? t("tooManyAttempts") : t("invalid")}
         </p>
       )}
 

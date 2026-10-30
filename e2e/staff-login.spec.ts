@@ -33,6 +33,22 @@ for (const site of ALL_SITES) {
       await expect(page).toHaveURL(new RegExp(`/${other}/staff/login$`));
     });
 
+    test(`${site.key} /${locale}: after 5 wrong passwords the account must wait, with a translated message`, async ({ page }) => {
+      // A made-up account of this test only: the seeded demo accounts are never locked. Its failures (stored hashed)
+      // stop counting after 15 minutes and are swept after a day.
+      const email = `e2e-locked-${crypto.randomUUID()}@test.local`;
+      const tryPassword = async (expected: string) => {
+        await page.goto(`${site.origin}/${locale}/staff/login`); // a fresh form: no earlier message on screen
+        await page.getByLabel(t(locale, "StaffLogin.email")).fill(email);
+        await page.getByLabel(t(locale, "StaffLogin.password")).fill("not-the-password");
+        await page.getByRole("button", { name: t(locale, "StaffLogin.submit") }).click();
+        await expect(page.getByText(t(locale, expected))).toBeVisible();
+      };
+      for (let i = 0; i < 5; i++) await tryPassword("StaffLogin.invalid");
+      await tryPassword("StaffLogin.tooManyAttempts");
+      await expect(page).toHaveURL(new RegExp(`/${locale}/staff/login$`));
+    });
+
     test(`${site.key} /${locale}: staff pages need a login`, async ({ page }) => {
       await page.goto(`${site.origin}/${locale}/staff`);
       await expect(page).toHaveURL(new RegExp(`/${locale}/staff/login$`));

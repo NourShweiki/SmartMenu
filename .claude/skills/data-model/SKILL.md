@@ -59,6 +59,11 @@ These are decided and expensive to change. Do not deviate without the user's exp
 - **Service-role power over accounts stays inside one restaurant:** before the server creates, attaches or resets an account for a restaurant it asks `find_unattached_account(actor, restaurant, email)` (an existing account may be taken on only if it belongs to NO restaurant and is not a founder's) or `is_resettable_staff_account(actor, restaurant, user)` (a non-owner member of this restaurant only, working nowhere else, not the actor). Both check the actor again.
 - **Staff accounts are made FOR people, never by sign-up.** They start with a temporary password, marked in the account's `app_metadata.must_change_password` (server-written, carried in the session token); until it is replaced the app opens nothing but the change-password page. Passwords: at least 10 characters, at most 72 bytes.
 
+**Platform-wide tables (no restaurant_id):** a few tables hold no tenant data and are used by the SERVER only:
+`sign_in_failures` (failed sign-ins, keyed by SHA-256 hashes of the email typed or the visitor's address, 2026-10-30).
+RLS on with NO policies, nothing granted to anon/authenticated, functions granted to service_role only. Never store a
+plain email or address there.
+
 ## 10. Open questions — stop and ask before building these
 - Removing SINGLE items from a placed order (cancelling the whole order is decided and built).
 - Delivery equivalent of a table session.

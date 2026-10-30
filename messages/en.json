@@ -35,7 +35,8 @@
     "password": "Password",
     "submit": "Sign in",
     "submitting": "Signing in…",
-    "invalid": "Incorrect email or password."
+    "invalid": "Incorrect email or password.",
+    "tooManyAttempts": "Too many wrong attempts. Please wait 15 minutes and try again."
   },
   "StaffHome": {
     "title": "Staff dashboard",

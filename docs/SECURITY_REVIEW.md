@@ -7,7 +7,7 @@ we plan to run (Vercel + hosted Supabase, real restaurants, guests on their phon
 
 | # | Severity | Finding | Area |
 |---|----------|---------|------|
-| 1 | High | Sign-in has no attempt limit of our own (staff and founders) | staff, platform |
+| 1 | High | ~~Sign-in has no attempt limit of our own (staff and founders)~~ **Fixed 2026-10-30** | staff, platform |
 | 2 | High | The founders' tool is protected by a password only | platform |
 | 3 | Medium | No security headers; staff session cookies are readable by page scripts | basics |
 | 4 | Medium | Dine-in "Place order" has no rate limit | orders |
@@ -30,9 +30,16 @@ the limit sees all visitors as one (one person guessing passwords locks every re
 or it does not hold an attacker back at all. A password of 10+ characters makes guessing slow, but staff passwords are
 chosen by people, and nothing stops a script trying a list of common ones against `owner@...` around the clock.
 
-**Fix idea:** an attempt limit in the database (not in memory, see #5): per email (e.g. 5 wrong tries -> 15 minutes
-wait) and per visitor address, checked before calling Supabase, the same answer ("wrong email or password") either way.
-Tests: staff area (unit for the rule, integration for the stored counter).
+**Fixed (2026-10-30, branch `security/sign-in-attempt-limit`):** at most 5 wrong passwords per account (the email
+typed, real or not) and 20 per visitor (hashed network address) in 15 minutes, for staff AND founders. Over the limit
+the password is not even tried and the form says "too many wrong attempts, wait 15 minutes" (en + ar). Failures are
+kept in the database (`sign_in_failures`, keys stored as SHA-256 hashes, server only), so the limit holds across server
+instances. A success clears the account's count, not the visitor's. Code: `src/domain/shared/sign-in-limit.ts`,
+`src/application/use-cases/limit-sign-in.ts`, `src/infrastructure/supabase/supabase-sign-in-attempt-log.ts`,
+migration `20261030120000_sign_in_failures.sql`. Tests: staff area (unit, integration, pgTAP `sign_in_failures`) and
+the browser spec `staff-login.spec.ts`.
+Known trade-off: anybody can lock a known staff email for 15 minutes by typing 5 wrong passwords for it. The
+alternative (no per-account limit) lets passwords be guessed; the lock is short and ends by itself.
 
 ## 2. The founders' tool is protected by a password only (High)
 

@@ -5,7 +5,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 const fake = vi.hoisted(() => ({ headers: new Headers() }));
 vi.mock("next/headers", () => ({ headers: async () => fake.headers }));
 
-const { clientHashFor } = await import("./client-hash");
+const { clientHashFor, signInVisitorHash } = await import("./client-hash");
 
 const GRILL = "11111111-1111-4000-8000-000000000001";
 const COFFEE = "22222222-2222-4000-8000-000000000002";
@@ -60,5 +60,20 @@ describe("clientHashFor", () => {
       from(address ? { "x-forwarded-for": address } : {});
       expect(await clientHashFor(GRILL), address || "(no header)").toBeNull();
     }
+  });
+});
+
+describe("signInVisitorHash", () => {
+  it("is one fingerprint per visitor for sign-in, different from any restaurant's takeout fingerprint", async () => {
+    from({ "x-forwarded-for": "203.0.113.7" });
+    const hash = await signInVisitorHash();
+    expect(hash).toMatch(/^[0-9a-f]{64}$/);
+    expect(await signInVisitorHash()).toBe(hash);
+    expect(hash).not.toBe(await clientHashFor(GRILL));
+  });
+
+  it("is null for an unknown or local address (then only the per-account limit applies)", async () => {
+    from({ "x-forwarded-for": "127.0.0.1" });
+    expect(await signInVisitorHash()).toBeNull();
   });
 });

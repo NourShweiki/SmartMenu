@@ -23,6 +23,7 @@ import {
 import type { TableActor } from "@/application/use-cases/tables/shared";
 import { makeChangeOwnPassword } from "@/application/use-cases/change-own-password";
 import { makeGetStaffContext } from "@/application/use-cases/get-staff-context";
+import { makeLimitedSignIn, type LimitedSignInInput } from "@/application/use-cases/limit-sign-in";
 import { makeSignInStaff, type SignInStaffInput } from "@/application/use-cases/sign-in-staff";
 import { makeAddMenuCategory } from "@/application/use-cases/menu/add-menu-category";
 import { makeAddMenuItem } from "@/application/use-cases/menu/add-menu-item";
@@ -101,6 +102,7 @@ import { SupabaseTableSessionGateway } from "./supabase/supabase-table-session-g
 import { SupabaseTableSessionRepository } from "./supabase/supabase-table-session-repository";
 import { SupabaseRestaurantRepository } from "./supabase/supabase-restaurant-repository";
 import { SupabaseSettingsRepository } from "./supabase/supabase-settings-repository";
+import { SupabaseSignInAttemptLog } from "./supabase/supabase-sign-in-attempt-log";
 import { SupabaseStaffAccountPolicy, SupabaseStaffRepository } from "./supabase/supabase-staff-repository";
 
 export { refreshSessionCookies } from "./supabase/client";
@@ -149,8 +151,14 @@ async function staffDeps() {
   return { auth: new SupabaseAuthGateway(db), memberships: new SupabaseMembershipRepository(db) };
 }
 
-export async function signInStaff(input: SignInStaffInput) {
-  return makeSignInStaff(await staffDeps())(input);
+/** Failed sign-ins, counted in the database (service role: the visitor has no session yet). See limit-sign-in.ts. */
+function signInAttempts() {
+  return { attempts: new SupabaseSignInAttemptLog(createServiceClient()), clock: systemClock };
+}
+
+/** Staff sign in on their restaurant's site, within the attempt limit (5 wrong per account, 20 per visitor, 15 min). */
+export async function signInStaff(input: LimitedSignInInput<SignInStaffInput>) {
+  return makeLimitedSignIn(signInAttempts(), makeSignInStaff(await staffDeps()))(input);
 }
 
 export async function getStaffContext(input: { restaurantId: RestaurantId }) {
@@ -465,8 +473,9 @@ async function platformDeps() {
 }
 
 export const platform = {
-  /** Founders sign in on the platform's own address; anybody else is refused like a wrong password. */
-  signIn: async (...args: Parameters<ReturnType<typeof makeSignInFounder>>) => makeSignInFounder(await platformDeps())(...args),
+  /** Founders sign in on the platform's own address; anybody else is refused like a wrong password. Same attempt limit as staff. */
+  signIn: async (input: LimitedSignInInput<{ email: string; password: string }>) =>
+    makeLimitedSignIn(signInAttempts(), makeSignInFounder(await platformDeps()))(input),
   /** The signed-in founder, or why not: every setup page and action starts here. */
   founder: async () => makeGetFounderContext(await platformDeps())(),
   listRestaurants: async () => makeListRestaurants(await platformDeps())(),

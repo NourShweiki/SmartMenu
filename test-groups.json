@@ -30,6 +30,8 @@
         "src/domain/restaurant/role.test.ts",
         "src/domain/shared/password.test.ts",
         "src/domain/shared/email.test.ts",
+        "src/domain/shared/sign-in-limit.test.ts",
+        "src/application/use-cases/limit-sign-in.test.ts",
         "src/application/use-cases/permissions.test.ts",
         "src/application/use-cases/staff-auth.test.ts",
         "src/application/use-cases/change-own-password.test.ts",
@@ -39,11 +41,13 @@
         "src/infrastructure/random-token.test.ts",
         "src/infrastructure/supabase/password.integration.test.ts",
         "src/infrastructure/supabase/staff-auth.integration.test.ts",
+        "src/infrastructure/supabase/sign-in-attempts.integration.test.ts",
         "src/infrastructure/supabase/staff.integration.test.ts",
         "src/interface/web/staff/require-staff.test.ts"
       ],
       "database": [
-        "staff_management"
+        "staff_management",
+        "sign_in_failures"
       ]
     },
     {
