@@ -62,6 +62,28 @@ Then read `docs/PROGRESS.md` to see where work stopped (its **START HERE** secti
 - **Before pushing a workflow file,** parse it locally (`node -e "require('js-yaml').load(require('fs').readFileSync('.github/workflows/ci.yml','utf8'))"`): an unquoted `: ` inside a step name made the whole workflow invalid once (0-second red run, no jobs).
 - The browser tests (`npm run test:e2e`) are NOT in CI yet: run them locally when a screen changes.
 
+## Boundaries decided by Nour (2026-11-01) — do not cross without asking
+These came out of a design talk with Nour. They are rules, not suggestions. If a task seems to need breaking one, stop and ask Nour first.
+
+**One codebase, one deployment, every restaurant (multi-tenant)**
+- All restaurants run on ONE codebase, ONE Vercel project and ONE Supabase project. Never fork the repo, copy the app, or make a separate deployment or database for a client.
+- A restaurant is found from its subdomain (`<restaurant>.<platform domain>`; on Vercel a wildcard domain `*.<platform domain>` points every subdomain at the same app). Every tenant table carries `restaurant_id`, and Row Level Security keeps each restaurant's data invisible to the others. Never weaken RLS or query across restaurants outside the founders' setup tool.
+- A restaurant's settings, menu, branding and features live in the DATABASE. Turning a feature on or off for one client is a settings change, never code with that client's name or slug in it (`if (slug === "...")` is forbidden).
+- A new restaurant is created with the founders' setup tool, never by a deploy.
+
+**Table QR codes**
+- A table's QR address is `<restaurant>/t/<token>`. The token is RANDOM (`newTableToken`, 144 bits) and NEVER derived from the table's label or number, so one code tells nothing about another. Never put a table number, label or other guessable value in a table's address, and never let a guest choose or switch tables through the URL. After a scan the table lives in a server-set cookie, not in the address.
+- Known gap: the demo tables in `supabase/seed.sql` have readable tokens (`grill-table-1-demo-token-0001`, ...), so on the demo you CAN reach another table by editing the address. Real tables are not affected. Planned fix (waiting for Nour's go-ahead): random-looking tokens in the seed, and the E2E specs updated to match.
+
+**Custom menu front ends per client (planned, NOT built; design first, then Nour's go-ahead)**
+- Goal: offer a client a fully custom customer menu WITHOUT any effect on the ordering logic or on other clients. A bug in one menu's UI must never touch the logic or another restaurant.
+- How: templates. Standard templates are picked in a restaurant's settings; a custom template lives in its own folder (e.g. `src/interface/web/templates/<name>/`) and is switched on for one restaurant through its settings. Other restaurants never load it.
+- This is the ONE allowed exception to "behaviour is set in the database, never by custom code": custom code is allowed for the menu's APPEARANCE only, never for logic (prices, tax, service charge, cart rules, order status, sessions, permissions).
+- A template may only use a small template API: read-only data (menu, prices, cart, language, branding) and the shared actions (add to cart, place order, guest services). It must not import the domain, use cases, repositories, Supabase or another template; the lint rules enforce this.
+- The server never trusts a template: placing an order re-reads prices, options and tax from the database and checks every rule again.
+- Each template sits behind an error boundary that falls back to the standard menu, supports `/ar` + `/en` with RTL, and gets its own test group in `test-groups.json`.
+- Never put template-specific logic in shared code. If a template needs something new, add it to the template API for everyone.
+
 ## Hosting
 - Vercel (app) + Supabase (database, auth, storage, realtime). Secrets go in Vercel/Supabase env settings and `.env.local` (never committed); document variable names in `.env.example`.
 
