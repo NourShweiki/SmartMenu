@@ -810,6 +810,9 @@ visit has no table; the services card then tells them to scan the table code). S
   are refused). This is the SSRF guard: the server will POST to this address. Keys: p256dh 87 base64url characters
   starting with "B" (65-byte uncompressed point), auth 22 (16 bytes).
 - Changed from the plan: the message text is NOT in the domain; it goes into the message files in W5.
-- Tests: `push-subscription.test.ts` (6, area `orders` in `test-groups.json`). Proven by breaking the dot boundary on
-  purpose (the "not a known push service" test went red). Checked: 653 unit, typecheck, lint, test groups. No screen
+- Review fixes (same iteration): the endpoint is returned normalized (`URL.href`), spaces, control characters and
+  backslashes are refused (URL parsers disagree on them, and W3's sender parses the address again), and keys must
+  be canonical base64url (unused bits of the last character zero).
+- Tests: `push-subscription.test.ts` (7, area `orders` in `test-groups.json`). Proven by breaking the dot boundary on
+  purpose (the "not a known push service" test went red). Checked: 654 unit, typecheck, lint, test groups. No screen
   changed, so no browser check.

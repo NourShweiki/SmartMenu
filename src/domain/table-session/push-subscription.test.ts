@@ -19,9 +19,28 @@ describe("createPushSubscription", () => {
     }
   });
 
-  it("accepts the host in any letter case and keeps the address the browser gave", () => {
+  it("accepts the host in any letter case and stores one address one way (normalized)", () => {
     const endpoint = "https://FCM.GoogleApis.com/fcm/send/abc";
-    expect(createPushSubscription({ endpoint, keys })).toEqual({ ok: true, value: { endpoint, p256dh: P256DH, auth: AUTH } });
+    expect(createPushSubscription({ endpoint, keys })).toEqual({
+      ok: true,
+      value: { endpoint: "https://fcm.googleapis.com/fcm/send/abc", p256dh: P256DH, auth: AUTH },
+    });
+  });
+
+  // URL parsers disagree about these (one drops them, another keeps them): the checked address must be the sent one.
+  it("refuses spaces, control characters and backslashes anywhere in the address", () => {
+    for (const endpoint of [
+      " https://fcm.googleapis.com/fcm/send/abc",
+      "https://fcm.googleapis.com/fcm/send/abc ",
+      "\thttps://fcm.googleapis.com/fcm/send/abc",
+      "https://fcm.goo\tgleapis.com/fcm/send/abc",
+      "https://fcm.googleapis.com/fcm/se\nnd/abc",
+      "https://fcm.googleapis.com\\@evil.com/x",
+      "https:\\\\fcm.googleapis.com/x",
+      "https://fcm.googleapis.com/x\u0000",
+    ]) {
+      expect(createPushSubscription({ endpoint, keys }), JSON.stringify(endpoint)).toEqual({ ok: false, error: { type: "ENDPOINT_INVALID" } });
+    }
   });
 
   // The server will send a request to this address, so it must never be one an attacker chose (SSRF).
@@ -76,6 +95,8 @@ describe("createPushSubscription", () => {
       { p256dh: P256DH, auth: AUTH.slice(0, -1) }, // not 16 bytes
       { p256dh: P256DH, auth: `${AUTH}AA` },
       { p256dh: P256DH, auth: "tBHItJI5svbpez7KI4CC!g" },
+      { p256dh: `${P256DH.slice(0, -1)}N`, auth: AUTH }, // same bytes as "M", but the unused bits are not zero
+      { p256dh: P256DH, auth: `${AUTH.slice(0, -1)}h` }, // same for the auth secret
     ]) {
       expect(createPushSubscription({ endpoint: FCM, keys: bad }), JSON.stringify(bad)).toEqual({ ok: false, error: { type: "KEYS_INVALID" } });
     }
