@@ -3,7 +3,7 @@
 Read this after `PROJECT_SPEC.md` at the start of every session. Update it at the end of every iteration.
 
 ## START HERE (handoff refreshed 2026-10-30: security review written; next = fix finding #1, ask Nour first)
-**UPDATE 2026-11-08 (web push plan):** Nour wants the "order is ready" notice to reach the customer with the page closed. The plan is in `docs/WEB_PUSH_PLAN.md` (steps W1-W7, domain -> database -> adapters -> use cases -> action -> UI -> iPhone manifest), with 4 questions for Nour before W1. Nothing is built. Security finding #1 (branch `security/sign-in-attempt-limit`) is still waiting to be merged.
+**UPDATE 2026-11-08 (web push plan):** Nour wants the "order is ready" notice to reach the customer with the page closed. The plan is in `docs/WEB_PUSH_PLAN.md` (steps W1-W7, domain -> database -> adapters -> use cases -> action -> UI -> iPhone manifest). **W1 is done** (branch `feature/web-push-w1`, log entry "Web push W1" at the end): the `PushSubscription` domain value. Next: W2, the database table and its functions (ask Nour first; its 4 questions in the plan are still open). Security finding #1 (branch `security/sign-in-attempt-limit`) is still waiting to be merged.
 **UPDATE 2026-10-30 (review):** the ranked security review is in `docs/SECURITY_REVIEW.md` (9 findings: 2 high, 4 medium, 3 low; nothing fixed yet). Suggested next iteration: #1, an attempt limit on staff and founder sign-in kept in the database (the same counter can later serve #4, #5 and #7). Step 1b (Vitest 5) is merged (PR #6).
 **UPDATE 2026-10-30:** Vitest 3 -> 5 (and Vite 7 -> 8) on branch `security/vitest-5` (log entry "Security step 1b" below): `npm audit` is clean for ALL packages, so the CI check "Security - npm audit" now covers the test tools too. `vite-tsconfig-paths` is gone (Vite resolves the tsconfig paths itself).
 **UPDATE 2026-10-28:** security step 1 (PR #5, merged 2026-10-30; log entry "Security step 1" below): Next.js 15.5.27 -> 15.5.28 (critical + high advisories), PostCSS lifted via `overrides`, and the CI check "Security - npm audit" inside the `check` gate. Nour still has to switch on Dependabot alerts / security updates, secret scanning and push protection in the repository settings. Next: the ranked security review. The local machine was set up fresh this day (`supabase start` + `.env.local` written from `supabase status`, plus a new `GEMINI_API_KEY`).
@@ -800,3 +800,16 @@ visit has no table; the services card then tells them to scan the table code). S
 ## Open questions (do not build without asking) — see spec §12
 - Removing SINGLE items from a placed order (cancelling a whole order: decided 2026-10-11); delivery session model (takeout: decided 2026-10-11); loyalty rules. (Branding elements: decided 2026-10-10, logo + accent colour + written details; see the log.)
 
+
+## Web push W1: the push subscription in the domain (Nour, 2026-11-08: "Yes, start W1")
+- Why: Nour wants "your order is ready" to reach the customer with the page closed. Plan: `docs/WEB_PUSH_PLAN.md`.
+- Built: `src/domain/table-session/push-subscription.ts` (`createPushSubscription`): checks what the guest's browser
+  sends (`endpoint` + `keys.p256dh` + `keys.auth`). The endpoint must be https on the default port, with no user name
+  or password, no trailing dot, at most 1024 characters, and on a known push service (`PUSH_SERVICE_HOSTS`: FCM,
+  Mozilla, Apple, Windows; exact host or a dot boundary, so `fcm.googleapis.com.evil.com` and `notfcm.googleapis.com`
+  are refused). This is the SSRF guard: the server will POST to this address. Keys: p256dh 87 base64url characters
+  starting with "B" (65-byte uncompressed point), auth 22 (16 bytes).
+- Changed from the plan: the message text is NOT in the domain; it goes into the message files in W5.
+- Tests: `push-subscription.test.ts` (6, area `orders` in `test-groups.json`). Proven by breaking the dot boundary on
+  purpose (the "not a known push service" test went red). Checked: 653 unit, typecheck, lint, test groups. No screen
+  changed, so no browser check.
