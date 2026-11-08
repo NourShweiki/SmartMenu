@@ -106,7 +106,7 @@ One codebase serves every restaurant (multi-tenant). Each restaurant lives on it
 
 ### Known limits (on purpose, for now)
 
-- The "order is ready" system notification only works while the menu page is still open in the browser.
+- The "order is ready" system notification only works while the menu page is still open in the browser. Reaching the phone with the page closed (web push, free) is being built: [docs/WEB_PUSH_PLAN.md](docs/WEB_PUSH_PLAN.md), steps 1 and 2 of 7 done (the check that only real browser push services are accepted, and the secure database table that keeps each phone's address for the length of its visit).
 - The team's setup tool is protected by a password only (a second factor comes with the hardening phase).
 - An email address can belong to one account, so one person cannot yet own two restaurants under the same email.
 

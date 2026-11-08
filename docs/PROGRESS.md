@@ -3,6 +3,7 @@
 Read this after `PROJECT_SPEC.md` at the start of every session. Update it at the end of every iteration.
 
 ## START HERE (handoff refreshed 2026-10-30: security review written; next = fix finding #1, ask Nour first)
+**UPDATE 2026-11-08 (web push plan):** Nour wants the "order is ready" notice to reach the customer with the page closed. The plan is in `docs/WEB_PUSH_PLAN.md` (steps W1-W7, domain -> database -> adapters -> use cases -> action -> UI -> iPhone manifest). **W1 and W2 are done** (branch `feature/web-push-w1`, log entries "Web push W1" / "W2" at the end): the `PushSubscription` domain value and the `push_subscriptions` table with its 3 functions. Next: W3, the adapters (`web-push` library, VAPID keys; ask Nour first; the 4 questions in the plan are still open). Security finding #1 (branch `security/sign-in-attempt-limit`) is still waiting to be merged.
 **UPDATE 2026-10-30 (review):** the ranked security review is in `docs/SECURITY_REVIEW.md` (9 findings: 2 high, 4 medium, 3 low; nothing fixed yet). Suggested next iteration: #1, an attempt limit on staff and founder sign-in kept in the database (the same counter can later serve #4, #5 and #7). Step 1b (Vitest 5) is merged (PR #6).
 **UPDATE 2026-10-30:** Vitest 3 -> 5 (and Vite 7 -> 8) on branch `security/vitest-5` (log entry "Security step 1b" below): `npm audit` is clean for ALL packages, so the CI check "Security - npm audit" now covers the test tools too. `vite-tsconfig-paths` is gone (Vite resolves the tsconfig paths itself).
 **UPDATE 2026-10-28:** security step 1 (PR #5, merged 2026-10-30; log entry "Security step 1" below): Next.js 15.5.27 -> 15.5.28 (critical + high advisories), PostCSS lifted via `overrides`, and the CI check "Security - npm audit" inside the `check` gate. Nour still has to switch on Dependabot alerts / security updates, secret scanning and push protection in the repository settings. Next: the ranked security review. The local machine was set up fresh this day (`supabase start` + `.env.local` written from `supabase status`, plus a new `GEMINI_API_KEY`).
@@ -799,3 +800,43 @@ visit has no table; the services card then tells them to scan the table code). S
 ## Open questions (do not build without asking) — see spec §12
 - Removing SINGLE items from a placed order (cancelling a whole order: decided 2026-10-11); delivery session model (takeout: decided 2026-10-11); loyalty rules. (Branding elements: decided 2026-10-10, logo + accent colour + written details; see the log.)
 
+
+## Web push W1: the push subscription in the domain (Nour, 2026-11-08: "Yes, start W1")
+- Why: Nour wants "your order is ready" to reach the customer with the page closed. Plan: `docs/WEB_PUSH_PLAN.md`.
+- Built: `src/domain/table-session/push-subscription.ts` (`createPushSubscription`): checks what the guest's browser
+  sends (`endpoint` + `keys.p256dh` + `keys.auth`). The endpoint must be https on the default port, with no user name
+  or password, no trailing dot, at most 1024 characters, and on a known push service (`PUSH_SERVICE_HOSTS`: FCM,
+  Mozilla, Apple, Windows; exact host or a dot boundary, so `fcm.googleapis.com.evil.com` and `notfcm.googleapis.com`
+  are refused). This is the SSRF guard: the server will POST to this address. Keys: p256dh 87 base64url characters
+  starting with "B" (65-byte uncompressed point), auth 22 (16 bytes).
+- Changed from the plan: the message text is NOT in the domain; it goes into the message files in W5.
+- Review fixes (same iteration): the endpoint is returned normalized (`URL.href`), spaces, control characters and
+  backslashes are refused (URL parsers disagree on them, and W3's sender parses the address again), and keys must
+  be canonical base64url (unused bits of the last character zero).
+- Tests: `push-subscription.test.ts` (7, area `orders` in `test-groups.json`). Proven by breaking the dot boundary on
+  purpose (the "not a known push service" test went red). Checked: 654 unit, typecheck, lint, test groups. No screen
+  changed, so no browser check.
+
+## Web push W2: the database table (Nour, 2026-11-08: "Yes, start W2")
+- Migration `20261108120000_push_subscriptions.sql`: table `push_subscriptions` (restaurant, visit via composite FK,
+  endpoint, p256dh, auth, locale ar/en, created/updated). RLS on with NO policies and no grants to anon /
+  authenticated: nobody touches the table directly. The endpoint is checked by `is_push_endpoint` (also the column's
+  CHECK): normalized https address on a known push service, no space / control character / backslash, <= 1024.
+- Functions: `save_push_subscription(slug, visit, endpoint, p256dh, auth, locale)` (anon; visit live and of this
+  restaurant, else NULL / SESSION_ENDED; INVALID_SUBSCRIPTION; TOO_MANY above 5 per visit, the visit row is locked so
+  two phones cannot both pass; saving again refreshes keys and language), `push_subscriptions_for_order(order)`
+  (authenticated; empty unless the order is READY, its visit live, and the caller may move it: owner / manager /
+  waiter, the cashier for takeout only), `remove_push_subscription(id)` (any member of that restaurant; for addresses
+  the push service calls gone). A trigger deletes a visit's rows when it closes.
+- No 12-hour clean-up job: rows go with the visit (an expired table visit is closed on the next scan, and the list
+  function already ignores expired visits).
+- Applied locally through Docker (Smart App Control still blocks the Supabase CLI) and recorded in
+  `supabase_migrations.schema_migrations`. Tests: `push_subscriptions.test.sql` (50, area `orders`). The whole pgTAP
+  suite run file by file through Docker: 532 ok, 0 failed.
+- Review fixes (same iteration): unique key now `(restaurant_id, session_id, endpoint)` (indexes start with the
+  restaurant); `push_subscriptions_for_order` and `remove_push_subscription` revoked from `service_role` (no person, so
+  always empty; Supabase grants new functions to it by default) and W3 must call them with the STAFF session client;
+  removing follows the reading rule (the cashier: takeout only); new tests for backslash, trailing dot, IP,
+  localhost, a missing path, an expired and a closed visit. The no-policy exception is recorded in the data-model skill. Integration 45 passed, typecheck clean.
+- Test pitfall: a pgTAP test that switches to `anon` cannot call helpers in `pg_temp`; this test creates its helpers
+  in `public` inside the rolled-back transaction.

@@ -75,6 +75,7 @@
         "src/domain/order/**/*.test.ts",
         "src/domain/cart/cart.test.ts",
         "src/domain/table-session/pickup.test.ts",
+        "src/domain/table-session/push-subscription.test.ts",
         "src/application/use-cases/orders/**/*.test.ts",
         "src/interface/web/customer/place-order-model.test.ts",
         "src/interface/web/customer/order-updates.test.ts",
@@ -95,7 +96,8 @@
         "cancel_orders",
         "takeout_limits",
         "takeout_pickup",
-        "public_session_orders"
+        "public_session_orders",
+        "push_subscriptions"
       ]
     },
     {
