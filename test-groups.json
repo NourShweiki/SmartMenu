@@ -96,7 +96,8 @@
         "cancel_orders",
         "takeout_limits",
         "takeout_pickup",
-        "public_session_orders"
+        "public_session_orders",
+        "push_subscriptions"
       ]
     },
     {
