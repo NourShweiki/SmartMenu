@@ -1,6 +1,6 @@
 # Plan: "your order is ready" with the page closed (web push)
 
-Status: **W1 and W2 done (2026-11-08); W3-W7 not built.** Nour approved the plan, W1 and W2 on 2026-11-08;
+Status: **W1 and W2 done and merged into `main` (PR #9, 2026-11-08); W3-W7 not built.** Nour approved the plan, W1 and W2 on 2026-11-08;
 the questions below are still open (the defaults in them stand until Nour says otherwise). Written 2026-11-08 after Nour asked for a notification that reaches the
 customer without the website open. Each step below is one iteration and waits for Nour's go-ahead.
 
