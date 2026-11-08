@@ -73,6 +73,7 @@ Scan table QR → join/create session → browse digital menu (an AI assistant c
 On **READY**, push a notification to the customer's session device(s).
 **Rule:** when a customer adds items after confirming, the addition re-enters the flow at NEW (kitchen treats it as freshly needed work, not something already done).
 **Decided (Nour, 2026-10-11):** dine-in guests are notified when their order is READY too. The notice shows on the phones that joined the table session (on the menu page they have open) and, where the phone allows it, also as a web notification. No SMS for now. (A web notification needs the guest's permission, and on iPhones the menu must first be added to the home screen, so the on-page notice is the one that always works; the web notification is an extra.)
+**Planned (Nour, 2026-11-08: "send a notification without the website open"):** the READY notice also reaches a phone whose menu page is CLOSED, through web push (free; Android and desktop browsers; iPhones only after "Add to Home Screen"). The on-page notice stays, and there is still no SMS. Plan and steps W1-W7: `docs/WEB_PUSH_PLAN.md`; nothing built yet, each step waits for Nour's go-ahead.
 **Decided (Nour, 2026-10-11): only staff can cancel an order.** A customer cannot cancel an order or remove items from it once it is placed; they ask the staff.
 **Cancelling rules (Nour left the details to us, 2026-10-11: "choose what's best"; change them here if they turn out wrong):**
 - The **waiter** may cancel an order while it is NEW or CONFIRMED, that is before the kitchen has started on it.
