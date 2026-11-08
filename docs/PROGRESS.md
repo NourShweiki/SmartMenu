@@ -831,7 +831,12 @@ visit has no table; the services card then tells them to scan the table code). S
 - No 12-hour clean-up job: rows go with the visit (an expired table visit is closed on the next scan, and the list
   function already ignores expired visits).
 - Applied locally through Docker (Smart App Control still blocks the Supabase CLI) and recorded in
-  `supabase_migrations.schema_migrations`. Tests: `push_subscriptions.test.sql` (41, area `orders`). The whole pgTAP
-  suite run file by file through Docker: 523 ok, 0 failed. Integration 45 passed, typecheck clean.
+  `supabase_migrations.schema_migrations`. Tests: `push_subscriptions.test.sql` (50, area `orders`). The whole pgTAP
+  suite run file by file through Docker: 532 ok, 0 failed.
+- Review fixes (same iteration): unique key now `(restaurant_id, session_id, endpoint)` (indexes start with the
+  restaurant); `push_subscriptions_for_order` and `remove_push_subscription` revoked from `service_role` (no person, so
+  always empty; Supabase grants new functions to it by default) and W3 must call them with the STAFF session client;
+  removing follows the reading rule (the cashier: takeout only); new tests for backslash, trailing dot, IP,
+  localhost, a missing path, an expired and a closed visit. The no-policy exception is recorded in the data-model skill. Integration 45 passed, typecheck clean.
 - Test pitfall: a pgTAP test that switches to `anon` cannot call helpers in `pg_temp`; this test creates its helpers
   in `public` inside the rolled-back transaction.

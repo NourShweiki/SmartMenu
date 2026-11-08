@@ -14,6 +14,7 @@ These are decided and expensive to change. Do not deviate without the user's exp
 - Composite indexes start with `restaurant_id`.
 - Never accept `restaurant_id` from the request body. Resolve it from the domain/subdomain (customers) or the authenticated staff user's membership (staff).
 - Tests for isolation: any new table needs a test proving restaurant A cannot read/write restaurant B's rows.
+- **Function-only tables (exception, 2026-11-08):** a table may have RLS enabled with NO policies and no grants to anon / authenticated, when every read and write goes through narrow SECURITY DEFINER functions that check the restaurant and role themselves (first one: `push_subscriptions`). Never add a broad policy to such a table to "fix" the missing policies. A function that checks `auth.uid()` is useless to `service_role` (no person): revoke it from `service_role` explicitly, because Supabase grants new functions to it by default.
 
 ## 2. IDs
 - `uuid` primary keys, `default gen_random_uuid()`. Never `serial`/`identity`.

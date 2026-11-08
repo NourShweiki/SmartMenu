@@ -30,11 +30,10 @@ create table public.push_subscriptions (
   locale         text not null check (locale in ('ar', 'en')),
   created_at     timestamptz not null default now(),
   updated_at     timestamptz,
-  unique (session_id, endpoint),
+  unique (restaurant_id, session_id, endpoint),
   -- The visit must belong to the SAME restaurant (composite FK), and the rows go with it.
   foreign key (restaurant_id, session_id) references public.table_sessions (restaurant_id, id) on delete cascade
 );
-create index push_subscriptions_session_idx on public.push_subscriptions (restaurant_id, session_id);
 
 -- A closed visit is told nothing more: its subscriptions are deleted when it closes (the cashier after payment, staff
 -- by hand, or a pickup visit closing itself after its last order). SECURITY DEFINER: whoever closes the visit has no
@@ -52,6 +51,7 @@ create trigger table_sessions_drop_push_subscriptions after update of status on 
   for each row execute function public.table_sessions_drop_push_subscriptions();
 
 -- ─── Row Level Security + privileges: no direct access at all ─────────────
+-- Deliberately NO policies (unlike the other tenant tables): guests and staff only ever go through the functions below.
 alter table public.push_subscriptions enable row level security;
 revoke all on public.push_subscriptions from anon, authenticated;
 grant all on public.push_subscriptions to service_role;
@@ -96,7 +96,7 @@ begin
 
   insert into public.push_subscriptions (restaurant_id, session_id, endpoint, p256dh, auth, locale)
   values (v_session.restaurant_id, v_session.id, p_endpoint, p_p256dh, p_auth, p_locale)
-  on conflict (session_id, endpoint) do update
+  on conflict (restaurant_id, session_id, endpoint) do update
     set p256dh = excluded.p256dh, auth = excluded.auth, locale = excluded.locale, updated_at = now();
 
   return jsonb_build_object('ok', true);
@@ -106,6 +106,8 @@ end $$;
 -- Only someone who may move that order gets anything (role.ts `permissionsToMoveTo`): owner, manager and waiter; the
 -- cashier too for a PICKUP order. Only while the order is READY and its visit is live. Otherwise (or for another
 -- restaurant's order): an empty list, never an error that tells whether the order exists.
+-- Call it with the signed-in STAFF session (it checks auth.uid()); there is deliberately no service_role grant, because
+-- a service-role call has no person and would always get an empty list.
 create function public.push_subscriptions_for_order(p_order_id uuid) returns jsonb
 language sql stable security definer set search_path = '' as $$
   select coalesce(jsonb_agg(jsonb_build_object('id', p.id, 'endpoint', p.endpoint, 'p256dh', p.p256dh, 'auth', p.auth, 'locale', p.locale)
@@ -122,24 +124,28 @@ language sql stable security definer set search_path = '' as $$
 $$;
 
 -- ─── Staff: forget an address the push service says no longer exists ────
--- Any member of the subscription's restaurant (whoever sent the notice). True when it was removed.
+-- Only someone who could have read it (same rule as push_subscriptions_for_order: owner, manager, waiter; the cashier
+-- for a takeout visit only). True when it was removed.
 create function public.remove_push_subscription(p_subscription_id uuid) returns boolean
 language plpgsql security definer set search_path = '' as $$
 declare
   v_removed int;
 begin
   delete from public.push_subscriptions p
+  using public.table_sessions s
   where p.id = p_subscription_id
-    and public.has_restaurant_role(p.restaurant_id, array['OWNER','MANAGER','WAITER','CASHIER']::public.app_role[]);
+    and s.restaurant_id = p.restaurant_id and s.id = p.session_id
+    and (public.has_restaurant_role(p.restaurant_id, array['OWNER','MANAGER','WAITER']::public.app_role[])
+         or (s.kind = 'PICKUP' and public.has_restaurant_role(p.restaurant_id, array['CASHIER']::public.app_role[])));
   get diagnostics v_removed = row_count;
   return v_removed > 0;
 end $$;
 
 revoke all on function public.is_push_endpoint(text) from public;
 revoke all on function public.save_push_subscription(text, uuid, text, text, text, text) from public;
-revoke all on function public.push_subscriptions_for_order(uuid) from public;
-revoke all on function public.remove_push_subscription(uuid) from public;
+revoke all on function public.push_subscriptions_for_order(uuid) from public, anon, authenticated, service_role;
+revoke all on function public.remove_push_subscription(uuid) from public, anon, authenticated, service_role;
 grant execute on function public.is_push_endpoint(text) to anon, authenticated, service_role;
 grant execute on function public.save_push_subscription(text, uuid, text, text, text, text) to anon, authenticated, service_role;
-grant execute on function public.push_subscriptions_for_order(uuid) to authenticated, service_role;
-grant execute on function public.remove_push_subscription(uuid) to authenticated, service_role;
+grant execute on function public.push_subscriptions_for_order(uuid) to authenticated;
+grant execute on function public.remove_push_subscription(uuid) to authenticated;

@@ -5,7 +5,7 @@
 -- Run with: npx supabase test db
 begin;
 create extension if not exists pgtap with schema extensions;
-select plan(41);
+select plan(50);
 
 insert into auth.users (id, email) values
   ('aaaaaaaa-0000-4000-8000-0000000000f1', 'ps-owner-a@test.local'),
@@ -77,6 +77,11 @@ select is(public.ps_test_save('ps-a', 'aaaaaaaa-6d6d-4000-8000-000000000001', 'h
 select is(public.ps_test_save('ps-a', 'aaaaaaaa-6d6d-4000-8000-000000000001', 'https://FCM.googleapis.com/x') ->> 'error', 'INVALID_SUBSCRIPTION', 'an address not in normalized form (upper-case host) is refused');
 select is(public.ps_test_save('ps-a', 'aaaaaaaa-6d6d-4000-8000-000000000001', E'https://fcm.googleapis.com/x\ty') ->> 'error', 'INVALID_SUBSCRIPTION', 'a tab in the address is refused');
 select is(public.ps_test_save('ps-a', 'aaaaaaaa-6d6d-4000-8000-000000000001', 'https://fcm.googleapis.com/' || repeat('a', 1024)) ->> 'error', 'INVALID_SUBSCRIPTION', 'an address over 1024 characters is refused');
+select is(public.ps_test_save('ps-a', 'aaaaaaaa-6d6d-4000-8000-000000000001', 'https://fcm.googleapis.com\@evil.com/x') ->> 'error', 'INVALID_SUBSCRIPTION', 'a backslash in the address is refused');
+select is(public.ps_test_save('ps-a', 'aaaaaaaa-6d6d-4000-8000-000000000001', 'https://fcm.googleapis.com./x') ->> 'error', 'INVALID_SUBSCRIPTION', 'a trailing dot on the host is refused');
+select is(public.ps_test_save('ps-a', 'aaaaaaaa-6d6d-4000-8000-000000000001', 'https://127.0.0.1/x') ->> 'error', 'INVALID_SUBSCRIPTION', 'an IP address is refused');
+select is(public.ps_test_save('ps-a', 'aaaaaaaa-6d6d-4000-8000-000000000001', 'https://localhost/x') ->> 'error', 'INVALID_SUBSCRIPTION', 'localhost is refused');
+select is(public.ps_test_save('ps-a', 'aaaaaaaa-6d6d-4000-8000-000000000001', 'https://fcm.googleapis.com') ->> 'error', 'INVALID_SUBSCRIPTION', 'an address without the path the normalized form always has is refused');
 select is(public.save_push_subscription('ps-a', 'aaaaaaaa-6d6d-4000-8000-000000000001', 'https://fcm.googleapis.com/x', 'A' || substr(public.ps_test_k(), 2), public.ps_test_a(), 'en') ->> 'error', 'INVALID_SUBSCRIPTION', 'a key that is not the browser''s point is refused');
 select is(public.save_push_subscription('ps-a', 'aaaaaaaa-6d6d-4000-8000-000000000001', 'https://fcm.googleapis.com/x', public.ps_test_k(), 'short', 'en') ->> 'error', 'INVALID_SUBSCRIPTION', 'an auth secret of the wrong size is refused');
 select is(public.ps_test_save('ps-a', 'aaaaaaaa-6d6d-4000-8000-000000000001', 'https://fcm.googleapis.com/x', 'fr') ->> 'error', 'INVALID_SUBSCRIPTION', 'a language other than ar / en is refused');
@@ -105,6 +110,7 @@ select throws_ok($$ select count(*) from public.push_subscriptions $$, '42501', 
 
 set local request.jwt.claims = '{"sub": "aaaaaaaa-0000-4000-8000-0000000000f3", "role": "authenticated"}';
 select is(public.push_subscriptions_for_order('aaaaaaaa-6c6c-4000-8000-000000000001'), '[]'::jsonb, 'the cashier does not move table orders, so gets nothing for one');
+select is(public.remove_push_subscription(public.ps_test_id('https://web.push.apple.com/two')), false, 'the cashier cannot remove a table guest''s subscription either');
 select is(jsonb_array_length(public.push_subscriptions_for_order('aaaaaaaa-6c6c-4000-8000-000000000004')), 1, 'the cashier moves takeout orders, so gets the takeout one');
 
 set local request.jwt.claims = '{"sub": "aaaaaaaa-0000-4000-8000-0000000000f4", "role": "authenticated"}';
@@ -124,6 +130,19 @@ select is(public.ps_test_save('ps-a', 'aaaaaaaa-6d6d-4000-8000-000000000005', 'h
 update public.table_sessions set status = 'CLOSED', ended_at = now() where id = 'aaaaaaaa-6d6d-4000-8000-000000000005';
 select is((select count(*)::int from public.push_subscriptions where session_id = 'aaaaaaaa-6d6d-4000-8000-000000000005'), 0, 'closing the visit deletes its subscriptions');
 select is((select count(*)::int from public.push_subscriptions where session_id = 'aaaaaaaa-6d6d-4000-8000-000000000001'), 4, 'other visits keep theirs');
+
+-- ── Stale visits are told nothing (rows stay until the visit is closed; the list leaves them out) ──
+-- V1 ages past its 2 hours (still OPEN), and the takeout visit V4 is marked closed without its triggers.
+update public.table_sessions set started_at = now() - interval '3 hours' where id = 'aaaaaaaa-6d6d-4000-8000-000000000001';
+alter table public.table_sessions disable trigger user; -- (also the flow check: V4 still has a READY order)
+update public.table_sessions set status = 'CLOSED', ended_at = now() where id = 'aaaaaaaa-6d6d-4000-8000-000000000004';
+alter table public.table_sessions enable trigger user;
+set local role authenticated;
+set local request.jwt.claims = '{"sub": "aaaaaaaa-0000-4000-8000-0000000000f2", "role": "authenticated"}';
+select is(public.push_subscriptions_for_order('aaaaaaaa-6c6c-4000-8000-000000000001'), '[]'::jsonb, 'nothing for a table visit past its 2 hours');
+select is(public.push_subscriptions_for_order('aaaaaaaa-6c6c-4000-8000-000000000004'), '[]'::jsonb, 'nothing for a closed visit');
+reset role;
+select is(has_function_privilege('service_role', 'public.push_subscriptions_for_order(uuid)', 'execute'), false, 'service_role cannot call it (it has no person, so it would always get an empty list)');
 
 select * from finish();
 rollback;
