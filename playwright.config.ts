@@ -1,5 +1,5 @@
 import { defineConfig } from "@playwright/test";
-import { E2E_DIST_DIR, E2E_PORT, FAKE_AI_PORT, PLATFORM_ORIGIN } from "./e2e/support/server";
+import { E2E_DIST_DIR, E2E_PORT, FAKE_AI_PORT, PLATFORM_ORIGIN, PREVIEW_ORIGIN, PREVIEW_PORT } from "./e2e/support/server";
 
 /**
  * End-to-end tests: a real browser against the real app and the LOCAL Supabase (Docker).
@@ -53,6 +53,17 @@ export default defineConfig({
       reuseExistingServer: process.env.E2E_REUSE_SERVER === "1",
       timeout: 300_000, // includes the build
       // Shown, not hidden: when the build fails, its output is the only place that says why.
+      stdout: "pipe",
+      stderr: "pipe",
+    },
+    // The same build again, with preview links ON (a deployment without restaurant subdomains). Web servers start
+    // one after the other, so the build above is finished by now. Only e2e/preview-links.spec.ts uses it.
+    {
+      command: `npx next start --port ${PREVIEW_PORT}`,
+      env: { NEXT_DIST_DIR: E2E_DIST_DIR, RESTAURANT_PREVIEW_LINKS: "1", ANTHROPIC_API_KEY: "" },
+      url: PREVIEW_ORIGIN,
+      reuseExistingServer: process.env.E2E_REUSE_SERVER === "1",
+      timeout: 120_000,
       stdout: "pipe",
       stderr: "pipe",
     },

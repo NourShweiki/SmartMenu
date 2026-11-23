@@ -14,6 +14,13 @@ export const FAKE_AI_PORT = 3199;
 /** Build output of the test server (git-ignored). `next.config.ts` reads the folder name from NEXT_DIST_DIR. */
 export const E2E_DIST_DIR = ".next-e2e";
 
+/**
+ * A second server from the SAME build, with preview links switched on (RESTAURANT_PREVIEW_LINKS=1): it stands in for a
+ * deployment without restaurant subdomains (e.g. xxx.vercel.app). Only `e2e/preview-links.spec.ts` uses it.
+ */
+export const PREVIEW_PORT = 3101;
+export const PREVIEW_ORIGIN = `http://localhost:${PREVIEW_PORT}`;
+
 /** The platform's own address (no restaurant). */
 export const PLATFORM_ORIGIN = `http://localhost:${E2E_PORT}`;
 
