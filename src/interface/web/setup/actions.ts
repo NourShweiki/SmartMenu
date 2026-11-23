@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { isUuid } from "@/domain/shared/uuid";
 import { platform, signOutStaff } from "@/infrastructure/container";
-import { getCurrentSite, restaurantOrigin } from "@/interface/web/current-site";
+import { isPlatformAddress, restaurantOrigin } from "@/interface/web/current-site";
 import { DEFAULT_LOCALE, isLocale } from "@/interface/web/i18n/locales";
 import type { SignInState } from "@/interface/web/staff/actions";
 import { newRestaurantProblem, readNewRestaurantForm, toCreateRequest, type NewRestaurantState } from "./new-restaurant-model";
@@ -21,8 +21,7 @@ export async function signInFounderAction(locale: string, _prev: SignInState, fo
   if (typeof email !== "string" || typeof password !== "string") return { error: "INVALID_CREDENTIALS" };
   if (email.length > MAX_EMAIL || password.length > MAX_PASSWORD) return { error: "INVALID_CREDENTIALS" };
 
-  const site = await getCurrentSite();
-  if (site.kind !== "platform") return { error: "INVALID_CREDENTIALS" };
+  if (!(await isPlatformAddress())) return { error: "INVALID_CREDENTIALS" };
 
   const result = await platform.signIn({ email, password });
   if (!result.ok) return { error: "INVALID_CREDENTIALS" };

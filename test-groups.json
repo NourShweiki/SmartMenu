@@ -15,7 +15,8 @@
         "src/infrastructure/supabase/supabase-restaurant-repository.test.ts",
         "src/infrastructure/supabase/platform.integration.test.ts",
         "src/interface/web/setup/require-founder.test.ts",
-        "src/interface/web/current-site.test.ts"
+        "src/interface/web/current-site.test.ts",
+        "src/interface/web/preview-link-model.test.ts"
       ],
       "database": [
         "tenant_isolation",

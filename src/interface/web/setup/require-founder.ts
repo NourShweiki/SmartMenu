@@ -1,7 +1,7 @@
 import { notFound, redirect } from "next/navigation";
 import type { Founder } from "@/application/use-cases/platform/founder-access";
 import { platform } from "@/infrastructure/container";
-import { getCurrentSite } from "@/interface/web/current-site";
+import { isPlatformAddress } from "@/interface/web/current-site";
 import type { Locale } from "@/interface/web/i18n/locales";
 
 /**
@@ -9,8 +9,8 @@ import type { Locale } from "@/interface/web/i18n/locales";
  * a restaurant's address it does not exist (404). Not signed in, or signed in but not a founder -> the setup login.
  */
 export async function requireFounder(locale: Locale): Promise<Founder> {
-  const site = await getCurrentSite();
-  if (site.kind !== "platform") notFound();
+  // From the host only: a preview cookie never turns the platform's address into a restaurant (or back) here.
+  if (!(await isPlatformAddress())) notFound();
   const founder = await platform.founder();
   if (!founder.ok) redirect(`/${locale}/setup/login`);
   return founder.value;
