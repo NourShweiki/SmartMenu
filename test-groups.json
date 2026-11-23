@@ -6,6 +6,7 @@
       "name": "Platform & data security",
       "unit": [
         "src/domain/restaurant/host.test.ts",
+        "src/domain/restaurant/site.test.ts",
         "src/domain/restaurant/restaurant.test.ts",
         "src/domain/restaurant/setup-checklist.test.ts",
         "src/application/use-cases/platform/**/*.test.ts",
