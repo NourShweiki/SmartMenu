@@ -2,15 +2,14 @@ import { notFound, redirect } from "next/navigation";
 import { getTranslations } from "next-intl/server";
 import { platform } from "@/infrastructure/container";
 import { LanguageSwitch } from "@/interface/web/components/language-switch";
-import { getCurrentSite } from "@/interface/web/current-site";
+import { isPlatformAddress } from "@/interface/web/current-site";
 import { initLocale } from "@/interface/web/i18n/init-locale";
 import { signInFounderAction } from "@/interface/web/setup/actions";
 import { LoginForm } from "@/interface/web/staff/login-form";
 
 export default async function SetupLoginPage({ params }: { params: Promise<{ locale: string }> }) {
   const locale = await initLocale(params);
-  const site = await getCurrentSite();
-  if (site.kind !== "platform") notFound(); // the setup tool is not part of any restaurant's site
+  if (!(await isPlatformAddress())) notFound(); // the setup tool is not part of any restaurant's site
 
   if ((await platform.founder()).ok) redirect(`/${locale}/setup`);
 

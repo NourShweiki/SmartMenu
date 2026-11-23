@@ -110,6 +110,14 @@ export function appRootDomain(): string {
   return process.env.APP_ROOT_DOMAIN || "localhost";
 }
 
+/**
+ * Preview links (`/r/<slug>/...`, PROJECT_SPEC.md §5): show one restaurant on the bare root address, for a deployment
+ * without restaurant subdomains (e.g. `xxx.vercel.app`). OFF unless RESTAURANT_PREVIEW_LINKS=1.
+ */
+export function previewLinksEnabled(): boolean {
+  return process.env.RESTAURANT_PREVIEW_LINKS === "1";
+}
+
 export function getPublicRestaurant(input: GetPublicRestaurantInput) {
   const restaurants = new SupabaseRestaurantRepository(createPublicClient());
   return makeGetPublicRestaurant({ restaurants })(input);

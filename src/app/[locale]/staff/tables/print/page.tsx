@@ -9,7 +9,7 @@ import { initLocale } from "@/interface/web/i18n/init-locale";
 import { requireStaff } from "@/interface/web/staff/require-staff";
 import { PrintButton } from "@/interface/web/tables/print-button";
 import { QrCode } from "@/interface/web/tables/qr";
-import { getRequestOrigin, tableScanUrl } from "@/interface/web/tables/scan-url";
+import { getScanOrigin, tableScanUrl } from "@/interface/web/tables/scan-url";
 
 // Printable QR cards: all active tables, or ONE table (?table=<id>). Text is in BOTH languages on every card,
 // whichever language the owner is using, because guests of either language sit at the same table.
@@ -31,7 +31,7 @@ export default async function PrintTablesPage({
     getTranslations("Tables"),
     getTranslations({ locale: "en", namespace: "TableCard" }),
     getTranslations({ locale: "ar", namespace: "TableCard" }),
-    getRequestOrigin(),
+    getScanOrigin(),
   ]);
 
   // Only tables whose QR code works (inactive ones would print a dead code), optionally just the chosen one.

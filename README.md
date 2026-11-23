@@ -11,12 +11,12 @@ One codebase serves every restaurant (multi-tenant). Each restaurant lives on it
 
 ## Status
 
-**Current phase: 6 — Onboarding tools, built; one piece (menu import by AI) waits for an AI key to be tried for real.** Dine-in and takeout both work end to end: a guest scans a table, orders, follows the order on their phone; staff run the orders and the tables; the owner manages menu, branding and settings; the SmartMenu team can create a new restaurant with its owner in a minute. Everything runs on a developer machine for now (no cloud deployment yet).
+**Current phase: 6 — Onboarding tools, built; one piece (menu import by AI) waits for an AI key to be tried for real.** Dine-in and takeout both work end to end: a guest scans a table, orders, follows the order on their phone; staff run the orders and the tables; the owner manages menu, branding and settings; the SmartMenu team can create a new restaurant with its owner in a minute. A **hosted test environment** runs on Vercel + Supabase since 2026-11-23 (https://smart-menu-eta-eosin.vercel.app); until a domain is added, its restaurants open through **preview links** (below).
 
 | Phase | What | Status |
 |---|---|---|
 | 0 | Planning, spec, coding rules | ✅ Done |
-| 1 | Foundation: Next.js skeleton, CI on every push | ✅ Done (cloud deploy postponed, running on localhost) |
+| 1 | Foundation: Next.js skeleton, CI on every push | ✅ Done · hosted test environment on Vercel + Supabase since 2026-11-23 |
 | 2 | Core backend: restaurants, roles, staff login, data isolation, settings | ✅ Done |
 | 3 | Menu & owner portal | ✅ Done |
 | 4 | Customer ordering (menu, cart, dine-in QR, takeout) | ✅ Dine-in done · takeout is designed and gets built inside Phase 6 |
@@ -102,7 +102,7 @@ One codebase serves every restaurant (multi-tenant). Each restaurant lives on it
 - **Home page with three choices (done):** the restaurant's home page now offers the smart assistant (opens the chat straight away), our menu, and services (shown where the restaurant has tables). The normal menu no longer carries the assistant; inside the assistant's chat, tappable suggested questions help guests get started.
 - **Guest services (in progress):** a guest at a table can call the waiter, ask for the table to be cleaned, or ask for the bill from a services page, and see that it is "on its way". The rules and the secure database part are done (guests can only use a narrow safe function; staff of one restaurant never see another's requests; the cashier never sees them). Not done yet: the waiter's screen where these requests appear and are marked done, and suggested questions in the assistant's chat.
 - **Security work (started 2026-10-28):** step 1 is done: the "Security - npm audit" check above, and Next.js moved to 15.5.28, which closes a critical hole in its image service and a high one in Server Actions (its bundled PostCSS is lifted to the patched 8.5 line as well). The test tools are updated too (Vitest 5, Vite 8), so `npm audit` finds nothing in any package. A ranked security review is written ([docs/SECURITY_REVIEW.md](docs/SECURITY_REVIEW.md)): 9 findings, the most serious being that sign-in has no attempt limit of its own and that the team's setup tool has a password only. Still to do: fixing them one at a time, and GitHub's own alerts and secret scanning (switched on in the repository settings).
-- **After that:** custom domains (moved to the next phase), the installable app with push notifications that reach a locked phone, SMS, reports, loyalty points, the AI ordering assistant, delivery, and cloud deployment (Vercel + Supabase).
+- **After that:** custom domains (moved to the next phase), the installable app with push notifications that reach a locked phone, SMS, reports, loyalty points, the AI ordering assistant, delivery, and a real domain for the hosted environment (restaurant subdomains instead of preview links).
 
 ### Known limits (on purpose, for now)
 
@@ -142,6 +142,23 @@ messages/            ar.json / en.json translations
 Dependencies point inward only (`app → interface → application → domain`), and the linter blocks the reverse.
 
 ---
+
+## Try it online (hosted test environment)
+
+https://smart-menu-eta-eosin.vercel.app runs the `main` branch (Vercel deploys every merge) on its own Supabase database (Demo Grill and Demo Coffee with menus; nothing is shared with a developer's machine). There is no domain yet, so restaurants have no subdomains there; they open through **preview links** (switched on with `RESTAURANT_PREVIEW_LINKS=1` on Vercel only):
+
+| What | Link |
+|---|---|
+| Demo Grill, customer home | https://smart-menu-eta-eosin.vercel.app/r/demo-dinein |
+| Demo Grill, menu (dine-in / takeout) | https://smart-menu-eta-eosin.vercel.app/r/demo-dinein/ar/menu |
+| Demo Grill, staff sign-in | https://smart-menu-eta-eosin.vercel.app/r/demo-dinein/en/staff/login |
+| Demo Coffee, customer home | https://smart-menu-eta-eosin.vercel.app/r/demo-takeout |
+| Demo Coffee, menu (takeout) | https://smart-menu-eta-eosin.vercel.app/r/demo-takeout/ar/menu |
+| Demo Coffee, staff sign-in | https://smart-menu-eta-eosin.vercel.app/r/demo-takeout/en/staff/login |
+| Team setup tool | https://smart-menu-eta-eosin.vercel.app/en/setup |
+| Leave a preview | https://smart-menu-eta-eosin.vercel.app/r |
+
+A preview shows a yellow banner. One browser previews one restaurant at a time (use a second browser or a private window for the other). Table QR codes printed there carry the preview link too. The hosted demo accounts have their **own** passwords (not the local one); the team keeps them privately.
 
 ## Run it locally
 

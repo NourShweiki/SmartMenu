@@ -15,7 +15,10 @@ vi.mock("next/navigation", () => ({
     throw new Error(`REDIRECT ${to}`);
   },
 }));
-vi.mock("@/interface/web/current-site", () => ({ getCurrentSite: async () => fake.site }));
+vi.mock("@/interface/web/current-site", () => ({
+  getCurrentSite: async () => fake.site,
+  isPlatformAddress: async () => fake.site.kind === "platform",
+}));
 vi.mock("@/infrastructure/container", () => ({ platform: { founder: fake.founder } }));
 
 const { requireFounder } = await import("./require-founder");

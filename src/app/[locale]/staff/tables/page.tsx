@@ -14,7 +14,7 @@ import {
   setTableActiveAction,
 } from "@/interface/web/staff/table-actions";
 import { AddTableForm, TableCardRow } from "@/interface/web/staff/tables-manager";
-import { getRequestOrigin, tableScanUrl } from "@/interface/web/tables/scan-url";
+import { getScanOrigin, tableScanUrl } from "@/interface/web/tables/scan-url";
 
 // Owner / manager: tables and their QR codes (permission `tables:manage`).
 export default async function TablesPage({ params }: { params: Promise<{ locale: string }> }) {
@@ -24,7 +24,7 @@ export default async function TablesPage({ params }: { params: Promise<{ locale:
 
   const list = await tables.list({ restaurantId: staff.restaurantId, role: staff.role });
   if (!list.ok) notFound();
-  const [t, origin] = await Promise.all([getTranslations("Tables"), getRequestOrigin()]);
+  const [t, origin] = await Promise.all([getTranslations("Tables"), getScanOrigin()]);
 
   return (
     <main className="min-h-screen bg-gray-50">

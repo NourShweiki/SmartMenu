@@ -781,5 +781,9 @@
         "forbidden": "You are not allowed to change the menu."
       }
     }
+  },
+  "Preview": {
+    "banner": "Preview: {name} (a test link, before the restaurant has its own address)",
+    "exit": "Exit preview"
   }
 }
