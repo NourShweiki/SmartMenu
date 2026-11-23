@@ -69,6 +69,8 @@ test("the setup tool stays on the platform's address while a restaurant is previ
   const response = await page.goto(`${P}/en/setup/login`);
   expect(response?.status()).toBe(200);
   await expect(page.getByLabel(t("en", "StaffLogin.email")).or(page.getByRole("textbox").first())).toBeVisible();
+  // No "Preview: Demo Grill" banner on the setup tool: it never belongs to a restaurant.
+  await expect(page.getByText(t("en", "Preview.exit"))).toHaveCount(0);
 });
 
 test("refused: unknown restaurant, paths outside the restaurant's pages, and previews where they are switched off", async ({ request }) => {
