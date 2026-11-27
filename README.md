@@ -13,6 +13,8 @@ One codebase serves every restaurant (multi-tenant). Each restaurant lives on it
 
 **Current phase: 6 — Onboarding tools, built; one piece (menu import by AI) waits for an AI key to be tried for real.** Dine-in and takeout both work end to end: a guest scans a table, orders, follows the order on their phone; staff run the orders and the tables; the owner manages menu, branding and settings; the SmartMenu team can create a new restaurant with its owner in a minute. A **hosted test environment** runs on Vercel + Supabase since 2026-11-23 (https://smart-menu-eta-eosin.vercel.app); until a domain is added, its restaurants open through **preview links** (below).
 
+**Current focus (since 2026-11-27): coffee shops.** A coffee shop has no tables and a simpler flow, so it is our first market. Version 1 for a coffee shop is the customer menu, a **kitchen screen** for the one person at the counter (cashier and barista at once) and one management account for the owner, with reports. Dine-in (table QR codes, open tables, guest services) keeps working but is paused: it gets no new features for now. The plan is under "Not done yet"; the decisions are in [`PROJECT_SPEC.md`](PROJECT_SPEC.md) §3.3.
+
 | Phase | What | Status |
 |---|---|---|
 | 0 | Planning, spec, coding rules | ✅ Done |
@@ -91,6 +93,16 @@ One codebase serves every restaurant (multi-tenant). Each restaurant lives on it
 
 ### ⬜ Not done yet
 
+- **Coffee shop version 1 (planned 2026-11-27, nothing built yet), in this order:**
+  1. **Kitchen screen:** a full-screen board for a touch screen or small PC with New / Making / Ready for pickup columns. Each order is a ticket with its items, options and notes, and a timer from the moment it was placed that turns amber after 3 minutes and red after 6. Three taps per order (Start, Ready, Picked up), with a few seconds to undo a wrong tap.
+  2. **A simpler staff side:** one shared counter account that opens straight on the kitchen screen, and only "Cashier" offered on the Staff screen at a shop without tables.
+  3. **AI chat off for now:** a per-restaurant setting, off by default, so customers open straight on the menu.
+  4. **Item notes:** the owner allows a short note ("less sugar") on chosen items; it shows on the ticket and never changes the price.
+  5. **A QR sign for the counter** that opens the menu.
+  6. **Speed:** the hosted test site is slow because its app and database run on different continents; moving both to Frankfurt is proposed, then a speed pass in the code.
+  
+  After that: reports for the owner.
+
 - **Phase 6: onboarding a new restaurant in under a day.** Built, except for the real-world trial of step 6:
   1. ~~the team's setup tool: create a restaurant with its first owner, change passwords, replace a temporary password at first sign-in, issue a new temporary password~~ ✅
   2. ~~staff accounts managed by the owner and the manager~~ ✅
@@ -98,7 +110,7 @@ One codebase serves every restaurant (multi-tenant). Each restaurant lives on it
   4. ~~a setup checklist for the owner~~ ✅
   5. ~~menu import from a spreadsheet~~ ✅
   6. menu import by AI from a photo or PDF: built; **needs an AI key and a decision on cost before it can be tried for real**
-- **AI ordering assistant (working, being tested):** on the customer menu an "Ask the assistant" card opens a chat. The customer types what they want, in Arabic or English, and the assistant answers questions about the menu and adds what was asked to the cart. It can never invent an item, a price or an option: every suggestion is checked against the real, live menu, a required choice (like the milk for a cappuccino) is asked for first, and the customer still reviews the cart and places the order themselves. It uses Google's Gemini (or Claude) through a key kept on the server. Tried by hand in Arabic on the demo coffee shop; automatic browser tests and billing for the AI key are still to do.
+- **AI ordering assistant (working, being tested):** on the customer menu an "Ask the assistant" card opens a chat. The customer types what they want, in Arabic or English, and the assistant answers questions about the menu and adds what was asked to the cart. It can never invent an item, a price or an option: every suggestion is checked against the real, live menu, a required choice (like the milk for a cappuccino) is asked for first, and the customer still reviews the cart and places the order themselves. It uses Google's Gemini (or Claude) through a key kept on the server. Tried by hand in Arabic on the demo coffee shop; automatic browser tests and billing for the AI key are still to do. Planned for coffee shops: switched off by default through a per-restaurant setting, until an owner turns it on.
 - **Home page with three choices (done):** the restaurant's home page now offers the smart assistant (opens the chat straight away), our menu, and services (shown where the restaurant has tables). The normal menu no longer carries the assistant; inside the assistant's chat, tappable suggested questions help guests get started.
 - **Guest services (in progress):** a guest at a table can call the waiter, ask for the table to be cleaned, or ask for the bill from a services page, and see that it is "on its way". The rules and the secure database part are done (guests can only use a narrow safe function; staff of one restaurant never see another's requests; the cashier never sees them). Not done yet: the waiter's screen where these requests appear and are marked done, and suggested questions in the assistant's chat.
 - **Security work (started 2026-10-28):** step 1 is done: the "Security - npm audit" check above, and Next.js moved to 15.5.28, which closes a critical hole in its image service and a high one in Server Actions (its bundled PostCSS is lifted to the patched 8.5 line as well). The test tools are updated too (Vitest 5, Vite 8), so `npm audit` finds nothing in any package. A ranked security review is written ([docs/SECURITY_REVIEW.md](docs/SECURITY_REVIEW.md)): 9 findings, the most serious being that sign-in has no attempt limit of its own and that the team's setup tool has a password only. Still to do: fixing them one at a time, and GitHub's own alerts and secret scanning (switched on in the repository settings).
@@ -109,12 +121,14 @@ One codebase serves every restaurant (multi-tenant). Each restaurant lives on it
 - The "order is ready" system notification only works while the menu page is still open in the browser. Reaching the phone with the page closed (web push, free) is being built: [docs/WEB_PUSH_PLAN.md](docs/WEB_PUSH_PLAN.md), steps 1 and 2 of 7 done (the check that only real browser push services are accepted, and the secure database table that keeps each phone's address for the length of its visit).
 - The team's setup tool is protected by a password only (a second factor comes with the hardening phase).
 - An email address can belong to one account, so one person cannot yet own two restaurants under the same email.
+- The takeout limit "three new orders in ten minutes per device" recognises a device by its network address, so customers on a shop's Wi-Fi count as one device. Parked until before a pilot.
 
 ### Open decisions (each blocks one feature only)
 
 - May staff remove **single items** from a placed order, or only cancel the whole order?
 - How **delivery** maps onto the table-visit model (addresses, fees, drivers).
 - **Loyalty** earn / redeem rules.
+- **Reports** for the owner: which numbers (sales, best sellers, busiest hours, average time to make an order, ...).
 - Is **tax charged on top of the service charge**? (yes for now; one function to change)
 
 ---
