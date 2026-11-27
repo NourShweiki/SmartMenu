@@ -12,7 +12,7 @@ import {
 import { err, ok, type Result } from "@/domain/shared/result";
 import { can } from "@/domain/restaurant/role";
 import type { StaffActor } from "../permissions";
-import type { OrderUseCaseError } from "./shared";
+import { orderVisitKind, type OrderUseCaseError } from "./shared";
 
 export type MoveOrderStatusResult = {
   order: Order;
@@ -38,9 +38,7 @@ export function makeMoveOrderStatus(deps: { orders: OrderRepository; sessions: P
     const order = await deps.orders.findById(actor.restaurantId, input.orderId);
     if (!order) return err({ type: "ORDER_NOT_FOUND" });
 
-    // A visit that cannot be read counts as a table: the stricter rule.
-    const [visit] = await deps.sessions.findWithTables(actor.restaurantId, [order.sessionId]);
-    const kind = visit?.session.restaurantId === actor.restaurantId ? visit.session.kind : "TABLE";
+    const kind = await orderVisitKind(deps.sessions, actor.restaurantId, order.sessionId);
     if (!permissionsToMoveTo(input.to, kind).some((permission) => can(actor.role, permission))) return err({ type: "FORBIDDEN" });
 
     const moved = moveOrderTo(order, input.to, deps.clock.now());
