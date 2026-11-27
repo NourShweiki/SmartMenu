@@ -69,7 +69,9 @@
         "staff": "Add your staff",
         "testOrder": "Place a test order from the menu"
       }
-    }
+    },
+    "kitchenLink": "Kitchen screen",
+    "kitchenLinkHint": "Tickets with timers, for the counter"
   },
   "Settings": {
     "title": "Restaurant settings",
@@ -785,5 +787,31 @@
   "Preview": {
     "banner": "Preview: {name} (a test link, before the restaurant has its own address)",
     "exit": "Exit preview"
+  },
+  "StaffKitchen": {
+    "title": "Kitchen screen",
+    "back": "Staff dashboard",
+    "fullScreen": "Full screen",
+    "exitFullScreen": "Exit full screen",
+    "order": "Order {number}",
+    "number": "#{number}",
+    "table": "Table {label}",
+    "noTable": "Table unknown",
+    "total": "Total",
+    "columns": {
+      "new": "New",
+      "making": "Making",
+      "ready": "Ready for pickup"
+    },
+    "empty": {
+      "new": "No new orders",
+      "making": "Nothing being made",
+      "ready": "Nothing waiting for pickup"
+    },
+    "timer": {
+      "placedLabel": "Placed {time} ago",
+      "waiting": "Waiting",
+      "waitingLabel": "Waiting for pickup for {time}"
+    }
   }
 }

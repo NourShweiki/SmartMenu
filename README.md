@@ -93,7 +93,7 @@ One codebase serves every restaurant (multi-tenant). Each restaurant lives on it
 
 ### ⬜ Not done yet
 
-- **Coffee shop version 1 (planned 2026-11-27; being built on the branch `feature/coffee-shop-v1`: the kitchen screen's rules and what each tap does are done, the screen itself is not), in this order:**
+- **Coffee shop version 1 (planned 2026-11-27; being built on the branch `feature/coffee-shop-v1`: the kitchen screen can be looked at (Staff dashboard → Kitchen screen: columns, tickets, live timers); its buttons are next), in this order:**
   1. **Kitchen screen:** a full-screen board for a touch screen or small PC with New / Making / Ready for pickup columns. Each order is a ticket with its items, options and notes, and a timer from the moment it was placed that turns amber after 3 minutes and red after 6. Three taps per order (Start, Ready, Picked up), with a few seconds to undo a wrong tap.
   2. **A simpler staff side:** one shared counter account that opens straight on the kitchen screen, and only "Cashier" offered on the Staff screen at a shop without tables.
   3. **AI chat off for now:** a per-restaurant setting, off by default, so customers open straight on the menu.
