@@ -39,6 +39,8 @@ Three co-founders are building restaurant software for the Jordanian market, ben
 
 Everything is **API-first** and **multi-tenant from day one**, so the Smart Menu, later modules, and the eventual Super POS all plug into the same backend without a rebuild.
 
+**Current focus (decided by Nour, 2026-11-27): coffee shops first.** A coffee shop has no tables and a simpler flow, so it is the first market. What that means for the product is in Section 3.3. Dine-in is paused, not dropped.
+
 ---
 
 ## 3. Product Scope — Phase 1: Smart Menu Platform
@@ -56,11 +58,42 @@ One shared platform serves **all restaurant clients** from a single codebase. Ea
 - **Owner portal** — owner edits menu, prices, photos, hides items, marks sold out, toggles features, edits branding — no code changes needed.
 - **Internal setup portal** — the founders' own tool to onboard a new client fast (Section 7).
 
+### 3.3 Current focus: coffee shops (decided by Nour, 2026-11-27)
+- **The target is coffee shops:** takeout only, no tables. Demo Coffee (`demo-takeout`) is the reference restaurant.
+- **Dine-in is paused, not removed.** Demo Grill and everything built for tables (table QR codes, open tables, guest services) keep working, and their tests stay green, but they get no new features until Nour picks dine-in up again. No code is removed.
+- **Version 1 for a coffee shop has three pieces:**
+  1. **For the customer, the menu:** menu, cart, name and mobile number, order number, the "ready" notice (all built). New: **item notes** and a **QR sign for the counter** that opens the menu. The **AI ordering chat is OFF for now**: a per-restaurant setting, off by default, so the customer opens straight on the menu. Its code stays, and the owner can switch it on later.
+  2. **For the staff, the kitchen screen** (below), run by ONE person who is cashier and barista at once.
+  3. **ONE management account, the owner:** customizes the menu, branding and settings, sees the orders, and gets **reports** (still to be designed; Section 12). At a restaurant without tables the Staff screen offers only **Cashier** (no Manager or Waiter): that is the counter staff. The roles themselves stay as in Section 5.
+- **The counter account (decided 2026-11-27):** the kitchen screen is signed in with ONE shared account (role Cashier) that the owner creates on the Staff screen and that stays signed in on the device, so the staff never sign in and out during the day. Known tradeoff: a cancellation records "the counter", not which person did it. Personal quick PINs can come later if shops ask.
+- **Walk-in customers (decided 2026-11-27):** a customer at the counter either orders through our menu (the counter QR sign; it is a takeout order with name and mobile number) and the order reaches the kitchen screen, or orders at the shop's own till, OUTSIDE our system (that order is not on the kitchen screen). A later version, the Super POS, brings till orders into the same queue.
+
+#### Kitchen screen (decided by Nour, 2026-11-27)
+- **A full-screen board for the counter,** on a touch screen or a small PC with a mouse, whatever the shop has. Everything works with a finger AND with a mouse: big buttons, no action that needs a swipe, a long press or a hover. Readable from a step back; fits a tablet and a desktop monitor.
+- **Three columns:** New, Making, Ready for pickup; oldest first; right to left in Arabic.
+- **One ticket per order:** the order number, the customer's name (the table's label for a table order), the timer, each line with its quantity, its options highlighted (size, milk, extra shot) and its note highlighted, and the total. Once the order is ready the total is shown large, because the customer pays at the till on pickup.
+- **The timer** counts from the moment the order was placed. Colours are FIXED for now (not a setting): green under 3 minutes, amber from 3 to 6, red from 6. Once the order is ready, the ticket shows how long it has waited for pickup instead.
+- **Three taps per order:**
+  - **Start:** NEW to CONFIRMED to PREPARING.
+  - **Ready:** to READY; the customer gets the "ready" notice.
+  - **Picked up:** READY to SERVED to COMPLETED; the customer has paid at the till.
+  The statuses and the status flow of Section 4 do NOT change: one tap takes several steps, each one recorded and checked by the database, and a tap only takes the steps the person's role may take.
+- **Undo:** an order never goes back a step, so the screen waits 5 seconds with an "Undo" button before it sends a tap.
+- **Cancel** from the ticket, with a reason, under today's rules (the cashier may cancel a takeout order).
+- It keeps the existing new-order sound, keeps the screen awake, and refreshes every 5 seconds like the Orders screen.
+- **The existing Orders list stays** (for phones). The kitchen screen shows the same orders under the same rules. It is a screen, NOT a new role, and it has no restaurant-specific code.
+
+#### Item notes (decided by Nour, 2026-11-27)
+- Whoever manages the menu (owner, manager) switches **"allow a note"** on for an item. It is off by default.
+- On such an item the customer gets a short note box in the cart, up to 100 characters (our number). The note is saved with the order line, like the price, and shown exactly as typed (not translated) on the kitchen screen and the Orders list.
+- **A note never changes the price.** Paid extras stay options; a note is only a request.
+- The AI assistant does not add notes in this version.
+
 ---
 
 ## 4. Dine-in Design — "Table Session" Model
 
-This is the most fully designed flow. Build this first.
+This is the most fully designed flow. Build this first. *(Built. Paused since 2026-11-27: it keeps working but gets no new features while the focus is coffee shops, Section 3.3.)*
 
 ### Core concept
 A **Table Session** is the central entity. Every order, service request, payment, feedback item, and notification for one visit belongs to one Table Session — not to an individual order. Fields: Session ID, Table ID, Status, Start/End, Duration. **Multiple customer devices can share one session** (several people at the same table).
@@ -94,7 +127,7 @@ On **READY**, push a notification to the customer's session device(s).
 ### Staff roles
 - **Waiter (tablet):** confirms orders as they arrive, handles service requests (waiter call, cleaning), tells the cashier when a table is ready to pay. **Does not** hand this off automatically — it's a manual "ready to pay" signal to the cashier.
 - **Cashier:** billing and closing only — confirm payment, generate receipt, close the session. **Does not see service requests** — that's the waiter's screen only. **Decided (Nour, 2026-10-10):** the cashier takes an order from SERVED to COMPLETED after the customer has paid, and may do nothing else to an order; the waiter moves orders up to SERVED but cannot complete them. Owner and manager can do every step. Enforced by the database, not only the screens.
-- **No kitchen role or kitchen screen (decided by Nour, 2026-10-11):** the waiter moves an order through every step up to SERVED, as built. The roles stay Owner, Manager, Waiter, Cashier.
+- **No kitchen role (decided by Nour, 2026-10-11):** the waiter moves an order through every step up to SERVED, as built. The roles stay Owner, Manager, Waiter, Cashier. **Changed 2026-11-27 (Nour): there IS now a kitchen screen** (Section 3.3): a view for whoever may move orders, still not a new role.
 - **Owner/Manager:** full dashboard — sales, menu/category/modifier management, table & staff management (incl. QR generation, roles/permissions), order & payment history, reports & analytics.
 
 ### Session lifecycle (full loop)
@@ -116,6 +149,7 @@ Categorizes complaints vs. suggestions, groups recurring issues, assigns priorit
   - The customer's own phone learns the name the order is under, never the phone number back. Staff of the restaurant see both.
   - **The cashier may cancel a takeout order** (Nour, 2026-10-12: "use what's best for uncollected orders"), at any step before it is completed, with a reason ("not collected" is on the list). At a table the cashier still never cancels.
   - **Limits against fake orders** (Nour, 2026-10-12: "how can we fix order abuse, fix it"; the numbers are ours): one phone number may have 2 takeout orders in progress at a restaurant; one device (known by a salted hash of its network address, never the address) may start 3 in 10 minutes; and a restaurant accepts no new takeout order while 20 are still waiting to be confirmed. Adding to an order that is in progress is not limited. The customer is told to wait, or to order at the counter. Not built: proving the phone number with a code by SMS.
+    **Known problem, parked by Nour (2026-11-27: "leave it for later, we are working on the core logic"):** the device limit counts by network address, so customers on the shop's Wi-Fi (or behind a mobile network's shared address) count as ONE device, and the 4th order from the shop's Wi-Fi within 10 minutes is refused. That matters once customers order by the counter QR sign. Look at it again before a pilot, and change no takeout limit without asking.
   - The name is 1 to 60 characters; the number must be a Jordanian mobile (077 / 078 / 079), written any usual way.
   - A table visit that has ended (closed, or past its 2 hours) is no table any more: where the restaurant takes takeout orders, that phone is offered takeout, with a hint to scan the table's code to order to the table. A table whose bill is being prepared is not offered takeout.
   - The name and number are remembered on the customer's device (per restaurant), not in an account.
@@ -245,6 +279,7 @@ Domain rules get built and agreed on first because they're the hardest to change
   - *For now (2026-10-11) the staff screens refresh themselves every 5 seconds instead of using real-time push: simpler to run and secure, and an order shows within about 5 seconds. Switching to Supabase Realtime later changes one small component.*
 - **Claude Code** — primary dev tool
 - **Hosting** — DECIDED (2026-10-03): **Vercel + Supabase** for now. Vercel builds every push (preview URL per branch/PR, `main` = test environment). Supabase is standard Postgres, so moving to AWS later stays possible.
+  - **The app and its database must run in the same region, close to Jordan.** Measured on 2026-11-27: the test environment's app ran in Washington DC (Vercel `iad1`) and its database in Seoul (Supabase `ap-northeast-2`), so every database read crossed the Pacific. A page that reads the database took 0.85 to 2 s to its first byte, against 0.4 s for a page that does not. Proposed, waiting for Nour: a new Supabase project in Frankfurt plus Vercel function region `fra1` (a database cannot change region).
 
 ### Skills to set up before building starts (`.claude/skills/<name>/SKILL.md`)
 - `architecture-rules` — the layer rules from Section 8, so Claude Code enforces them on every file it writes
@@ -275,7 +310,9 @@ Each phase ends with something demoable.
 9. **Pilot** — one real restaurant, real orders, daily feedback and fixes.
 10. **Launch & iterate** — more clients → delivery mode → AI features → eventually the full Super POS.
 
-**Where the build stands (2026-10-11; details in `docs/PROGRESS.md`):** phases 0 to 3 are done. Phase 4 is done for dine-in; takeout is designed (Section 4) and built inside Phase 6. Phase 5 is done except the order-ready SMS, left out for now by decision (guests get the notice on their phone instead). Phase 6 is in progress: the founders' setup tool (create a restaurant, owner's temporary password, issue a new one) and staff passwords are built; staff accounts managed by the owner and manager (the Staff screen), takeout, the setup checklist and menu import from a spreadsheet are built; menu import by AI is built but waits for a key to be tried for real; custom domains moved to Phase 7. Everything runs locally; cloud deployment (Phase 1's "deploys") is postponed.
+**Where the build stands (2026-10-11; details in `docs/PROGRESS.md`):** phases 0 to 3 are done. Phase 4 is done for dine-in; takeout is designed (Section 4) and built inside Phase 6. Phase 5 is done except the order-ready SMS, left out for now by decision (guests get the notice on their phone instead). Phase 6 is in progress: the founders' setup tool (create a restaurant, owner's temporary password, issue a new one) and staff passwords are built; staff accounts managed by the owner and manager (the Staff screen), takeout, the setup checklist and menu import from a spreadsheet are built; menu import by AI is built but waits for a key to be tried for real; custom domains moved to Phase 7. Everything runs locally; cloud deployment (Phase 1's "deploys") is postponed. *(Later: a hosted test environment runs on Vercel + Supabase since 2026-11-23, and Phase 6 is built; see `docs/PROGRESS.md`.)*
+
+**Since 2026-11-27 (Nour): coffee shops first** (Section 3.3). Planned, in this order: the kitchen screen, a simpler staff side (the counter account lands on the kitchen screen; only Cashier offered at a shop without tables), the AI chat switched off by a per-restaurant setting, item notes, a QR sign for the counter, and then the owner's reports (designed first). Dine-in is paused. The work happens on one branch (`feature/coffee-shop-v1`), merged when Nour agrees.
 
 ---
 
@@ -297,6 +334,9 @@ Each phase ends with something demoable.
 - ~~Menu UI editing: exact list of editable elements~~ — DECIDED 2026-10-10 (see Section 5)
 - ~~Order cancellation rules~~: decided 2026-10-11 (see Section 4: staff only, waiter before the kitchen starts, owner/manager until completed, kept and shown at zero on the bill). Built in Phase 5.
 - Is tax charged on top of the service charge? (assumed yes; kept as is by Nour, 2026-10-10)
+- **Reports for the owner (blocks the reports work):** which numbers? Candidates: sales today and this week, number of orders, average order value, best sellers, busiest hours, a weekly report (Section 6), the average time from placed to ready (from the kitchen screen's timers), and cancelled or uncollected orders.
+- **Super POS (a later version):** orders taken at the shop's own till join the same queue and the kitchen screen. It brings payments, a cash drawer and receipt printer, selling while the internet is down, and Jordan's national e-invoicing system (JoFotara; check the rules when we get there).
+- The takeout device limit and shop Wi-Fi (Section 4, takeout limits): parked until before a pilot.
 - Pricing model (intentionally deferred — doesn't block building)
 - Who owns finding/talking to the first pilot restaurant (doesn't block building)
 
