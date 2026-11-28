@@ -3,7 +3,8 @@ import { ALL_SITES, LOCALES, signIn, SITES, t, type Locale } from "./support/dem
 
 // The owner's setup checklist on the staff dashboard: what the restaurant still needs before its first order. It is
 // worked out from what the restaurant has, so these tests only read it. The demo restaurants (supabase/seed.sql)
-// have a menu and no branding or orders; Demo Grill also has tables and staff, Demo Coffee (takeout only) neither.
+// have a menu and no branding or orders; Demo Grill also has tables and staff; Demo Coffee (takeout only) has no tables
+// but its counter account (a Cashier, since 2026-11-28).
 
 const card = (page: Page, locale: Locale) => page.getByRole("region", { name: t(locale, "StaffHome.setup.title") });
 const line = (page: Page, locale: Locale, id: string) => card(page, locale).getByRole("listitem").filter({ hasText: t(locale, `StaffHome.setup.items.${id}`) });
@@ -22,8 +23,8 @@ for (const site of ALL_SITES) {
       if (site.tables.dineIn) await expect(line(page, locale, "tables")).toContainText(t(locale, "StaffHome.setup.done"));
       else await expect(line(page, locale, "tables")).toHaveCount(0);
 
-      // Staff: done where there is a waiter; otherwise open, but only "optional".
-      await expect(line(page, locale, "staff")).toContainText(t(locale, site.waiter ? "StaffHome.setup.done" : "StaffHome.setup.optional"));
+      // Staff: done where anybody besides the owner works (both demo restaurants have staff).
+      await expect(line(page, locale, "staff")).toContainText(t(locale, site.waiter || site.cashier ? "StaffHome.setup.done" : "StaffHome.setup.optional"));
 
       // Still to do, with its way there: branding. (Nothing in the tests ever sets a logo or details.)
       await expect(line(page, locale, "branding")).toContainText(t(locale, "StaffHome.setup.todo"));

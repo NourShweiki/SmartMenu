@@ -26,6 +26,8 @@ from (values
   ('aaaa0001-0000-4000-8000-000000000002'::uuid, 'waiter@demo-dinein.test'),
   ('aaaa0001-0000-4000-8000-000000000003'::uuid, 'cashier@demo-dinein.test'),
   ('bbbb0001-0000-4000-8000-000000000001'::uuid, 'owner@demo-takeout.test'),
+  -- The coffee shop's shared counter account (spec §3.3): a Cashier, who lands on the kitchen screen.
+  ('bbbb0001-0000-4000-8000-000000000002'::uuid, 'counter@demo-takeout.test'),
   -- A founder: not staff of any restaurant, may use the setup tool (platform_admins below).
   ('cccc0001-0000-4000-8000-000000000001'::uuid, 'founder@demo-platform.test')
 ) as u(id, email);
@@ -41,7 +43,8 @@ insert into public.restaurant_members (restaurant_id, user_id, role) values
   ('11111111-1111-4000-8000-000000000001', 'aaaa0001-0000-4000-8000-000000000001', 'OWNER'),
   ('11111111-1111-4000-8000-000000000001', 'aaaa0001-0000-4000-8000-000000000002', 'WAITER'),
   ('11111111-1111-4000-8000-000000000001', 'aaaa0001-0000-4000-8000-000000000003', 'CASHIER'),
-  ('22222222-2222-4000-8000-000000000002', 'bbbb0001-0000-4000-8000-000000000001', 'OWNER');
+  ('22222222-2222-4000-8000-000000000002', 'bbbb0001-0000-4000-8000-000000000001', 'OWNER'),
+  ('22222222-2222-4000-8000-000000000002', 'bbbb0001-0000-4000-8000-000000000002', 'CASHIER');
 
 -- Founders are added by hand in the database, never from a screen (see the platform_admins migration).
 insert into public.platform_admins (user_id) values ('cccc0001-0000-4000-8000-000000000001');

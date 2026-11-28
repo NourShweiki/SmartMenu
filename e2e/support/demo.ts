@@ -52,7 +52,8 @@ export const SITES = {
     name: { en: "Demo Coffee", ar: "قهوة التجربة" },
     owner: "owner@demo-takeout.test",
     waiter: null,
-    cashier: null,
+    /** The shared counter account (spec §3.3): signs in straight onto the kitchen screen, not the dashboard. */
+    cashier: "counter@demo-takeout.test",
     toggleItem: "Cappuccino",
     /** Takeout only: dine-in is switched off, so its QR code is not active even though the table exists. */
     tables: { labels: ["A"], token: "coffee-table-a-demo-token-0001", dineIn: false },

@@ -197,7 +197,7 @@ Then open:
 
 Careful: on the setup tool and on the **Staff** screen, **New temporary password**, **Remove** and **Save role** really change that account, also for the demo accounts. Try them on a member or restaurant you added yourself (`npx supabase db reset` brings the demo accounts back).
 
-Demo accounts (local only): `owner@demo-dinein.test`, `waiter@demo-dinein.test`, `cashier@demo-dinein.test`, `owner@demo-takeout.test`, and the founder `founder@demo-platform.test` for the setup tool. The password is in [`supabase/seed.sql`](supabase/seed.sql).
+Demo accounts (local only): `owner@demo-dinein.test`, `waiter@demo-dinein.test`, `cashier@demo-dinein.test`, `owner@demo-takeout.test`, `counter@demo-takeout.test` (Demo Coffee's counter: opens on the kitchen screen), and the founder `founder@demo-platform.test` for the setup tool. The password is in [`supabase/seed.sql`](supabase/seed.sql).
 
 ### Tests
 
