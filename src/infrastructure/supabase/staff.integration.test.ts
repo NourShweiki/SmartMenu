@@ -55,7 +55,7 @@ async function teamFor(email: string, password: string, role: Role) {
     policy: new SupabaseStaffAccountPolicy(service),
     passwords: { newPassword: newTemporaryPassword },
   };
-  const actor: TeamActor = { restaurantId, role, userId: signedIn.data.user.id as UserId };
+  const actor: TeamActor = { restaurantId, role, userId: signedIn.data.user.id as UserId, dineInEnabled: true }; // a dine-in test restaurant
   return { deps, actor, db };
 }
 

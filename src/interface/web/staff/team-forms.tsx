@@ -2,7 +2,7 @@
 
 import { useTranslations } from "next-intl";
 import { useActionState } from "react";
-import { ASSIGNABLE_ROLES, type AssignableRole } from "@/domain/restaurant/role";
+import type { AssignableRole } from "@/domain/restaurant/role";
 import { ConfirmSubmit } from "@/interface/web/components/confirm-submit";
 import type { AddMemberState, MemberActionState } from "./team-model";
 
@@ -27,8 +27,11 @@ function TemporaryPassword({ title, password, note }: { title: string; password:
   );
 }
 
-/** "Add a member": email and role. The answer shows the new member's temporary password once. */
-export function AddMemberForm({ action }: { action: AddAction }) {
+/**
+ * "Add a member": email and role. The answer shows the new member's temporary password once. `offered` = the roles
+ * this restaurant gives (`offeredRoles`: a shop without tables only Cashier); the use case checks the same.
+ */
+export function AddMemberForm({ action, offered }: { action: AddAction; offered: readonly AssignableRole[] }) {
   const t = useTranslations("Team");
   const roles = useTranslations("Roles");
   const [state, formAction, pending] = useActionState(action, {});
@@ -84,8 +87,8 @@ export function AddMemberForm({ action }: { action: AddAction }) {
             <label htmlFor="member-role" className="text-sm font-semibold">
               {t("role")}
             </label>
-            <select id="member-role" name="role" defaultValue={state.values?.role ?? "WAITER"} className={`${inputClass} border-gray-300`}>
-              {ASSIGNABLE_ROLES.map((role) => (
+            <select id="member-role" name="role" defaultValue={state.values?.role ?? (offered.includes("WAITER") ? "WAITER" : offered[0])} className={`${inputClass} border-gray-300`}>
+              {offered.map((role) => (
                 <option key={role} value={role}>
                   {roles(role)}
                 </option>
@@ -110,12 +113,15 @@ export function AddMemberForm({ action }: { action: AddAction }) {
 export function MemberActions({
   email,
   role,
+  offered,
   changeRole,
   issuePassword,
   remove,
 }: {
   email: string;
   role: AssignableRole;
+  /** The roles this restaurant gives; the member's own role is listed too, so the select still shows it. */
+  offered: readonly AssignableRole[];
   changeRole: MemberAction;
   issuePassword: MemberAction;
   remove: MemberAction;
@@ -138,7 +144,7 @@ export function MemberActions({
               {t("roleOf", { email })}
             </label>
             <select id={selectId} name="role" defaultValue={role} className="rounded-lg border border-gray-300 bg-white px-2 py-1 text-sm">
-              {ASSIGNABLE_ROLES.map((option) => (
+              {(offered.includes(role) ? offered : [role, ...offered]).map((option) => (
                 <option key={option} value={option}>
                   {roles(option)}
                 </option>

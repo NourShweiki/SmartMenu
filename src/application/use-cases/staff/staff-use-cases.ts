@@ -2,14 +2,22 @@ import type { AccountDirectory } from "@/application/ports/account-directory";
 import type { UserId } from "@/application/ports/auth-gateway";
 import type { StaffAccountPolicy, StaffMember, StaffRepository } from "@/application/ports/staff-repository";
 import type { PasswordGenerator } from "@/application/ports/system";
-import { isAssignableRole, type AssignableRole } from "@/domain/restaurant/role";
+import { isAssignableRole, offeredRoles, type AssignableRole } from "@/domain/restaurant/role";
 import { normalizeEmail } from "@/domain/shared/email";
 import { err, ok, type Result } from "@/domain/shared/result";
 import { isUuid } from "@/domain/shared/uuid";
 import { requirePermission, type ForbiddenError, type StaffActor } from "../permissions";
 
-/** The signed-in owner or manager acting on the restaurant's staff. The person matters here: nobody acts on themselves. */
-export type TeamActor = StaffActor & { userId: UserId };
+/**
+ * The signed-in owner or manager acting on the restaurant's staff. The person matters here: nobody acts on themselves.
+ * `dineInEnabled` is the restaurant's own setting (read on the server, never from a form): it decides which roles may
+ * be given there (`offeredRoles`).
+ */
+export type TeamActor = StaffActor & { userId: UserId; dineInEnabled: boolean };
+
+/** A role this restaurant offers (a coffee shop without tables: only Cashier). */
+const offered = (actor: TeamActor, role: string): role is AssignableRole =>
+  isAssignableRole(role) && offeredRoles({ dineInEnabled: actor.dineInEnabled }).includes(role);
 
 export type StaffError =
   | ForbiddenError
@@ -52,7 +60,7 @@ export function makeListStaff(deps: { staff: StaffRepository }) {
 }
 
 /**
- * Adds a manager, waiter or cashier by email. They get a sign-in account with a temporary password, returned once.
+ * Adds a manager, waiter or cashier by email (only a role the restaurant offers: at a shop without tables, Cashier). They get a sign-in account with a temporary password, returned once.
  *
  * An email that already has an account is only taken on when that account belongs to no restaurant (somebody who
  * was removed and is hired again): it then gets a new temporary password. An account that works elsewhere is
@@ -67,7 +75,7 @@ export function makeAddStaffMember(deps: {
   return async (actor: TeamActor, input: { email: string; role: string }): Promise<Result<StaffPasswordNotice & { role: AssignableRole }, StaffError>> => {
     const may = allowed(actor);
     if (!may.ok) return may;
-    if (!isAssignableRole(input.role)) return err({ type: "INVALID_ROLE" });
+    if (!offered(actor, input.role)) return err({ type: "INVALID_ROLE" });
     const role = input.role;
     const email = normalizeEmail(input.email);
     if (!email) return err({ type: "INVALID_EMAIL" });
@@ -102,7 +110,7 @@ export function makeAddStaffMember(deps: {
   };
 }
 
-/** Makes a member a manager, waiter or cashier. Never oneself, never an owner. */
+/** Makes a member a manager, waiter or cashier (only a role the restaurant offers). Never oneself, never an owner. */
 export function makeChangeStaffRole(deps: { staff: StaffRepository }) {
   return async (actor: TeamActor, input: { userId: string; role: string }): Promise<Result<StaffMember, StaffError>> => {
     const may = allowed(actor);
@@ -111,6 +119,7 @@ export function makeChangeStaffRole(deps: { staff: StaffRepository }) {
     const member = await target(deps.staff, actor, input.userId);
     if (!member.ok) return member;
     if (member.value.role === input.role) return member;
+    if (!offered(actor, input.role)) return err({ type: "INVALID_ROLE" });
     // Not changed (the database refused, or they were removed meanwhile): never report a change that did not happen.
     return (await deps.staff.changeRole(actor.restaurantId, member.value.userId, input.role)) ? ok({ ...member.value, role: input.role }) : err({ type: "NOT_FOUND" });
   };

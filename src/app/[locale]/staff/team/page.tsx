@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getTranslations } from "next-intl/server";
-import { can, isAssignableRole } from "@/domain/restaurant/role";
+import { can, isAssignableRole, offeredRoles } from "@/domain/restaurant/role";
 import { localized } from "@/domain/shared/localized";
 import { team } from "@/infrastructure/container";
 import { formatDayTime } from "@/interface/web/format";
@@ -11,13 +11,15 @@ import { addMemberAction, changeMemberRoleAction, issueMemberPasswordAction, rem
 import { AddMemberForm, MemberActions } from "@/interface/web/staff/team-forms";
 
 // The restaurant's staff, for the owner and the manager (permission `staff:manage`): who works here and with which
-// role, adding a manager / waiter / cashier, and changing, re-passwording or removing a member.
+// role, adding a manager / waiter / cashier (only a cashier at a shop without tables, spec §3.3), and changing,
+// re-passwording or removing a member.
 export default async function TeamPage({ params }: { params: Promise<{ locale: string }> }) {
   const locale = await initLocale(params);
   const { restaurant, staff } = await requireStaff(locale);
   if (!can(staff.role, "staff:manage")) notFound();
 
-  const members = await team.list({ restaurantId: staff.restaurantId, role: staff.role, userId: staff.userId });
+  const offered = offeredRoles(restaurant.settings);
+  const members = await team.list({ restaurantId: staff.restaurantId, role: staff.role, userId: staff.userId, dineInEnabled: restaurant.settings.dineInEnabled });
   if (!members.ok) notFound();
   const t = await getTranslations("Team");
   const roles = await getTranslations("Roles");
@@ -37,7 +39,7 @@ export default async function TeamPage({ params }: { params: Promise<{ locale: s
           <h2 id="add-member" className="mb-4 text-lg font-semibold">
             {t("addTitle")}
           </h2>
-          <AddMemberForm action={addMemberAction.bind(null, locale)} />
+          <AddMemberForm action={addMemberAction.bind(null, locale)} offered={offered} />
         </section>
 
         <section aria-labelledby="members" className="rounded-2xl bg-white p-6 shadow-sm ring-1 ring-gray-200">
@@ -63,6 +65,7 @@ export default async function TeamPage({ params }: { params: Promise<{ locale: s
                     <MemberActions
                       email={member.email}
                       role={member.role}
+                      offered={offered}
                       changeRole={changeMemberRoleAction.bind(null, locale, member.userId)}
                       issuePassword={issueMemberPasswordAction.bind(null, locale, member.userId)}
                       remove={removeMemberAction.bind(null, locale, member.userId)}

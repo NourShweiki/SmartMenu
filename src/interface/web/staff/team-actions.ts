@@ -6,11 +6,11 @@ import { DEFAULT_LOCALE, isLocale } from "@/interface/web/i18n/locales";
 import { requireStaff } from "./require-staff";
 import { addMemberProblem, memberProblem, readAddMemberForm, readRole, type AddMemberState, type MemberActionState } from "./team-model";
 
-/** Who is acting: the restaurant from the host, the person and their role from the session. Never from the form. */
+/** Who is acting: the restaurant (and its settings) from the host, the person and their role from the session. Never from the form. */
 async function actorFor(locale: string) {
   const l = isLocale(locale) ? locale : DEFAULT_LOCALE;
-  const { staff } = await requireStaff(l);
-  return { l, actor: { restaurantId: staff.restaurantId, role: staff.role, userId: staff.userId } };
+  const { restaurant, staff } = await requireStaff(l);
+  return { l, actor: { restaurantId: staff.restaurantId, role: staff.role, userId: staff.userId, dineInEnabled: restaurant.settings.dineInEnabled } };
 }
 
 const next = (prev: { round?: number }) => (prev.round ?? 0) + 1;
