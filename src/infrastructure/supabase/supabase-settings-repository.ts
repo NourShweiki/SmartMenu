@@ -11,9 +11,11 @@ export type SettingsRow = {
   tax_rate_bp: number;
   service_charge_bp: number;
   default_language: string;
+  ordering_assistant_enabled: boolean;
 };
 
-const COLUMNS = "dine_in_enabled, takeout_enabled, delivery_enabled, tax_rate_bp, service_charge_bp, default_language";
+const COLUMNS =
+  "dine_in_enabled, takeout_enabled, delivery_enabled, tax_rate_bp, service_charge_bp, default_language, ordering_assistant_enabled";
 
 export function toSettings(row: SettingsRow): RestaurantSettings {
   return {
@@ -24,6 +26,7 @@ export function toSettings(row: SettingsRow): RestaurantSettings {
     serviceChargeBp: row.service_charge_bp,
     // The DB check constraint only allows 'ar' | 'en'.
     defaultLanguage: row.default_language === "en" ? "en" : "ar",
+    assistantEnabled: row.ordering_assistant_enabled === true,
   };
 }
 
@@ -35,6 +38,7 @@ export function toSettingsRow(settings: RestaurantSettings): SettingsRow {
     tax_rate_bp: settings.taxRateBp,
     service_charge_bp: settings.serviceChargeBp,
     default_language: settings.defaultLanguage,
+    ordering_assistant_enabled: settings.assistantEnabled,
   };
 }
 

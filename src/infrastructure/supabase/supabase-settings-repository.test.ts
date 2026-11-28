@@ -8,6 +8,7 @@ const row: SettingsRow = {
   tax_rate_bp: 1600,
   service_charge_bp: 1050,
   default_language: "en",
+  ordering_assistant_enabled: true,
 };
 
 describe("settings mapping", () => {
@@ -20,6 +21,7 @@ describe("settings mapping", () => {
       taxRateBp: 1600,
       serviceChargeBp: 1050,
       defaultLanguage: "en",
+      assistantEnabled: true,
     });
     expect(toSettingsRow(settings)).toEqual(row);
   });

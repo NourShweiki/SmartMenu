@@ -3,9 +3,11 @@ insert into public.restaurants (id, slug, name_en, name_ar) values
   ('11111111-1111-4000-8000-000000000001', 'demo-dinein',  'Demo Grill',  'مشاوي التجربة'),
   ('22222222-2222-4000-8000-000000000002', 'demo-takeout', 'Demo Coffee', 'قهوة التجربة');
 
-insert into public.restaurant_settings (restaurant_id, dine_in_enabled, takeout_enabled, service_charge_bp) values
-  ('11111111-1111-4000-8000-000000000001', true,  true, 1000),
-  ('22222222-2222-4000-8000-000000000002', false, true, 0);
+-- The AI ordering chat (ordering_assistant_enabled, off by default since 2026-11-27): ON at Demo Grill, so its
+-- assistant browser tests keep working while dine-in is paused; OFF at Demo Coffee, like every new coffee shop.
+insert into public.restaurant_settings (restaurant_id, dine_in_enabled, takeout_enabled, service_charge_bp, ordering_assistant_enabled) values
+  ('11111111-1111-4000-8000-000000000001', true,  true, 1000, true),
+  ('22222222-2222-4000-8000-000000000002', false, true, 0,    false);
 
 -- ─── Demo staff (email + password sign-in) ──────────────────────────────
 -- Local only. Every demo account uses the password: smartmenu-demo-2026
@@ -24,6 +26,8 @@ from (values
   ('aaaa0001-0000-4000-8000-000000000002'::uuid, 'waiter@demo-dinein.test'),
   ('aaaa0001-0000-4000-8000-000000000003'::uuid, 'cashier@demo-dinein.test'),
   ('bbbb0001-0000-4000-8000-000000000001'::uuid, 'owner@demo-takeout.test'),
+  -- The coffee shop's shared counter account (spec §3.3): a Cashier, who lands on the kitchen screen.
+  ('bbbb0001-0000-4000-8000-000000000002'::uuid, 'counter@demo-takeout.test'),
   -- A founder: not staff of any restaurant, may use the setup tool (platform_admins below).
   ('cccc0001-0000-4000-8000-000000000001'::uuid, 'founder@demo-platform.test')
 ) as u(id, email);
@@ -39,7 +43,8 @@ insert into public.restaurant_members (restaurant_id, user_id, role) values
   ('11111111-1111-4000-8000-000000000001', 'aaaa0001-0000-4000-8000-000000000001', 'OWNER'),
   ('11111111-1111-4000-8000-000000000001', 'aaaa0001-0000-4000-8000-000000000002', 'WAITER'),
   ('11111111-1111-4000-8000-000000000001', 'aaaa0001-0000-4000-8000-000000000003', 'CASHIER'),
-  ('22222222-2222-4000-8000-000000000002', 'bbbb0001-0000-4000-8000-000000000001', 'OWNER');
+  ('22222222-2222-4000-8000-000000000002', 'bbbb0001-0000-4000-8000-000000000001', 'OWNER'),
+  ('22222222-2222-4000-8000-000000000002', 'bbbb0001-0000-4000-8000-000000000002', 'CASHIER');
 
 -- Founders are added by hand in the database, never from a screen (see the platform_admins migration).
 insert into public.platform_admins (user_id) values ('cccc0001-0000-4000-8000-000000000001');
@@ -71,6 +76,10 @@ insert into public.menu_items (restaurant_id, category_id, name_en, name_ar, des
    '', '', 2250, 1, false),
   ('22222222-2222-4000-8000-000000000002', 'c2000000-0000-4000-8000-000000000002', 'Knafeh', 'كنافة',
    'Nabulsi cheese knafeh', 'كنافة بالجبنة النابلسية', 2500, 0, false);
+
+-- Item notes (2026-11-28): the Cappuccino takes a customer's note ("less sugar"), so the demo shows them.
+update public.menu_items set allows_note = true
+where restaurant_id = '22222222-2222-4000-8000-000000000002' and name_en = 'Cappuccino';
 
 -- ─── Demo option groups (reusable; prices are extra fils) ────────────────
 insert into public.option_groups (id, restaurant_id, name_en, name_ar, min_select, max_select, sort_order) values

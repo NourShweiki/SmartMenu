@@ -9,7 +9,8 @@ import { DEFAULT_LOCALE, isLocale } from "@/interface/web/i18n/locales";
 import { parsePriceInput } from "@/interface/web/price-input";
 import { requireStaff } from "./require-staff";
 
-export type ItemField = "categoryId" | "nameAr" | "nameEn" | "descriptionAr" | "descriptionEn" | "price";
+/** `allowsNote` is a checkbox: "on" when ticked, "" when not (spec §3.3, item notes). */
+export type ItemField = "categoryId" | "nameAr" | "nameEn" | "descriptionAr" | "descriptionEn" | "price" | "allowsNote";
 export type ItemFormValues = Record<ItemField, string>;
 /** Error keys map to messages in ItemForm.errors.* */
 export type ItemFormError = "required" | "tooLong" | "invalidPrice" | "categoryNotFound";
@@ -23,7 +24,7 @@ export type ItemFormState = {
 /** `new` items go to the end of their category; edits keep their position. */
 export type ItemFormMode = { kind: "new"; sortOrder: number } | { kind: "edit"; itemId: string; sortOrder: number };
 
-const FIELDS: ItemField[] = ["categoryId", "nameAr", "nameEn", "descriptionAr", "descriptionEn", "price"];
+const FIELDS: ItemField[] = ["categoryId", "nameAr", "nameEn", "descriptionAr", "descriptionEn", "price", "allowsNote"];
 
 function read(form: FormData): ItemFormValues {
   return Object.fromEntries(
@@ -76,6 +77,7 @@ export async function saveItemAction(
     description: { en: values.descriptionEn, ar: values.descriptionAr },
     priceFils,
     sortOrder: mode.sortOrder,
+    allowsNote: values.allowsNote === "on",
   };
   const result =
     mode.kind === "new"

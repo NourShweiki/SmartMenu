@@ -17,7 +17,8 @@ export type QueueOrder = {
   /** The state of the table's visit, when it is worth a badge: the bill was asked for, or the visit is over. */
   readonly visit: "paymentRequested" | "ended" | null;
   readonly placedAt: Date;
-  readonly lines: readonly { readonly quantity: number; readonly name: LocalizedText; readonly options: readonly LocalizedText[] }[];
+  /** Each line with its customer's note (as typed, never translated; null = none). */
+  readonly lines: readonly { readonly quantity: number; readonly name: LocalizedText; readonly options: readonly LocalizedText[]; readonly note: string | null }[];
   readonly totalFils: Fils;
   /** The step this person may take now (the button), or null. */
   readonly next: OrderStatus | null;
@@ -63,7 +64,7 @@ export function buildOrderQueue(entries: readonly StaffOrderEntry[], role: Role)
       pickup: table?.customer ?? null,
       visit: table?.sessionStatus === "CLOSED" ? "ended" : table?.sessionStatus === "PAYMENT_REQUESTED" ? "paymentRequested" : null,
       placedAt: order.createdAt,
-      lines: order.items.map((item) => ({ quantity: item.quantity, name: item.name, options: item.options.map((o) => o.name) })),
+      lines: order.items.map((item) => ({ quantity: item.quantity, name: item.name, options: item.options.map((o) => o.name), note: item.note })),
       totalFils: order.totalFils,
       next: mine ? step : null,
       waitingFor: step === null || mine ? null : step === "COMPLETED" ? "cashier" : "floor",

@@ -88,6 +88,18 @@ export function SettingsForm({ action, initial }: { action: SaveAction; initial:
         <p className="text-sm text-gray-500">{t("chargesNote")}</p>
       </fieldset>
 
+      <fieldset className="flex flex-col gap-3">
+        <legend className="mb-1 text-lg font-semibold">{t("customersTitle")}</legend>
+        {/* The AI ordering chat: off by default (spec §3.3); offered to customers only when on AND the server has an AI key. */}
+        <label className="flex items-start gap-3">
+          <input type="checkbox" name="assistantEnabled" defaultChecked={values.assistantEnabled} className="mt-1 size-4" />
+          <span>
+            <span className="block font-semibold">{t("assistant")}</span>
+            <span className="block text-sm text-gray-500">{t("assistantHint")}</span>
+          </span>
+        </label>
+      </fieldset>
+
       <fieldset className="flex flex-col gap-2">
         <legend className="mb-1 text-lg font-semibold">{t("languageTitle")}</legend>
         <label htmlFor="defaultLanguage" className="text-sm font-semibold">

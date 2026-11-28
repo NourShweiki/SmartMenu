@@ -23,10 +23,10 @@ const CASHIER = id(4);
 const FORMER = id(8); // has an account, belongs to no restaurant
 const ELSEWHERE = id(9); // works at another restaurant
 
-const owner: TeamActor = { restaurantId: GRILL, role: "OWNER", userId: OWNER };
-const manager: TeamActor = { restaurantId: GRILL, role: "MANAGER", userId: MANAGER };
-const waiter: TeamActor = { restaurantId: GRILL, role: "WAITER", userId: WAITER };
-const cashier: TeamActor = { restaurantId: GRILL, role: "CASHIER", userId: CASHIER };
+const owner: TeamActor = { restaurantId: GRILL, role: "OWNER", userId: OWNER, dineInEnabled: true };
+const manager: TeamActor = { restaurantId: GRILL, role: "MANAGER", userId: MANAGER, dineInEnabled: true };
+const waiter: TeamActor = { restaurantId: GRILL, role: "WAITER", userId: WAITER, dineInEnabled: true };
+const cashier: TeamActor = { restaurantId: GRILL, role: "CASHIER", userId: CASHIER, dineInEnabled: true };
 const joinedAt = new Date("2026-10-12T08:00:00Z");
 
 /** A restaurant with one of each role, the accounts that exist on the platform, and a record of what happened. */
@@ -224,5 +224,30 @@ describe("a new temporary password for a member", () => {
     const strict = { ...deps, policy: { ...deps.policy, isResettable: async () => false } };
     expect(await makeIssueStaffPassword(strict)(owner, { userId: WAITER })).toEqual({ ok: false, error: { type: "NOT_RESETTABLE" } });
     expect(log.passwords.size).toBe(0);
+  });
+});
+
+describe("a shop without tables (coffee shop, spec §3.3): Cashier is the only staff role", () => {
+  const coffeeOwner: TeamActor = { ...owner, dineInEnabled: false };
+
+  it("adds a cashier, and refuses a manager or a waiter (also from a hand-made form)", async () => {
+    const { deps, members, log } = world();
+    const added = await makeAddStaffMember(deps)(coffeeOwner, { email: "counter@coffee.test", role: "CASHIER" });
+    expect(added.ok && added.value.role).toBe("CASHIER");
+    for (const role of ["MANAGER", "WAITER"]) {
+      expect(await makeAddStaffMember(deps)(coffeeOwner, { email: `${role}@coffee.test`, role })).toEqual({ ok: false, error: { type: "INVALID_ROLE" } });
+    }
+    expect(log.made).toBe(1); // no account was made for the refused ones
+    expect([...members.values()].filter((m) => m.email.endsWith("@coffee.test")).map((m) => m.role)).toEqual(["CASHIER"]);
+  });
+
+  it("changes a role only to Cashier; a member who already has another role keeps it until then", async () => {
+    const { deps, members } = world();
+    const change = makeChangeStaffRole(deps);
+    expect(await change(coffeeOwner, { userId: WAITER, role: "MANAGER" })).toEqual({ ok: false, error: { type: "INVALID_ROLE" } });
+    expect(members.get(WAITER)?.role).toBe("WAITER");
+    expect((await change(coffeeOwner, { userId: WAITER, role: "WAITER" })).ok).toBe(true); // saving the same role is no change
+    const toCashier = await change(coffeeOwner, { userId: WAITER, role: "CASHIER" });
+    expect(toCashier.ok && toCashier.value.role).toBe("CASHIER");
   });
 });

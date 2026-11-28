@@ -41,6 +41,7 @@ export function toPublicMenu(restaurantId: RestaurantId, json: unknown): PublicM
             isHidden: false,
             isSoldOut: i.is_sold_out === true,
             imagePath: typeof i.image_path === "string" && i.image_path !== "" ? i.image_path : null,
+            allowsNote: i.allows_note === true,
             deletedAt: null,
           },
           groups: list(i.option_groups).flatMap((g) => {

@@ -52,7 +52,7 @@ export function CustomerMenu({ restaurantSlug, sections, rates, imageUrls, visit
   const locale = useLocale() as Locale;
   const tTable = useTranslations("Table");
   const router = useRouter();
-  const { cart, ready, add, setQuantity, remove, clear, replace } = useCart(restaurantSlug);
+  const { cart, ready, add, setQuantity, setNote, latest, remove, clear, replace } = useCart(restaurantSlug);
   const [picking, setPicking] = useState<CustomerMenuItem | null>(null);
   const [cartOpen, setCartOpen] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
@@ -103,10 +103,12 @@ export function CustomerMenu({ restaurantSlug, sections, rates, imageUrls, visit
    * once more, the server answers with the order it already has instead of making a second one.
    */
   const placeOrder = async (customer?: { name: string; phone: string }): Promise<PlaceOrderProblem | null> => {
-    const requestId = requestKeyFor(keyStore(), restaurantSlug, cart.lines, Date.now());
+    // The cart as it is NOW: a note typed just before pressing "Place order" is saved when its box loses focus.
+    const lines = latest().lines;
+    const requestId = requestKeyFor(keyStore(), restaurantSlug, lines, Date.now());
     let outcome: PlaceOrderOutcome;
     try {
-      outcome = await placeOrderAction({ lines: cart.lines, requestId, ...(customer && { customer }) });
+      outcome = await placeOrderAction({ lines, requestId, ...(customer && { customer }) });
     } catch {
       outcome = { ok: false, problem: "failed" }; // no connection, or the reply never arrived (the order may exist)
     }
@@ -250,6 +252,10 @@ export function CustomerMenu({ restaurantSlug, sections, rates, imageUrls, visit
           setPlacedOrderNumber(null);
         }}
         onSetQuantity={(key, quantity) => setQuantity(key, quantity)}
+        onSetNote={(key, note) => {
+          const result = setNote(key, note);
+          return result.ok ? null : result.error.type === "NOTE_TOO_LONG" ? "tooLong" : "notSaved";
+        }}
         onRemove={(key) => remove(key)}
       />
     </>

@@ -3,6 +3,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getTranslations } from "next-intl/server";
 import { accentHex } from "@/domain/restaurant/branding";
+import { offersOrderingAssistant } from "@/domain/restaurant/settings";
 import { localized } from "@/domain/shared/localized";
 import { isOrderingAssistantAvailable, logoUrl, tableSessions } from "@/infrastructure/container";
 import { LanguageSwitch } from "@/interface/web/components/language-switch";
@@ -34,13 +35,13 @@ export default async function HomePage({ params }: { params: Promise<{ locale: s
   const { tagline, about, address, hours, phone, phoneHref, hasDetails } = publicDetails(branding, locale);
 
   // What this phone can do here decides which options are offered (same rules as the menu page, see resolveVisit):
-  //  - the smart assistant: an AI key is configured and something can be ordered;
+  //  - the smart assistant: the owner switched it on (off by default), an AI key is configured, and something can be ordered;
   //  - the menu: always;
   //  - services (waiter, cleaning, bill): only where there are tables (dine-in on); a guest who has not scanned a table is told to.
   const sessionId = await readSessionId();
   const session = sessionId ? await tableSessions.find({ slug, sessionId }) : null;
   const { atTable, ordering } = resolveVisit(settings, session);
-  const showAssistant = ordering !== "none" && isOrderingAssistantAvailable();
+  const showAssistant = offersOrderingAssistant(settings, { aiKeyConfigured: isOrderingAssistantAvailable(), canOrder: ordering !== "none" });
   const showServices = settings.dineInEnabled;
   const accent = accentHex(branding.accent);
 

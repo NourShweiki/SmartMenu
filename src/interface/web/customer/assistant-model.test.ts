@@ -10,12 +10,12 @@ import { makeRateLimiter } from "./rate-limit";
 const restaurant = {
   id: "11111111-1111-4000-8000-000000000001" as RestaurantId,
   slug: "demo",
-  settings: { taxRateBp: 1600, serviceChargeBp: 1000 },
+  settings: { taxRateBp: 1600, serviceChargeBp: 1000, assistantEnabled: true },
 } as unknown as PublicRestaurant;
 
 const good: AskOrderingAssistantOutput = {
   message: "Done",
-  cart: { lines: [{ key: "k", menuItemId: "m" as never, optionIds: [], quantity: 2 }] },
+  cart: { lines: [{ key: "k", menuItemId: "m" as never, optionIds: [], quantity: 2, note: null }] },
   added: [{ menuItemId: "m", optionIds: [], quantity: 2 }],
   rejected: [{ proposed: { menuItemId: "x", optionIds: [], quantity: 1 }, reason: "UNKNOWN_ITEM" }],
 };
@@ -26,6 +26,18 @@ const setup = (answer: Result<AskOrderingAssistantOutput, { type: "NOT_CONFIGURE
   const deps = { ask, deviceLimit: makeRateLimiter({ max, windowMs: 1000 }), restaurantLimit: makeRateLimiter({ max: 100, windowMs: 1000 }) };
   return { ask, run: (h: unknown = history, cart: unknown = EMPTY_CART, clientHash: string | null = "dev") => askAssistant(deps, { restaurant, history: h, cart, clientHash }) };
 };
+
+describe("the owner's switch (spec §3.3: the chat is off by default)", () => {
+  it("a restaurant whose owner switched the chat off gets no answer, and nothing is asked, counted or paid for", async () => {
+    const ask = vi.fn();
+    const deviceLimit = makeRateLimiter({ max: 1, windowMs: 1000 });
+    const deps = { ask, deviceLimit, restaurantLimit: makeRateLimiter({ max: 1, windowMs: 1000 }) };
+    const off = { ...restaurant, settings: { ...restaurant.settings, assistantEnabled: false } } as PublicRestaurant;
+    expect(await askAssistant(deps, { restaurant: off, history, cart: EMPTY_CART, clientHash: "dev" })).toEqual({ ok: false, problem: "notAvailable" });
+    expect(ask).not.toHaveBeenCalled();
+    expect(deviceLimit.hit("dev")).toBe(true); // the refused request did not use up the device's allowance
+  });
+});
 
 describe("readHistory", () => {
   it("reads a well-formed chat and refuses anything else, whole", () => {

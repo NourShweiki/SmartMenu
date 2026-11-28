@@ -45,6 +45,7 @@ import { makeUpdateBranding } from "@/application/use-cases/branding/update-bran
 import type { BrandingActor } from "@/application/use-cases/branding/shared";
 import { makeCancelOrder } from "@/application/use-cases/orders/cancel-order";
 import { makeGetStaffOrderList } from "@/application/use-cases/orders/get-staff-order-list";
+import { makeKitchenTap } from "@/application/use-cases/orders/kitchen-tap";
 import { makeMoveOrderStatus } from "@/application/use-cases/orders/move-order-status";
 import { makeFindPlacedOrder, makePlaceOrder, makePlacePickupOrder } from "@/application/use-cases/orders/place-order";
 import type { StaffActor } from "@/application/use-cases/permissions";
@@ -328,6 +329,8 @@ export const orders = {
     makeFindPlacedOrder({ orders: customerOrderRepository().orders })(...args),
   moveStatus: async (...args: Parameters<ReturnType<typeof makeMoveOrderStatus>>) =>
     makeMoveOrderStatus(await staffOrderDeps())(...args),
+  /** One tap on the kitchen screen (Start / Ready / Picked up): several single steps, as the signed-in user. */
+  kitchenTap: async (...args: Parameters<ReturnType<typeof makeKitchenTap>>) => makeKitchenTap(await staffOrderDeps())(...args),
   /** A member of staff cancels an order, with a reason (see makeCancelOrder). Runs as that person: RLS and the status trigger decide again. */
   cancel: async (...args: Parameters<ReturnType<typeof makeCancelOrder>>) => makeCancelOrder(await staffOrderDeps())(...args),
   /** The staff order screen's data: the open queue, or one table session's orders, each with its table. */

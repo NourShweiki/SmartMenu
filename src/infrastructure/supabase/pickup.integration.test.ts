@@ -76,7 +76,10 @@ describe.skipIf(!process.env.SUPABASE_SERVICE_ROLE_KEY)("takeout (pickup orders)
     // ...a cashier and a waiter, added the way the Staff screen adds them...
     const ownerDb = createPublicClient();
     await ownerDb.auth.signInWithPassword({ email: mail("owner"), password: passwords.owner });
-    const actor: TeamActor = { restaurantId, role: "OWNER", userId: owner.value.userId };
+    // dineInEnabled: true although the shop is takeout only: since 2026-11-27 the Staff screen offers only Cashier at a
+    // shop without tables, but a waiter hired while it still had tables can exist (the database allows it), and this
+    // test checks what such a waiter may do on a pickup order.
+    const actor: TeamActor = { restaurantId, role: "OWNER", userId: owner.value.userId, dineInEnabled: true };
     const team = { staff: new SupabaseStaffRepository(ownerDb), accounts, policy: new SupabaseStaffAccountPolicy(service), passwords: { newPassword: newTemporaryPassword } };
     for (const [who, role] of [["cashier", "CASHIER"], ["waiter", "WAITER"]] as const) {
       const added = await makeAddStaffMember(team)(actor, { email: mail(who), role });

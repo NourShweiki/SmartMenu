@@ -87,6 +87,7 @@
         "src/interface/web/staff/order-queue-model.test.ts",
         "src/interface/web/staff/order-queue-pickup.test.ts",
         "src/interface/web/staff/new-orders.test.ts",
+        "src/interface/web/staff/kitchen-board-model.test.ts",
         "src/infrastructure/supabase/supabase-order-repository.test.ts",
         "src/infrastructure/customer-order.integration.test.ts",
         "src/infrastructure/supabase/orders.integration.test.ts",
@@ -100,7 +101,8 @@
         "takeout_limits",
         "takeout_pickup",
         "public_session_orders",
-        "push_subscriptions"
+        "push_subscriptions",
+        "item_notes"
       ]
     },
     {
@@ -137,7 +139,8 @@
       ],
       "database": [
         "branding",
-        "public_restaurant"
+        "public_restaurant",
+        "ordering_assistant_setting"
       ]
     },
     {

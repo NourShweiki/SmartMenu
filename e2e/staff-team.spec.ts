@@ -6,6 +6,8 @@ import { submitPasswordChange } from "./support/password";
 // changing a role, a new temporary password, removing, hiring again. Every test works on a member it adds itself
 // ("e2e-team-...@test.local") and NEVER presses a button on a seeded demo member. The member is removed at the end,
 // and e2e/support/global-cleanup.ts deletes the account (and with it any membership a failed test left behind).
+// Demo Coffee has no tables, so since 2026-11-27 its Staff screen offers only Cashier (PROJECT_SPEC.md §3.3): there the
+// member is a cashier throughout, and a cashier there starts on the kitchen screen after signing in.
 
 const PASSWORD_SHAPE = /^[a-hjkmnp-z2-9]{4}-[a-hjkmnp-z2-9]{4}-[a-hjkmnp-z2-9]{4}$/;
 
@@ -38,6 +40,10 @@ for (const site of ALL_SITES) {
       const run = Math.random().toString(36).slice(2, 8);
       const email = `e2e-team-${run}-${site.key}-${locale}@test.local`;
       const own = `my own password ${run}`;
+      // The roles this restaurant offers: Grill (tables) all three; Coffee (no tables) only Cashier.
+      const roles = site.tables.dineIn
+        ? ({ first: "WAITER", changed: "CASHIER", rehired: "MANAGER" } as const)
+        : ({ first: "CASHIER", changed: null, rehired: "CASHIER" } as const);
 
       await signIn(page, site, site.owner, locale);
       await page.getByRole("link", { name: new RegExp(`^${t(locale, "StaffHome.teamLink")}`) }).click();
@@ -53,26 +59,26 @@ for (const site of ALL_SITES) {
       const before = await members(page).getByRole("listitem").count();
 
       // Refusals: somebody who already works here, and an email in use at the other demo restaurant.
-      await addMember(page, locale, site.owner, "WAITER");
+      await addMember(page, locale, site.owner, roles.first);
       await expect(page.getByText(t(locale, "Team.errors.alreadyMember"))).toBeVisible();
       const elsewhere = site.key === "grill" ? SITES.coffee.owner : SITES.grill.owner;
-      await addMember(page, locale, elsewhere, "WAITER");
+      await addMember(page, locale, elsewhere, roles.first);
       await expect(page.getByText(t(locale, "Team.errors.taken"))).toBeVisible();
       await expect(members(page).getByRole("listitem")).toHaveCount(before);
 
-      // A new waiter: the temporary password is shown once, the list has them, the form is empty again.
-      await addMember(page, locale, email, "WAITER");
+      // A new member: the temporary password is shown once, the list has them, the form is empty again.
+      await addMember(page, locale, email, roles.first);
       const added = page.getByRole("status").filter({ hasText: email });
-      await expect(added).toContainText(t(locale, "Team.addedTitle", { email, role: t(locale, "Roles.WAITER") }));
+      await expect(added).toContainText(t(locale, "Team.addedTitle", { email, role: t(locale, `Roles.${roles.first}`) }));
       const first = (await added.locator("code").innerText()).trim();
       expect(first).toMatch(PASSWORD_SHAPE);
       await expect(row(page, email)).toBeVisible();
-      await expect(roleSelect(page, locale, email)).toHaveValue("WAITER");
+      await expect(roleSelect(page, locale, email)).toHaveValue(roles.first);
       await expect(page.getByLabel(t(locale, "Team.email"), { exact: true })).toHaveValue("");
       await expect(members(page).getByRole("listitem")).toHaveCount(before + 1);
 
       // The new member signs in: the temporary password opens only "choose your own password"; then they are a waiter
-      // here, with no staff screen of their own.
+      // here (in their role), with no staff screen of their own.
       const member = await browser.newContext();
       const memberPage = await member.newPage();
       await signInWith(memberPage, site, locale, email, first);
@@ -80,19 +86,25 @@ for (const site of ALL_SITES) {
       await submitPasswordChange(memberPage, locale, first, own);
       await expect(memberPage.getByText(t(locale, "Password.saved"))).toBeVisible();
       await memberPage.goto(`${site.origin}/${locale}/staff`);
-      await expect(memberPage.getByText(t(locale, "Roles.WAITER"), { exact: true })).toBeVisible();
+      await expect(memberPage.getByText(t(locale, `Roles.${roles.first}`), { exact: true })).toBeVisible();
       await expect(memberPage.getByRole("link", { name: new RegExp(`^${t(locale, "StaffHome.teamLink")}`) })).toHaveCount(0);
       await memberPage.goto(`${site.origin}/${locale}/staff/team`);
       await expect(memberPage.getByRole("heading", { level: 1 })).toHaveText(t(locale, "NotFound.title"));
 
-      // Waiter -> cashier: stored (a reload shows it), and the member's own dashboard says so.
-      await roleSelect(page, locale, email).selectOption("CASHIER");
-      await row(page, email).getByRole("button", { name: t(locale, "Team.saveRole"), exact: true }).click();
-      await expect(row(page, email)).toContainText(new RegExp(`${t(locale, "Roles.CASHIER")} · `));
-      await page.reload();
-      await expect(roleSelect(page, locale, email)).toHaveValue("CASHIER");
-      await memberPage.goto(`${site.origin}/${locale}/staff`);
-      await expect(memberPage.getByText(t(locale, "Roles.CASHIER"), { exact: true })).toBeVisible();
+      if (roles.changed) {
+        // Waiter -> cashier: stored (a reload shows it), and the member's own dashboard says so.
+        await roleSelect(page, locale, email).selectOption(roles.changed);
+        await row(page, email).getByRole("button", { name: t(locale, "Team.saveRole"), exact: true }).click();
+        await expect(row(page, email)).toContainText(new RegExp(`${t(locale, `Roles.${roles.changed}`)} · `));
+        await page.reload();
+        await expect(roleSelect(page, locale, email)).toHaveValue(roles.changed);
+        await memberPage.goto(`${site.origin}/${locale}/staff`);
+        await expect(memberPage.getByText(t(locale, `Roles.${roles.changed}`), { exact: true })).toBeVisible();
+      } else {
+        // No tables: Cashier is the only role on offer, when adding and when changing a member.
+        await expect(page.getByLabel(t(locale, "Team.role"), { exact: true }).locator("option")).toHaveText([t(locale, "Roles.CASHIER")]);
+        await expect(roleSelect(page, locale, email).locator("option")).toHaveText([t(locale, "Roles.CASHIER")]);
+      }
       await member.close();
 
       // A new temporary password ("are you sure?" -> no does nothing): their own password dies, the new one is temporary.
@@ -121,10 +133,13 @@ for (const site of ALL_SITES) {
       await signInWith(laterPage, site, locale, email, second);
       await expect(laterPage.getByText(t(locale, "StaffLogin.invalid"))).toBeVisible();
 
-      // Hired again, as a manager: a new temporary password; a manager HAS the staff screen, and cannot touch the owner.
-      await addMember(page, locale, email, "MANAGER");
+      // Hired again (as a manager where there are tables): a new temporary password.
+      await addMember(page, locale, email, roles.rehired);
       const rehired = page.getByRole("status").filter({ hasText: email });
-      await expect(rehired).toContainText(t(locale, "Roles.MANAGER"));
+      await expect(rehired).toContainText(t(locale, `Roles.${roles.rehired}`));
+      // Wait for the NEW notice: where the member is hired in the same role again (Coffee: Cashier both times) the
+      // first notice still on the page says the same, with the first password.
+      await expect(rehired.locator("code")).not.toHaveText(first);
       const third = (await rehired.locator("code").innerText()).trim();
       expect(third).not.toBe(second);
       await signInWith(laterPage, site, locale, email, third);
@@ -132,11 +147,23 @@ for (const site of ALL_SITES) {
       await submitPasswordChange(laterPage, locale, third, `${own} again`);
       await expect(laterPage.getByText(t(locale, "Password.saved"))).toBeVisible();
       await laterPage.goto(`${site.origin}/${locale}/staff/team`);
-      await expect(laterPage.getByRole("heading", { level: 1 })).toHaveText(t(locale, "Team.title"));
-      await expect(row(laterPage, email)).toContainText(t(locale, "Team.you"));
-      await expect(row(laterPage, email).getByRole("button")).toHaveCount(0); // not oneself
-      await expect(row(laterPage, site.owner).getByRole("button")).toHaveCount(0); // not the owner
-      await expect(row(laterPage, site.owner)).toContainText(t(locale, "Team.ownerNote"));
+      if (roles.rehired === "MANAGER") {
+        // A manager HAS the staff screen, and cannot touch themselves or the owner.
+        await expect(laterPage.getByRole("heading", { level: 1 })).toHaveText(t(locale, "Team.title"));
+        await expect(row(laterPage, email)).toContainText(t(locale, "Team.you"));
+        await expect(row(laterPage, email).getByRole("button")).toHaveCount(0); // not oneself
+        await expect(row(laterPage, site.owner).getByRole("button")).toHaveCount(0); // not the owner
+        await expect(row(laterPage, site.owner)).toContainText(t(locale, "Team.ownerNote"));
+      } else {
+        // The counter cashier of a shop without tables: no staff screen, and the next sign-in opens the kitchen screen.
+        await expect(laterPage.getByRole("heading", { level: 1 })).toHaveText(t(locale, "NotFound.title"));
+        const counter = await browser.newContext();
+        const counterPage = await counter.newPage();
+        await signInWith(counterPage, site, locale, email, `${own} again`);
+        await expect(counterPage).toHaveURL(new RegExp(`/${locale}/staff/kitchen$`));
+        await expect(counterPage.getByRole("heading", { level: 1 })).toHaveText(t(locale, "StaffKitchen.title"));
+        await counter.close();
+      }
       await later.close();
 
       // Tidy up: remove the member again. The demo staff are as they were.

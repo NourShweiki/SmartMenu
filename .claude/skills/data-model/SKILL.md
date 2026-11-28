@@ -28,6 +28,7 @@ These are decided and expensive to change. Do not deviate without the user's exp
 
 ## 4. Price snapshots
 - `order_items` copies `name_en`, `name_ar`, `unit_price_fils` and chosen modifiers (names + prices) at order time. It keeps `menu_item_id` only as a reference.
+- `order_items.note` (since 2026-11-28): the customer's note on that line, as typed (cleaned, 1-100 characters), only on an item with `menu_items.allows_note`. It is never priced and never translated; `place_order` refuses a note on an item that takes none.
 - Never compute an existing order's total by joining to current menu prices.
 
 ## 5. Bilingual text

@@ -3,7 +3,7 @@
 import { useLocale, useTranslations } from "next-intl";
 import { useEffect, useId, useRef, useState } from "react";
 import type { PricedCart, PricedLine } from "@/domain/cart/cart";
-import { MAX_LINE_QUANTITY } from "@/domain/order/order";
+import { MAX_LINE_QUANTITY, MAX_NOTE_LENGTH } from "@/domain/order/order";
 import { localized } from "@/domain/shared/localized";
 import { formatPrice } from "@/interface/web/format";
 import type { Locale } from "@/interface/web/i18n/locales";
@@ -55,11 +55,57 @@ type Props = {
   onPlaceOrder: (customer?: Customer) => Promise<PlaceOrderProblem | null>;
   onClose: () => void;
   onSetQuantity: (key: string, quantity: number) => void;
+  /** Writes (empty text: clears) a line's note; null when kept, otherwise why not (too long, or e.g. merging would pass the quantity limit). */
+  onSetNote: (key: string, note: string) => NoteRefusal | null;
   onRemove: (key: string) => void;
 };
 
+/**
+ * The note box of one cart line (items that take a note, spec §3.3). Typed freely, saved when the box loses focus or
+ * on Enter: saving can merge the line with an identical one, so it is not saved on every key. Never changes the price.
+ */
+type NoteRefusal = "tooLong" | "notSaved";
+
+function NoteBox({ note, disabled, onSave }: { note: string | null; disabled: boolean; onSave: (text: string) => NoteRefusal | null }) {
+  const t = useTranslations("Menu.cart");
+  const id = useId();
+  const [text, setText] = useState(note ?? "");
+  const [refusal, setRefusal] = useState<NoteRefusal | null>(null);
+  useEffect(() => setText(note ?? ""), [note]);
+  const save = () => {
+    if (text.trim() === (note ?? "")) return;
+    setRefusal(onSave(text));
+  };
+  return (
+    <div className="flex flex-col gap-1">
+      <label htmlFor={id} className="text-sm text-gray-600">
+        {t("noteLabel")}
+      </label>
+      <input
+        id={id}
+        value={text}
+        maxLength={MAX_NOTE_LENGTH}
+        onChange={(e) => setText(e.target.value)}
+        onBlur={save}
+        onKeyDown={(e) => {
+          if (e.key === "Enter") {
+            e.preventDefault();
+            save();
+          }
+        }}
+        disabled={disabled}
+        placeholder={t("notePlaceholder")}
+        className="rounded-lg border border-gray-300 px-3 py-2 text-sm"
+      />
+      {refusal && (
+        <p className="text-sm text-red-700">{refusal === "tooLong" ? t("noteTooLong", { max: MAX_NOTE_LENGTH }) : t("noteNotSaved")}</p>
+      )}
+    </div>
+  );
+}
+
 /** The cart as a modal sheet: lines, quantities, the price preview, placing the order and its confirmation. */
-export function CartPanel({ open, priced, ordering, pickupName, tableHint, storageKey, placedOrderNumber, onPlaceOrder, onClose, onSetQuantity, onRemove }: Props) {
+export function CartPanel({ open, priced, ordering, pickupName, tableHint, storageKey, placedOrderNumber, onPlaceOrder, onClose, onSetQuantity, onSetNote, onRemove }: Props) {
   const t = useTranslations("Menu");
   const locale = useLocale() as Locale;
   const ref = useRef<HTMLDialogElement>(null);
@@ -137,6 +183,10 @@ export function CartPanel({ open, priced, ordering, pickupName, tableHint, stora
         <p role="alert" className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">
           {t(`cart.problems.${l.problem}`)}
         </p>
+      )}
+      {/* Where the item takes a note; also where a note is left on an item that no longer takes one, to clear it. */}
+      {l.item && (l.item.allowsNote || l.note !== null) && (
+        <NoteBox note={l.note} disabled={pending} onSave={(text) => { setProblem(null); return onSetNote(l.key, text); }} />
       )}
       <div className="flex items-center justify-between gap-3">
         {l.problem === null ? (

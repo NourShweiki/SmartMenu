@@ -90,7 +90,7 @@ describe.skipIf(!process.env.SUPABASE_SERVICE_ROLE_KEY)("founders' setup tool ag
     const found = await new SupabaseRestaurantRepository(createPublicClient()).findPublicBySlug(first.slug);
     expect(found?.id).toBe(first.id);
     expect(found?.name).toEqual(first.name);
-    expect(found?.settings).toEqual({ dineInEnabled: false, takeoutEnabled: true, deliveryEnabled: false, taxRateBp: 1600, serviceChargeBp: 0, defaultLanguage: "ar" });
+    expect(found?.settings).toEqual({ dineInEnabled: false, takeoutEnabled: true, deliveryEnabled: false, taxRateBp: 1600, serviceChargeBp: 0, defaultLanguage: "ar", assistantEnabled: false });
 
     // The owner signs in with what the founder was shown, and is the OWNER there (and nowhere else).
     const asOwner = createPublicClient();

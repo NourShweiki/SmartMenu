@@ -87,7 +87,7 @@ describe("createRestaurant (founders' setup tool)", () => {
           id: NEW_ID,
           slug: "falafel-house",
           name: { en: "Falafel House", ar: "بيت الفلافل" },
-          settings: { dineInEnabled: false, takeoutEnabled: true, deliveryEnabled: false, taxRateBp: 1600, serviceChargeBp: 0, defaultLanguage: "ar" },
+          settings: { dineInEnabled: false, takeoutEnabled: true, deliveryEnabled: false, taxRateBp: 1600, serviceChargeBp: 0, defaultLanguage: "ar", assistantEnabled: false },
           createdAt: NOW,
         },
         ownerEmail: "owner@falafel.test",

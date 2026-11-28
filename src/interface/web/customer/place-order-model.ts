@@ -14,7 +14,8 @@ export type PlaceOrderProblem =
   | "orderingOff" // the restaurant switched dine-in ordering off
   | "empty"
   | "tooLarge"
-  | "itemsChanged" // something in the cart was sold out, removed or changed since it was added
+  | "itemsChanged" // something in the cart was sold out, removed or changed since it was added (or no longer takes a note)
+  | "noteTooLong" // a note longer than the limit (the note box does not let one through: a hand-made request)
   | "nameRequired" // takeout: no name given
   | "nameInvalid" // takeout: a name that is too long or has characters that cannot be in one
   | "phoneInvalid" // takeout: not a Jordanian mobile number
@@ -44,10 +45,12 @@ export function readCartLines(cart: unknown): CartLines | null {
   const lines: CartLines[number][] = [];
   for (const entry of raw) {
     const line = typeof entry === "object" && entry !== null ? (entry as Record<string, unknown>) : {};
-    const { menuItemId, optionIds, quantity } = line;
+    const { menuItemId, optionIds, quantity, note } = line;
     if (!isId(menuItemId) || !Array.isArray(optionIds) || optionIds.length > 100 || !optionIds.every(isId)) return null;
     if (typeof quantity !== "number" || !Number.isSafeInteger(quantity) || quantity < 1) return null;
-    lines.push({ menuItemId, quantity, selectedOptionIds: optionIds });
+    // A note is text or nothing; the cap keeps a hostile request small (the domain checks the real limit).
+    if (note !== undefined && note !== null && (typeof note !== "string" || note.length > 1000)) return null;
+    lines.push({ menuItemId, quantity, selectedOptionIds: optionIds, note: note ?? null });
   }
   return lines;
 }
@@ -88,7 +91,10 @@ export function orderProblem(error: OrderUseCaseError): PlaceOrderProblem {
     case "ITEM_NOT_FOUND":
     case "ITEM_NOT_ORDERABLE":
     case "SELECTION":
+    case "NOTE_NOT_ALLOWED": // the owner switched notes off for the item since it was put in the cart
       return "itemsChanged";
+    case "NOTE_TOO_LONG":
+      return "noteTooLong";
     default:
       return "failed";
   }

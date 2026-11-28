@@ -24,7 +24,7 @@ export default async function NewItemPage({
     <ItemFormShell locale={locale} restaurant={restaurant} title={t("titleNew")}>
       <ItemForm
         action={saveItemAction.bind(null, locale, { kind: "new", sortOrder })}
-        initial={{ categoryId: section?.category.id ?? "", nameAr: "", nameEn: "", descriptionAr: "", descriptionEn: "", price: "" }}
+        initial={{ categoryId: section?.category.id ?? "", nameAr: "", nameEn: "", descriptionAr: "", descriptionEn: "", price: "", allowsNote: "" }}
         categories={categoryOptions(staffMenu, locale)}
         cancelHref={`/${locale}/staff/menu`}
       />

@@ -53,3 +53,22 @@ export function isAssignableRole(value: string): value is AssignableRole {
 export function isRole(value: string): value is Role {
   return (ROLES as readonly string[]).includes(value);
 }
+
+/**
+ * The roles the owner or manager may give at a restaurant (PROJECT_SPEC.md §3.3, Nour 2026-11-27). With tables
+ * (dine-in on) all three. Without tables (a coffee shop: takeout only) there is no floor to run, so the only staff
+ * role is Cashier: the counter person, who works the kitchen screen; the owner is the one management account.
+ * Somebody who already has another role there keeps it until it is changed (to Cashier) or they are removed.
+ */
+export function offeredRoles(restaurant: { readonly dineInEnabled: boolean }): readonly AssignableRole[] {
+  return restaurant.dineInEnabled ? ASSIGNABLE_ROLES : ["CASHIER"];
+}
+
+/**
+ * Where a member of staff lands after signing in. The counter person of a shop without tables (Cashier, dine-in off)
+ * goes straight to the kitchen screen, which is all their day is (spec §3.3); everyone else to the staff dashboard.
+ * The dashboard stays reachable from the kitchen screen ("Staff dashboard"), e.g. to change one's password.
+ */
+export function landingScreen(role: Role, restaurant: { readonly dineInEnabled: boolean }): "kitchen" | "dashboard" {
+  return role === "CASHIER" && !restaurant.dineInEnabled ? "kitchen" : "dashboard";
+}

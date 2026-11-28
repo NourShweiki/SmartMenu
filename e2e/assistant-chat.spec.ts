@@ -23,10 +23,13 @@ async function say(page: Page, locale: Locale, text: string) {
   await chat(page, locale).getByRole("button", { name: t(locale, "Menu.assistant.send"), exact: true }).click();
 }
 
+// The chat is a per-restaurant setting, off by default (spec §3.3): these run where the seed switches it on (Demo Grill).
+// Demo Coffee (off) is covered in home-options.spec.ts; "the plain menu has no assistant" still runs on both.
 for (const site of ALL_SITES) {
   const m = site.menu;
+  const chatTest = site.assistantOn ? test : test.skip;
   for (const locale of LOCALES) {
-    test(`${site.key} /${locale}: the assistant card opens a chat, and what the customer asks for lands in the cart priced by the app`, async ({ page }) => {
+    chatTest(`${site.key} /${locale}: the assistant card opens a chat, and what the customer asks for lands in the cart priced by the app`, async ({ page }) => {
       await open(page, site, locale);
       await expectLocale(page, locale);
       await expect(cartBar(page, locale)).toHaveCount(0); // nothing in the cart yet
@@ -53,7 +56,7 @@ for (const site of ALL_SITES) {
       await expect(page.getByRole("dialog")).toHaveCount(0);
     });
 
-    test(`${site.key} /${locale}: the chat offers suggested questions, and tapping one sends it`, async ({ page }) => {
+    chatTest(`${site.key} /${locale}: the chat offers suggested questions, and tapping one sends it`, async ({ page }) => {
       await open(page, site, locale);
       const firstCategory = (await page.locator("h2[id^='cat-']").first().innerText()).trim();
       await openChat(page, locale);
@@ -71,7 +74,7 @@ for (const site of ALL_SITES) {
       await expect(chat(page, locale).getByText(locale === "en" ? "I could not find that on the menu." : "لم أجد ذلك في القائمة.", { exact: true })).toBeVisible();
     });
 
-    test(`${site.key} /${locale}: an item with choices is added with its required choice made, and the customer still reviews the cart`, async ({ page }) => {
+    chatTest(`${site.key} /${locale}: an item with choices is added with its required choice made, and the customer still reviews the cart`, async ({ page }) => {
       await open(page, site, locale);
       await openChat(page, locale);
       await say(page, locale, m.withOptions[locale]);
@@ -84,7 +87,7 @@ for (const site of ALL_SITES) {
       await expect(dialog(page).getByRole("button", { name: t(locale, "Menu.cart.placeOrder") })).toBeVisible();
     });
 
-    test(`${site.key} /${locale}: an item that is not on the menu is refused with a note, and the cart stays empty`, async ({ page }) => {
+    chatTest(`${site.key} /${locale}: an item that is not on the menu is refused with a note, and the cart stays empty`, async ({ page }) => {
       await open(page, site, locale);
       await openChat(page, locale);
       await say(page, locale, "inventedthing please");
@@ -94,7 +97,7 @@ for (const site of ALL_SITES) {
       await expect(cartBar(page, locale)).toHaveCount(0);
     });
 
-    test(`${site.key} /${locale}: when the AI service fails the chat says so kindly, and the menu still works`, async ({ page }) => {
+    chatTest(`${site.key} /${locale}: when the AI service fails the chat says so kindly, and the menu still works`, async ({ page }) => {
       await open(page, site, locale);
       await openChat(page, locale);
       await say(page, locale, "break");

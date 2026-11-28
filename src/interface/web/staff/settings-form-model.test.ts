@@ -15,7 +15,13 @@ describe("readSettingsForm", () => {
       taxPercent: "16",
       servicePercent: "10",
       defaultLanguage: "en",
+      assistantEnabled: false,
     });
+  });
+
+  it("reads the AI chat switch: on only when ticked", () => {
+    expect(readSettingsForm(form({ assistantEnabled: "on" })).assistantEnabled).toBe(true);
+    expect(readSettingsForm(form({})).assistantEnabled).toBe(false);
   });
 
   it("falls back to Arabic for an unknown language and caps the text length", () => {
@@ -34,6 +40,7 @@ describe("toRestaurantSettings", () => {
     taxPercent: "16",
     servicePercent: "١٢٫٥",
     defaultLanguage: "ar",
+    assistantEnabled: true,
   };
 
   it("turns percentages into basis points", () => {
@@ -46,6 +53,7 @@ describe("toRestaurantSettings", () => {
         taxRateBp: 1600,
         serviceChargeBp: 1250,
         defaultLanguage: "ar",
+        assistantEnabled: true,
       },
     });
   });

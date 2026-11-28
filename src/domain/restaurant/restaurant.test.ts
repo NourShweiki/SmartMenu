@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { createRestaurant, updateSettings, validateSlug } from "./restaurant";
 import { can } from "./role";
-import { presetSettings } from "./settings";
+import { offersOrderingAssistant, presetSettings } from "./settings";
 
 const deps = { newId: () => "00000000-0000-4000-8000-000000000001", now: () => new Date("2026-10-06T00:00:00Z") };
 const name = { en: "Hashem", ar: "هاشم" };
@@ -75,5 +75,22 @@ describe("role permissions", () => {
   it("only owner changes restaurant settings", () => {
     expect(can("OWNER", "restaurant:settings")).toBe(true);
     expect(can("MANAGER", "restaurant:settings")).toBe(false);
+  });
+});
+
+describe("the AI ordering chat setting (spec §3.3)", () => {
+  it("is off in every preset: an owner switches it on", () => {
+    expect(presetSettings("takeout").assistantEnabled).toBe(false);
+    expect(presetSettings("dine-in").assistantEnabled).toBe(false);
+  });
+});
+
+describe("offersOrderingAssistant", () => {
+  it("needs all three: the owner's switch, an AI key on the server, and something the customer can order", () => {
+    const on = { assistantEnabled: true };
+    expect(offersOrderingAssistant(on, { aiKeyConfigured: true, canOrder: true })).toBe(true);
+    expect(offersOrderingAssistant({ assistantEnabled: false }, { aiKeyConfigured: true, canOrder: true })).toBe(false);
+    expect(offersOrderingAssistant(on, { aiKeyConfigured: false, canOrder: true })).toBe(false);
+    expect(offersOrderingAssistant(on, { aiKeyConfigured: true, canOrder: false })).toBe(false);
   });
 });

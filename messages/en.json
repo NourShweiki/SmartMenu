@@ -69,7 +69,11 @@
         "staff": "Add your staff",
         "testOrder": "Place a test order from the menu"
       }
-    }
+    },
+    "kitchenLink": "Kitchen screen",
+    "kitchenLinkHint": "Tickets with timers, for the counter",
+    "counterSignLink": "QR sign for the counter",
+    "counterSignLinkHint": "Print it: customers scan it to order on their phone"
   },
   "Settings": {
     "title": "Restaurant settings",
@@ -97,7 +101,10 @@
       "noMode": "Turn on at least one order type.",
       "forbidden": "Only the owner can change the settings.",
       "notFound": "The settings could not be saved. Please try again."
-    }
+    },
+    "customersTitle": "For customers",
+    "assistant": "AI ordering chat",
+    "assistantHint": "Customers can ask a chat assistant about the menu and have it fill their cart. Off: customers go straight to the menu."
   },
   "Roles": {
     "OWNER": "Owner",
@@ -152,7 +159,9 @@
     "deleteHint": "It disappears from the menu. Past orders keep its name and price.",
     "deleteConfirm": "Delete this item?",
     "delete": "Delete item",
-    "optionGroupsTitle": "Option groups"
+    "optionGroupsTitle": "Option groups",
+    "allowsNote": "Allow a note",
+    "allowsNoteHint": "Customers can add a short note to this item, e.g. \"less sugar\". It never changes the price: paid extras stay options."
   },
   "CategoryForm": {
     "titleNew": "New category",
@@ -376,8 +385,13 @@
       "problems": {
         "ITEM_UNAVAILABLE": "This item is no longer available. Remove it to continue.",
         "OPTION_UNAVAILABLE": "One of the choices is no longer available. Remove this item and add it again.",
-        "SELECTION_INVALID": "The choices for this item changed. Remove it and add it again."
-      }
+        "SELECTION_INVALID": "The choices for this item changed. Remove it and add it again.",
+        "NOTE_NOT_ALLOWED": "This item no longer takes a note. Clear the note to continue."
+      },
+      "noteLabel": "Note for this item (optional)",
+      "notePlaceholder": "e.g. less sugar, extra hot",
+      "noteTooLong": "A note can be at most {max} characters.",
+      "noteNotSaved": "This note could not be saved: the same item with this note is already in your cart at the most allowed. Change the quantity there."
     },
     "order": {
       "title": "Order received",
@@ -397,7 +411,8 @@
         "nameInvalid": "Please enter a shorter name, with letters only.",
         "phoneInvalid": "Please enter a Jordanian mobile number, for example 079 123 4567.",
         "tooManyOrders": "You already have takeout orders in progress. Please wait until they are ready, or ask at the counter.",
-        "restaurantBusy": "The restaurant has a lot of takeout orders waiting right now. Please try again in a few minutes, or order at the counter."
+        "restaurantBusy": "The restaurant has a lot of takeout orders waiting right now. Please try again in a few minutes, or order at the counter.",
+        "noteTooLong": "A note is too long. Shorten it and try again."
       },
       "pickupBody": "We have your order. Collect it and pay at the cashier. This page shows when it is ready."
     },
@@ -578,7 +593,8 @@
       "for": "For",
       "served": "Handed over",
       "handOver": "Mark handed over"
-    }
+    },
+    "note": "Note:"
   },
   "OpenTables": {
     "title": "Open tables",
@@ -785,5 +801,52 @@
   "Preview": {
     "banner": "Preview: {name} (a test link, before the restaurant has its own address)",
     "exit": "Exit preview"
+  },
+  "StaffKitchen": {
+    "title": "Kitchen screen",
+    "back": "Staff dashboard",
+    "fullScreen": "Full screen",
+    "exitFullScreen": "Exit full screen",
+    "order": "Order {number}",
+    "number": "#{number}",
+    "table": "Table {label}",
+    "noTable": "Table unknown",
+    "total": "Total",
+    "columns": {
+      "new": "New",
+      "making": "Making",
+      "ready": "Ready for pickup"
+    },
+    "empty": {
+      "new": "No new orders",
+      "making": "Nothing being made",
+      "ready": "Nothing waiting for pickup"
+    },
+    "timer": {
+      "placedLabel": "Placed {time} ago",
+      "waiting": "Waiting",
+      "waitingLabel": "Waiting for pickup for {time}"
+    },
+    "tap": {
+      "start": "Start",
+      "ready": "Ready",
+      "pickedUp": "Picked up",
+      "served": "Served",
+      "undo": "Undo",
+      "sendingIn": "{label} in {seconds} s",
+      "working": "Saving…"
+    },
+    "note": "Note:"
+  },
+  "CounterSign": {
+    "title": "QR sign for the counter",
+    "back": "Staff dashboard",
+    "hint": "Print this sign and put it on the counter. Customers scan it, order on their own phone, and pay when they collect. Their order appears on the kitchen screen.",
+    "signLabel": "The counter sign"
+  },
+  "CounterCard": {
+    "title": "Scan to order",
+    "how": "Order on your phone. We call your name when it is ready; pay at the counter.",
+    "qrLabel": "QR code for the menu"
   }
 }

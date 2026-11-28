@@ -60,6 +60,8 @@ export type OrderItem = {
   readonly quantity: number;
   /** (unit price + picked options) x quantity. */
   readonly lineTotalFils: Fils;
+  /** The customer's note for this line, as typed (cleaned by `normalizeNote`), or null. Never affects the price. */
+  readonly note: string | null;
 };
 
 export type Order = {
@@ -94,13 +96,33 @@ export type OrderError =
   | { type: "WRONG_RESTAURANT" }
   | { type: "SELECTION"; menuItemId: string; reason: SelectionError }
   | { type: "INVALID_TRANSITION"; from: OrderStatus; to: OrderStatus }
-  | { type: "INVALID_CANCEL_REASON" };
+  | { type: "INVALID_CANCEL_REASON" }
+  /** A note on an item whose owner does not take notes (or switched them off since). */
+  | { type: "NOTE_NOT_ALLOWED"; menuItemId: string }
+  | { type: "NOTE_TOO_LONG"; menuItemId: string; max: number };
 
 /** Ids are injected so the domain stays pure and testable (same shape as the menu context's). */
 export type OrderDeps = { newId: () => string };
 
 export const MAX_ORDER_LINES = 50;
 export const MAX_LINE_QUANTITY = 99;
+/** A customer's note on one line (PROJECT_SPEC.md §3.3: "up to 100 characters", our number). */
+export const MAX_NOTE_LENGTH = 100;
+
+/**
+ * Cleans a note as typed: anything that is not text is no note; control characters (including line breaks and tabs)
+ * become spaces, runs of spaces become one, the ends are trimmed, and an empty result is no note (null). The note is
+ * shown to staff exactly like this, never translated. The length is checked separately (`MAX_NOTE_LENGTH`, counted in
+ * characters as the customer sees them), so a note that is too long is refused rather than cut.
+ */
+export function normalizeNote(raw: unknown): string | null {
+  if (typeof raw !== "string") return null;
+  const clean = raw.replace(/[\u0000-\u001f\u007f-\u009f\u2028\u2029]/g, " ").replace(/\s+/g, " ").trim();
+  return clean === "" ? null : clean;
+}
+
+/** The length of a note as the customer sees it (an emoji or an Arabic letter counts once). */
+export const noteLength = (note: string): number => [...note].length;
 
 /** One cart line as the customer submitted it, plus the live menu data needed to check it. */
 export type OrderLineRequest = {
@@ -110,6 +132,8 @@ export type OrderLineRequest = {
   readonly groups: readonly { readonly group: OptionGroup; readonly options: readonly MenuOption[] }[];
   readonly selectedOptionIds: readonly string[];
   readonly quantity: number;
+  /** The customer's note as sent (cleaned and checked here). */
+  readonly note?: unknown;
 };
 
 export type OrderRates = { readonly taxRateBp: number; readonly serviceChargeBp: number };
@@ -197,6 +221,11 @@ function buildLine(restaurantId: RestaurantId, line: OrderLineRequest, deps: Ord
     }
   }
 
+  // The note: only where the item takes one, never longer than the limit. It is not priced.
+  const note = normalizeNote(line.note);
+  if (note !== null && !line.item.allowsNote) return err({ type: "NOTE_NOT_ALLOWED", menuItemId });
+  if (note !== null && noteLength(note) > MAX_NOTE_LENGTH) return err({ type: "NOTE_TOO_LONG", menuItemId, max: MAX_NOTE_LENGTH });
+
   const unit = priceWithOptions(line.item.priceFils, pickedOptions);
   return ok({
     id: deps.newId() as OrderItemId,
@@ -206,6 +235,7 @@ function buildLine(restaurantId: RestaurantId, line: OrderLineRequest, deps: Ord
     options: picked,
     quantity: line.quantity,
     lineTotalFils: (unit * line.quantity) as Fils,
+    note,
   });
 }
 

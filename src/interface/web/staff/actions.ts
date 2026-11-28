@@ -1,6 +1,7 @@
 "use server";
 
 import { redirect } from "next/navigation";
+import { landingScreen } from "@/domain/restaurant/role";
 import { signInStaff, signOutStaff } from "@/infrastructure/container";
 import { getCurrentSite } from "@/interface/web/current-site";
 import { DEFAULT_LOCALE, isLocale } from "@/interface/web/i18n/locales";
@@ -23,7 +24,9 @@ export async function signInAction(locale: string, _prev: SignInState, form: For
   const result = await signInStaff({ restaurantId: site.restaurant.id, email, password });
   if (!result.ok) return { error: "INVALID_CREDENTIALS" };
 
-  redirect(`/${isLocale(locale) ? locale : DEFAULT_LOCALE}/staff`);
+  // The counter person of a shop without tables starts on the kitchen screen; everyone else on the dashboard.
+  const landing = landingScreen(result.value.role, site.restaurant.settings) === "kitchen" ? "/staff/kitchen" : "/staff";
+  redirect(`/${isLocale(locale) ? locale : DEFAULT_LOCALE}${landing}`);
 }
 
 export async function signOutAction(locale: string): Promise<void> {

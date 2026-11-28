@@ -30,6 +30,7 @@ const row: OrderRow = {
       quantity: 1,
       line_total_fils: 1250,
       position: 1,
+      note: null,
       order_item_options: [],
     },
     {
@@ -41,6 +42,7 @@ const row: OrderRow = {
       quantity: 2,
       line_total_fils: 6000,
       position: 0,
+      note: "no onions",
       order_item_options: [
         { option_id: "o-2", group_name_en: "Extras", group_name_ar: "إضافات", name_en: "Cheese", name_ar: "جبنة", price_delta_fils: 300, position: 1 },
         { option_id: "o-1", group_name_en: "Size", group_name_ar: "الحجم", name_en: "Large", name_ar: "كبير", price_delta_fils: 500, position: 0 },
@@ -68,6 +70,13 @@ describe("toOrder", () => {
     });
     expect(order.createdAt).toEqual(new Date("2026-10-10T12:00:00.000Z"));
     expect(order.statusChangedAt).toEqual(new Date("2026-10-10T12:05:00.000Z"));
+  });
+
+  it("reads each line's note (the customer's, as typed), and none where there is none", () => {
+    expect(toOrder(row).items.map((i) => [i.name.en, i.note])).toEqual([
+      ["Kebab", "no onions"],
+      ["Hummus", null],
+    ]);
   });
 
   it("reads a cancellation (why, when, who) only from a cancelled order", () => {
@@ -148,6 +157,7 @@ describe("toPlaceOrderPayload", () => {
         unit_price_fils: item.unit_price_fils,
         quantity: item.quantity,
         line_total_fils: item.line_total_fils,
+        note: item.note,
         position: i,
         order_item_options: item.options.map((o, j) => ({ ...o, position: j })),
       })),

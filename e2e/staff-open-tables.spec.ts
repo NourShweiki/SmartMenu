@@ -1,6 +1,6 @@
 import { expect, test } from "@playwright/test";
 import { addButton, cartBar, dialog, menuRow, placeAnOrder, placeButton } from "./support/cart";
-import { jd, LOCALES, SITES, t } from "./support/demo";
+import { jd, LOCALES, signIn, SITES, t } from "./support/demo";
 import { OPEN_TABLES, refresh, staffAt, tableCard as card, takeOrderThrough } from "./support/staff";
 import { addTable, guest, openTables, removeTable, scanUrl, tableLabel, tableRow } from "./support/tables";
 
@@ -76,13 +76,15 @@ for (const locale of LOCALES) {
     }
   });
 
-  test(`coffee /${locale}: the open tables screen is there and empty (no table ordering at Demo Coffee)`, async ({ browser }) => {
+  test(`coffee /${locale}: no tables links on the dashboard (no tables at Demo Coffee); the open tables screen itself is still there and empty`, async ({ page }) => {
     const site = SITES.coffee;
-    const owner = await staffAt(browser, site, site.owner, locale, OPEN_TABLES);
-    await expect(owner.page.locator("html")).toHaveAttribute("dir", locale === "ar" ? "rtl" : "ltr");
-    await expect(owner.page.getByText(t(locale, "OpenTables.empty"))).toBeVisible();
-    await expect(owner.page.getByRole("listitem")).toHaveCount(0);
-    await owner.context.close();
+    await signIn(page, site, site.owner, locale);
+    await expect(page.getByRole("link", { name: new RegExp(t(locale, "StaffHome.openTablesLink")) })).toHaveCount(0);
+    await expect(page.getByRole("link", { name: new RegExp(t(locale, "StaffHome.tablesLink")) })).toHaveCount(0);
+    await page.goto(`${site.origin}/${locale}/staff/open-tables`);
+    await expect(page.locator("html")).toHaveAttribute("dir", locale === "ar" ? "rtl" : "ltr");
+    await expect(page.getByText(t(locale, "OpenTables.empty"))).toBeVisible();
+    await expect(page.getByRole("listitem")).toHaveCount(0);
   });
 }
 

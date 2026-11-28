@@ -81,7 +81,7 @@ select is(public.get_public_menu('%'), '[]'::jsonb, 'a wildcard slug lists nothi
 select is(
   (select array(select jsonb_object_keys(public.get_public_menu('pm-a') -> 1 -> 'items' -> 0) order by 1)
          || array(select '|' || k from jsonb_object_keys(public.get_public_menu('pm-a') -> 1) as k order by 1)),
-  array['description_ar', 'description_en', 'id', 'image_path', 'is_sold_out', 'name_ar', 'name_en', 'option_groups', 'price_fils', 'sort_order',
+  array['allows_note', 'description_ar', 'description_en', 'id', 'image_path', 'is_sold_out', 'name_ar', 'name_en', 'option_groups', 'price_fils', 'sort_order',
         '|id', '|items', '|name_ar', '|name_en', '|sort_order'],
   'item and category expose only the agreed keys');
 select is(
