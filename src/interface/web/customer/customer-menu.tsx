@@ -252,7 +252,10 @@ export function CustomerMenu({ restaurantSlug, sections, rates, imageUrls, visit
           setPlacedOrderNumber(null);
         }}
         onSetQuantity={(key, quantity) => setQuantity(key, quantity)}
-        onSetNote={(key, note) => setNote(key, note).ok}
+        onSetNote={(key, note) => {
+          const result = setNote(key, note);
+          return result.ok ? null : result.error.type === "NOTE_TOO_LONG" ? "tooLong" : "notSaved";
+        }}
         onRemove={(key) => remove(key)}
       />
     </>

@@ -388,7 +388,8 @@
       },
       "noteLabel": "Note for this item (optional)",
       "notePlaceholder": "e.g. less sugar, extra hot",
-      "noteTooLong": "A note can be at most {max} characters."
+      "noteTooLong": "A note can be at most {max} characters.",
+      "noteNotSaved": "This note could not be saved: the same item with this note is already in your cart at the most allowed. Change the quantity there."
     },
     "order": {
       "title": "Order received",

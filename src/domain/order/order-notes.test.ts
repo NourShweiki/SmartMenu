@@ -91,6 +91,12 @@ describe("notes in the cart", () => {
     expect(setNote(cart, "nope", "x")).toEqual({ ok: false, error: { type: "LINE_NOT_FOUND" } });
   });
 
+  it("setNote refuses a merge that would pass the quantity limit, and leaves the cart as it was", () => {
+    let cart = unwrap(addToCart(EMPTY_CART, { menuItemId: latte, optionIds: [], quantity: 60, note: "less sugar" }));
+    cart = unwrap(addToCart(cart, { menuItemId: latte, optionIds: [], quantity: 50 }));
+    expect(setNote(cart, lineKey(latte, []), "less sugar")).toEqual({ ok: false, error: { type: "QUANTITY_TOO_HIGH", max: 99 } });
+  });
+
   it("a saved cart keeps its notes", () => {
     const cart = unwrap(addToCart(EMPTY_CART, { menuItemId: latte, optionIds: [], quantity: 1, note: "no foam" }));
     expect(parseCart(JSON.parse(JSON.stringify(cart)))).toEqual(cart);

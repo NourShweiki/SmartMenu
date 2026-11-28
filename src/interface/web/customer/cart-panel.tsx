@@ -55,8 +55,8 @@ type Props = {
   onPlaceOrder: (customer?: Customer) => Promise<PlaceOrderProblem | null>;
   onClose: () => void;
   onSetQuantity: (key: string, quantity: number) => void;
-  /** Writes (empty text: clears) a line's note; false when it could not be kept (too long). */
-  onSetNote: (key: string, note: string) => boolean;
+  /** Writes (empty text: clears) a line's note; null when kept, otherwise why not (too long, or e.g. merging would pass the quantity limit). */
+  onSetNote: (key: string, note: string) => NoteRefusal | null;
   onRemove: (key: string) => void;
 };
 
@@ -64,15 +64,17 @@ type Props = {
  * The note box of one cart line (items that take a note, spec §3.3). Typed freely, saved when the box loses focus or
  * on Enter: saving can merge the line with an identical one, so it is not saved on every key. Never changes the price.
  */
-function NoteBox({ note, disabled, onSave }: { note: string | null; disabled: boolean; onSave: (text: string) => boolean }) {
+type NoteRefusal = "tooLong" | "notSaved";
+
+function NoteBox({ note, disabled, onSave }: { note: string | null; disabled: boolean; onSave: (text: string) => NoteRefusal | null }) {
   const t = useTranslations("Menu.cart");
   const id = useId();
   const [text, setText] = useState(note ?? "");
-  const [tooLong, setTooLong] = useState(false);
+  const [refusal, setRefusal] = useState<NoteRefusal | null>(null);
   useEffect(() => setText(note ?? ""), [note]);
   const save = () => {
     if (text.trim() === (note ?? "")) return;
-    setTooLong(!onSave(text));
+    setRefusal(onSave(text));
   };
   return (
     <div className="flex flex-col gap-1">
@@ -95,7 +97,9 @@ function NoteBox({ note, disabled, onSave }: { note: string | null; disabled: bo
         placeholder={t("notePlaceholder")}
         className="rounded-lg border border-gray-300 px-3 py-2 text-sm"
       />
-      {tooLong && <p className="text-sm text-red-700">{t("noteTooLong", { max: MAX_NOTE_LENGTH })}</p>}
+      {refusal && (
+        <p className="text-sm text-red-700">{refusal === "tooLong" ? t("noteTooLong", { max: MAX_NOTE_LENGTH }) : t("noteNotSaved")}</p>
+      )}
     </div>
   );
 }
