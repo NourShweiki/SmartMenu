@@ -1,7 +1,7 @@
 import type { StaffOrderEntry } from "@/application/use-cases/orders/get-staff-order-list";
 import { kitchenAction, kitchenColumn, KITCHEN_COLUMNS, type KitchenAction, type KitchenColumn } from "@/domain/order/kitchen-board";
-import type { OrderStatus } from "@/domain/order/order";
-import type { Role } from "@/domain/restaurant/role";
+import { permissionsToCancel, type OrderStatus } from "@/domain/order/order";
+import { can, type Role } from "@/domain/restaurant/role";
 import type { Fils } from "@/domain/shared/money";
 import type { LocalizedText } from "@/domain/shared/result";
 import type { SessionKind } from "@/domain/table-session/pickup";
@@ -20,8 +20,15 @@ export type KitchenTicket = {
   readonly statusChangedAt: string;
   readonly lines: readonly { readonly quantity: number; readonly name: LocalizedText; readonly options: readonly LocalizedText[] }[];
   readonly totalFils: Fils;
-  /** What this person's button would do (step 1d); null = no button for them. */
+  /** What this person's button does; null = no button for them. */
   readonly action: KitchenAction | null;
+  /**
+   * The button's wording: the tap, except that "Picked up" on a table order only serves it (payment comes later at
+   * the open tables), so it says "Served". Null when there is no button.
+   */
+  readonly button: "start" | "ready" | "pickedUp" | "served" | null;
+  /** May this person cancel it now (same rule as the Orders screen: the cashier only a takeout order)? */
+  readonly canCancel: boolean;
 };
 
 export type KitchenBoard = Readonly<Record<KitchenColumn, readonly KitchenTicket[]>>;
@@ -40,6 +47,7 @@ export function buildKitchenBoard(entries: readonly StaffOrderEntry[], role: Rol
     if (table?.sessionStatus === "CLOSED") continue;
     const column = kitchenColumn(order.status, kind);
     if (!column) continue;
+    const action = kitchenAction(order.status, kind, role);
     board[column].push({
       id: order.id,
       number: order.number,
@@ -51,7 +59,9 @@ export function buildKitchenBoard(entries: readonly StaffOrderEntry[], role: Rol
       statusChangedAt: order.statusChangedAt.toISOString(),
       lines: order.items.map((item) => ({ quantity: item.quantity, name: item.name, options: item.options.map((o) => o.name) })),
       totalFils: order.totalFils,
-      action: kitchenAction(order.status, kind, role),
+      action,
+      button: !action ? null : action.tap === "pickedUp" && kind === "TABLE" ? "served" : action.tap,
+      canCancel: permissionsToCancel(order.status, kind).some((permission) => can(role, permission)),
     });
   }
   for (const column of KITCHEN_COLUMNS) board[column].sort((a, b) => a.placedAt.localeCompare(b.placedAt) || a.number - b.number);

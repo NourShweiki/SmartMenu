@@ -812,6 +812,15 @@
       "placedLabel": "طُلب قبل {time}",
       "waiting": "بانتظار",
       "waitingLabel": "بانتظار الاستلام منذ {time}"
+    },
+    "tap": {
+      "start": "ابدأ",
+      "ready": "جاهز",
+      "pickedUp": "تم الاستلام",
+      "served": "تم التقديم",
+      "undo": "تراجع",
+      "sendingIn": "{label} خلال {seconds} ث",
+      "working": "جارٍ الحفظ…"
     }
   }
 }

@@ -87,4 +87,17 @@ describe("buildKitchenBoard", () => {
     const board = buildKitchenBoard([entry("NEW", "PICKUP"), entry("NEW", "TABLE")], "CASHIER");
     expect(board.new.map((t) => t.action)).toEqual([{ tap: "start", steps: ["CONFIRMED", "PREPARING"] }, null]);
   });
+
+  it("the button's wording: Start, Ready, Picked up for takeout, Served at a table (payment comes later)", () => {
+    const board = buildKitchenBoard([entry("NEW", "PICKUP"), entry("PREPARING", "PICKUP"), entry("READY", "PICKUP"), entry("READY", "TABLE")], "OWNER");
+    expect([...board.new, ...board.making, ...board.ready].map((t) => t.button)).toEqual(["start", "ready", "pickedUp", "served"]);
+    expect(buildKitchenBoard([entry("NEW", "TABLE")], "CASHIER").new[0]?.button).toBeNull();
+  });
+
+  it("cancelling follows the Orders screen: the counter (cashier) cancels takeout at any step, never a table order", () => {
+    const cashier = buildKitchenBoard([entry("READY", "PICKUP"), entry("NEW", "TABLE")], "CASHIER");
+    expect([cashier.ready[0]?.canCancel, cashier.new[0]?.canCancel]).toEqual([true, false]);
+    const waiter = buildKitchenBoard([entry("NEW", "PICKUP"), entry("PREPARING", "PICKUP")], "WAITER");
+    expect([waiter.new[0]?.canCancel, waiter.making[0]?.canCancel]).toEqual([true, false]);
+  });
 });

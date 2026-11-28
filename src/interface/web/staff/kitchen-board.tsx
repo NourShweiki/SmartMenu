@@ -1,9 +1,13 @@
 import { getTranslations } from "next-intl/server";
 import { KITCHEN_COLUMNS, type KitchenColumn } from "@/domain/order/kitchen-board";
+import { CANCEL_REASONS } from "@/domain/order/order";
 import { localized } from "@/domain/shared/localized";
 import { formatPrice } from "@/interface/web/format";
 import type { Locale } from "@/interface/web/i18n/locales";
+import { CancelOrder } from "./cancel-order";
+import { kitchenCancelAction, kitchenTapAction } from "./kitchen-actions";
 import type { KitchenBoard, KitchenTicket } from "./kitchen-board-model";
+import { KitchenTapButton } from "./kitchen-tap-button";
 import { KitchenTimer } from "./kitchen-timer";
 
 const COLUMN_STYLE: Record<KitchenColumn, string> = {
@@ -14,10 +18,15 @@ const COLUMN_STYLE: Record<KitchenColumn, string> = {
 
 /**
  * The kitchen screen's board (PROJECT_SPEC.md §3.3): three columns, one ticket per order, oldest first. Built for a
- * counter: large type, readable from a step back, no hover-only detail. The buttons come with step 1d.
+ * counter: large type, readable from a step back, no hover-only detail. One big button per ticket (with a few seconds
+ * to undo it) and "Cancel order" with a reason, under the same rules as the Orders screen.
  */
 export async function KitchenBoardView({ locale, board, serverNow }: { locale: Locale; board: KitchenBoard; serverNow: string }) {
   const t = await getTranslations("StaffKitchen");
+  const orders = await getTranslations("StaffOrders");
+  const common = await getTranslations("Common");
+  const cancelLabels = { open: orders("cancel.open"), reason: orders("cancel.reasonLabel"), confirm: orders("cancel.confirm"), keep: orders("cancel.keep"), working: common("saving") };
+  const cancelReasons = CANCEL_REASONS.map((value) => ({ value, label: orders(`cancel.reasons.${value}`) }));
 
   const ticket = (order: KitchenTicket, column: KitchenColumn) => (
     <li key={order.id} className="flex flex-col gap-3 rounded-xl bg-white p-4 shadow-sm ring-1 ring-gray-200" aria-label={t("order", { number: order.number })}>
@@ -58,6 +67,9 @@ export async function KitchenBoardView({ locale, board, serverNow }: { locale: L
         <span>{t("total")}</span>
         <bdi className="whitespace-nowrap tabular-nums">{formatPrice(order.totalFils, locale)}</bdi>
       </p>
+
+      {order.action && order.button && <KitchenTapButton action={kitchenTapAction.bind(null, locale, order.id, order.action.tap)} button={order.button} />}
+      {order.canCancel && <CancelOrder action={kitchenCancelAction.bind(null, locale, order.id)} reasons={cancelReasons} labels={cancelLabels} />}
     </li>
   );
 

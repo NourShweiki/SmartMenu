@@ -812,6 +812,15 @@
       "placedLabel": "Placed {time} ago",
       "waiting": "Waiting",
       "waitingLabel": "Waiting for pickup for {time}"
+    },
+    "tap": {
+      "start": "Start",
+      "ready": "Ready",
+      "pickedUp": "Picked up",
+      "served": "Served",
+      "undo": "Undo",
+      "sendingIn": "{label} in {seconds} s",
+      "working": "Saving…"
     }
   }
 }
