@@ -14,6 +14,7 @@ const row: PublicRestaurantRow = {
   service_charge_bp: 1000,
   default_language: "ar",
   branding: {},
+  ordering_assistant_enabled: true,
 };
 
 describe("toPublicRestaurant", () => {
@@ -29,9 +30,15 @@ describe("toPublicRestaurant", () => {
         taxRateBp: 1600,
         serviceChargeBp: 1000,
         defaultLanguage: "ar",
+        assistantEnabled: true,
       },
       branding: DEFAULT_BRANDING,
     });
+  });
+
+  it("the AI chat is on only when the database says true (a missing or odd value is off)", () => {
+    expect(toPublicRestaurant({ ...row, ordering_assistant_enabled: false }).settings.assistantEnabled).toBe(false);
+    expect(toPublicRestaurant({ ...row, ordering_assistant_enabled: null as unknown as boolean }).settings.assistantEnabled).toBe(false);
   });
 
   it("reads the stored branding, and falls back to the defaults when it is odd", () => {

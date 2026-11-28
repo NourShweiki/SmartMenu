@@ -138,7 +138,8 @@
       ],
       "database": [
         "branding",
-        "public_restaurant"
+        "public_restaurant",
+        "ordering_assistant_setting"
       ]
     },
     {

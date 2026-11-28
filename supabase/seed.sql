@@ -3,9 +3,11 @@ insert into public.restaurants (id, slug, name_en, name_ar) values
   ('11111111-1111-4000-8000-000000000001', 'demo-dinein',  'Demo Grill',  'مشاوي التجربة'),
   ('22222222-2222-4000-8000-000000000002', 'demo-takeout', 'Demo Coffee', 'قهوة التجربة');
 
-insert into public.restaurant_settings (restaurant_id, dine_in_enabled, takeout_enabled, service_charge_bp) values
-  ('11111111-1111-4000-8000-000000000001', true,  true, 1000),
-  ('22222222-2222-4000-8000-000000000002', false, true, 0);
+-- The AI ordering chat (ordering_assistant_enabled, off by default since 2026-11-27): ON at Demo Grill, so its
+-- assistant browser tests keep working while dine-in is paused; OFF at Demo Coffee, like every new coffee shop.
+insert into public.restaurant_settings (restaurant_id, dine_in_enabled, takeout_enabled, service_charge_bp, ordering_assistant_enabled) values
+  ('11111111-1111-4000-8000-000000000001', true,  true, 1000, true),
+  ('22222222-2222-4000-8000-000000000002', false, true, 0,    false);
 
 -- ─── Demo staff (email + password sign-in) ──────────────────────────────
 -- Local only. Every demo account uses the password: smartmenu-demo-2026

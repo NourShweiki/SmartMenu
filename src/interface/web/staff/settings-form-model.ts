@@ -12,6 +12,8 @@ export type SettingsFormValues = {
   taxPercent: string;
   servicePercent: string;
   defaultLanguage: "ar" | "en";
+  /** The AI ordering chat for customers (off by default, spec §3.3). */
+  assistantEnabled: boolean;
 };
 
 export type SettingsFormState = {
@@ -37,6 +39,7 @@ export function readSettingsForm(form: FormLike): SettingsFormValues {
     taxPercent: text("taxPercent"),
     servicePercent: text("servicePercent"),
     defaultLanguage: text("defaultLanguage") === "en" ? "en" : "ar",
+    assistantEnabled: form.has("assistantEnabled"),
   };
 }
 
@@ -64,6 +67,7 @@ export function toRestaurantSettings(
       taxRateBp,
       serviceChargeBp,
       defaultLanguage: values.defaultLanguage,
+      assistantEnabled: values.assistantEnabled,
     },
   };
 }

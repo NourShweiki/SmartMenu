@@ -10,7 +10,7 @@ import { requireStaff } from "@/interface/web/staff/require-staff";
 import { saveSettingsAction } from "@/interface/web/staff/settings-actions";
 import { SettingsForm } from "@/interface/web/staff/settings-form";
 
-// Owner-only: order modes, tax, service charge, default language (permission `restaurant:settings`).
+// Owner-only: order modes, tax, service charge, default language, the AI ordering chat (permission `restaurant:settings`).
 export default async function SettingsPage({ params }: { params: Promise<{ locale: string }> }) {
   const locale = await initLocale(params);
   const { restaurant, staff } = await requireStaff(locale);
@@ -40,6 +40,7 @@ export default async function SettingsPage({ params }: { params: Promise<{ local
               taxPercent: bpToRateInput(current.value.taxRateBp),
               servicePercent: bpToRateInput(current.value.serviceChargeBp),
               defaultLanguage: current.value.defaultLanguage,
+              assistantEnabled: current.value.assistantEnabled,
             }}
           />
         </div>

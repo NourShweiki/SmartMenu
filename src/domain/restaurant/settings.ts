@@ -11,6 +11,12 @@ export type RestaurantSettings = {
   readonly taxRateBp: number;
   readonly serviceChargeBp: number;
   readonly defaultLanguage: Language;
+  /**
+   * The AI ordering chat for customers (PROJECT_SPEC.md §3.3, Nour 2026-11-27): OFF by default, for every new
+   * restaurant and every preset; the owner switches it on in Settings. It is only offered when it is on AND the server
+   * has an AI key. Its code stays whether it is on or off.
+   */
+  readonly assistantEnabled: boolean;
 };
 
 export type SettingsError =
@@ -28,6 +34,7 @@ export function presetSettings(type: BusinessType): RestaurantSettings {
     taxRateBp: 1600,
     serviceChargeBp: type === "dine-in" ? 1000 : 0,
     defaultLanguage: "ar",
+    assistantEnabled: false,
   };
 }
 
@@ -40,4 +47,13 @@ export function validateSettings(s: RestaurantSettings): Result<RestaurantSettin
   if (!isValidBp(s.taxRateBp)) return err({ type: "INVALID_RATE", field: "taxRateBp" });
   if (!isValidBp(s.serviceChargeBp)) return err({ type: "INVALID_RATE", field: "serviceChargeBp" });
   return ok(s);
+}
+
+/**
+ * Is the AI ordering chat offered to this customer? Only when the owner switched it on (`assistantEnabled`, off by
+ * default), the server has an AI key, and this customer can order here at all. Used by the home page, the menu page
+ * and the chat's own server action, so a hand-made request cannot use a chat the owner switched off.
+ */
+export function offersOrderingAssistant(settings: Pick<RestaurantSettings, "assistantEnabled">, context: { aiKeyConfigured: boolean; canOrder: boolean }): boolean {
+  return settings.assistantEnabled && context.aiKeyConfigured && context.canOrder;
 }

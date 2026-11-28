@@ -17,6 +17,8 @@ export type PublicRestaurantRow = {
   default_language: string;
   /** jsonb: read defensively (brandingFromJson), so an odd stored value never breaks the public page. */
   branding: unknown;
+  /** Off by default (migration ordering_assistant_setting). */
+  ordering_assistant_enabled: boolean;
 };
 
 export function toPublicRestaurant(row: PublicRestaurantRow): PublicRestaurant {
@@ -32,6 +34,8 @@ export function toPublicRestaurant(row: PublicRestaurantRow): PublicRestaurant {
       serviceChargeBp: row.service_charge_bp,
       // The DB check constraint only allows 'ar' | 'en'.
       defaultLanguage: row.default_language === "en" ? "en" : "ar",
+      // Anything but a stored true is off: the chat is only offered when the owner switched it on.
+      assistantEnabled: row.ordering_assistant_enabled === true,
     },
     branding: brandingFromJson(row.branding),
   };

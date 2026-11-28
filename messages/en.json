@@ -99,7 +99,10 @@
       "noMode": "Turn on at least one order type.",
       "forbidden": "Only the owner can change the settings.",
       "notFound": "The settings could not be saved. Please try again."
-    }
+    },
+    "customersTitle": "For customers",
+    "assistant": "AI ordering chat",
+    "assistantHint": "Customers can ask a chat assistant about the menu and have it fill their cart. Off: customers go straight to the menu."
   },
   "Roles": {
     "OWNER": "Owner",

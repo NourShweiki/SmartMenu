@@ -25,6 +25,8 @@ export const SITES = {
     toggleItem: "Hummus",
     /** Seeded tables (supabase/seed.sql): labels in screen order, and one fixed demo QR token. */
     tables: { labels: ["1", "2", "Terrace"], token: "grill-table-1-demo-token-0001", dineIn: true },
+    /** The AI ordering chat (a per-restaurant setting, off by default): ON in the seed here, for its assistant tests. */
+    assistantOn: true,
     /** Customer-menu facts from the seed, with HAND-computed expectations (fils): 10% service, then 16% tax on subtotal + service. */
     menu: {
       simple: {
@@ -54,6 +56,8 @@ export const SITES = {
     toggleItem: "Cappuccino",
     /** Takeout only: dine-in is switched off, so its QR code is not active even though the table exists. */
     tables: { labels: ["A"], token: "coffee-table-a-demo-token-0001", dineIn: false },
+    /** The AI ordering chat: OFF here, like every new coffee shop (spec §3.3, 2026-11-27). */
+    assistantOn: false,
     /** No service charge at Demo Coffee, 16% tax. */
     menu: {
       simple: {

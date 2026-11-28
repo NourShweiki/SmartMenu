@@ -8,7 +8,7 @@ import type { RateLimiter } from "./rate-limit";
 
 /** Why the assistant did not answer, as the chat shows it (one translated message each). */
 export type AssistantProblem =
-  | "notAvailable" // no AI key on this server: the chat box should not even be offered
+  | "notAvailable" // no AI key on this server, or the owner switched the chat off: the chat box should not even be offered
   | "emptyMessage"
   | "invalidRequest" // a request that is not what the chat box sends
   | "tooMany" // this device (or the restaurant) asked too often; try again in a few minutes
@@ -66,6 +66,8 @@ export async function askAssistant(
   deps: Deps,
   input: { restaurant: PublicRestaurant; history: unknown; cart: unknown; clientHash: string | null },
 ): Promise<AssistantOutcome> {
+  // The owner switched the chat off (the default, spec §3.3): refused before anything that counts or costs.
+  if (!input.restaurant.settings.assistantEnabled) return { ok: false, problem: "notAvailable" };
   const history = readHistory(input.history);
   if (!history) return { ok: false, problem: "invalidRequest" };
 
