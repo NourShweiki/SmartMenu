@@ -35,6 +35,7 @@ type ItemRow = {
   quantity: number;
   line_total_fils: number;
   position: number;
+  note: string | null;
   order_item_options: OptionRow[];
 };
 export type OrderRow = {
@@ -60,7 +61,7 @@ export type OrderRow = {
 const ORDER_COLUMNS =
   "id, restaurant_id, session_id, number, status, subtotal_fils, service_charge_fils, tax_fils, total_fils, " +
   "tax_rate_bp, service_charge_bp, created_at, status_changed_at, cancel_reason, cancelled_at, cancelled_by, " +
-  "order_items(id, menu_item_id, name_en, name_ar, unit_price_fils, quantity, line_total_fils, position, " +
+  "order_items(id, menu_item_id, name_en, name_ar, unit_price_fils, quantity, line_total_fils, position, note, " +
   "order_item_options(option_id, group_name_en, group_name_ar, name_en, name_ar, price_delta_fils, position))";
 
 const byPosition = <T extends { position: number }>(a: T, b: T) => a.position - b.position;
@@ -90,6 +91,7 @@ export function toOrder(row: OrderRow): Order {
         ),
         quantity: item.quantity,
         lineTotalFils: fils(item.line_total_fils),
+        note: item.note ?? null,
       }),
     ),
     subtotalFils: fils(row.subtotal_fils),
@@ -139,6 +141,7 @@ export function toPlaceOrderPayload(order: Order, requestId?: string, pickup?: P
       unit_price_fils: item.unitPriceFils,
       quantity: item.quantity,
       line_total_fils: item.lineTotalFils,
+      note: item.note,
       options: item.options.map((o) => ({
         option_id: o.optionId,
         group_name_en: o.groupName.en,

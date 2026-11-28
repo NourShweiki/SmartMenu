@@ -101,7 +101,8 @@
         "takeout_limits",
         "takeout_pickup",
         "public_session_orders",
-        "push_subscriptions"
+        "push_subscriptions",
+        "item_notes"
       ]
     },
     {

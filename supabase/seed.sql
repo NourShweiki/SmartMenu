@@ -74,6 +74,10 @@ insert into public.menu_items (restaurant_id, category_id, name_en, name_ar, des
   ('22222222-2222-4000-8000-000000000002', 'c2000000-0000-4000-8000-000000000002', 'Knafeh', 'كنافة',
    'Nabulsi cheese knafeh', 'كنافة بالجبنة النابلسية', 2500, 0, false);
 
+-- Item notes (2026-11-28): the Cappuccino takes a customer's note ("less sugar"), so the demo shows them.
+update public.menu_items set allows_note = true
+where restaurant_id = '22222222-2222-4000-8000-000000000002' and name_en = 'Cappuccino';
+
 -- ─── Demo option groups (reusable; prices are extra fils) ────────────────
 insert into public.option_groups (id, restaurant_id, name_en, name_ar, min_select, max_select, sort_order) values
   ('09000000-0000-4000-8000-000000000001', '11111111-1111-4000-8000-000000000001', 'Size',   'الحجم',   1, 1, 0),

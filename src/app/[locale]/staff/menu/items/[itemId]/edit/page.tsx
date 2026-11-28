@@ -40,6 +40,7 @@ export default async function EditItemPage({ params }: { params: Promise<{ local
           descriptionAr: item.description.ar,
           descriptionEn: item.description.en,
           price: filsToPriceInput(item.priceFils),
+          allowsNote: item.allowsNote ? "on" : "",
         }}
         categories={categoryOptions(staffMenu, locale)}
         cancelHref={`/${locale}/staff/menu`}

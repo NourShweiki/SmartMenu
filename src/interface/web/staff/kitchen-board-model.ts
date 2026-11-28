@@ -18,7 +18,8 @@ export type KitchenTicket = {
   readonly tableLabel: string | null;
   readonly placedAt: string;
   readonly statusChangedAt: string;
-  readonly lines: readonly { readonly quantity: number; readonly name: LocalizedText; readonly options: readonly LocalizedText[] }[];
+  /** Each line with its customer's note (as typed, never translated; null = none). */
+  readonly lines: readonly { readonly quantity: number; readonly name: LocalizedText; readonly options: readonly LocalizedText[]; readonly note: string | null }[];
   readonly totalFils: Fils;
   /** What this person's button does; null = no button for them. */
   readonly action: KitchenAction | null;
@@ -57,7 +58,7 @@ export function buildKitchenBoard(entries: readonly StaffOrderEntry[], role: Rol
       tableLabel: kind === "TABLE" ? (table?.label ?? null) : null,
       placedAt: order.createdAt.toISOString(),
       statusChangedAt: order.statusChangedAt.toISOString(),
-      lines: order.items.map((item) => ({ quantity: item.quantity, name: item.name, options: item.options.map((o) => o.name) })),
+      lines: order.items.map((item) => ({ quantity: item.quantity, name: item.name, options: item.options.map((o) => o.name), note: item.note })),
       totalFils: order.totalFils,
       action,
       button: !action ? null : action.tap === "pickedUp" && kind === "TABLE" ? "served" : action.tap,

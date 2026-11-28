@@ -20,7 +20,7 @@ function entry(status: OrderStatus, kind: "PICKUP" | "TABLE" | null, opts: { pla
     createdAt: placed,
     statusChangedAt: placed,
     totalFils: 2900,
-    items: [{ quantity: 2, name: { en: "Latte", ar: "لاتيه" }, options: [{ name: { en: "Oat milk", ar: "حليب الشوفان" } }] }],
+    items: [{ quantity: 2, name: { en: "Latte", ar: "لاتيه" }, options: [{ name: { en: "Oat milk", ar: "حليب الشوفان" } }], note: "less sugar" }],
   } as unknown as Order;
   const sessionId = `s-${n}` as TableSessionId;
   const sessionStatus = opts.sessionStatus ?? "OPEN";
@@ -60,7 +60,7 @@ describe("buildKitchenBoard", () => {
       customerName: "Sara",
       tableLabel: null,
       totalFils: 2900,
-      lines: [{ quantity: 2, name: { en: "Latte", ar: "لاتيه" }, options: [{ en: "Oat milk", ar: "حليب الشوفان" }] }],
+      lines: [{ quantity: 2, name: { en: "Latte", ar: "لاتيه" }, options: [{ en: "Oat milk", ar: "حليب الشوفان" }], note: "less sugar" }],
       placedAt: new Date(T0.getTime() - 2 * 60_000).toISOString(),
     });
     // The phone number is not on the kitchen screen: it is for the Orders screen.

@@ -15,7 +15,7 @@ const restaurant = {
 
 const good: AskOrderingAssistantOutput = {
   message: "Done",
-  cart: { lines: [{ key: "k", menuItemId: "m" as never, optionIds: [], quantity: 2 }] },
+  cart: { lines: [{ key: "k", menuItemId: "m" as never, optionIds: [], quantity: 2, note: null }] },
   added: [{ menuItemId: "m", optionIds: [], quantity: 2 }],
   rejected: [{ proposed: { menuItemId: "x", optionIds: [], quantity: 1 }, reason: "UNKNOWN_ITEM" }],
 };

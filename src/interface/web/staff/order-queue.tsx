@@ -71,6 +71,11 @@ export async function OrderQueueView({ locale, queue }: { locale: Locale; queue:
               {line.options.length > 0 && (
                 <span className="block text-sm text-gray-600">{line.options.map((o) => localized(o, locale)).join(" · ")}</span>
               )}
+              {line.note && (
+                <span className="mt-1 block rounded-md bg-yellow-100 px-2 py-0.5 text-sm font-semibold text-yellow-950 ring-1 ring-yellow-300">
+                  {t("note")} <bdi>{line.note}</bdi>
+                </span>
+              )}
             </span>
           </li>
         ))}

@@ -83,7 +83,7 @@ describe.skipIf(!enabled)("a guest places an order, against local Supabase", () 
     const kebab = entries.find((e) => e.item.name.en === "Kebab")!;
     const optionIds = kebab.groups.flatMap(({ options }) => options.filter((o) => ["Large", "Garlic sauce"].includes(o.name.en)).map((o) => o.id));
     expect(optionIds).toHaveLength(2);
-    const cart: Cart = { lines: [{ key: "k", menuItemId: kebab.item.id, optionIds, quantity: 2 }] };
+    const cart: Cart = { lines: [{ key: "k", menuItemId: kebab.item.id, optionIds, quantity: 2, note: null }] };
     const rates = { taxRateBp: grill.settings.taxRateBp, serviceChargeBp: grill.settings.serviceChargeBp };
     const preview = priceCart(cart, new Map<string, CartCatalogEntry>(entries.map((e) => [e.item.id as string, e])), rates);
     // Computed by hand from the seed: (4.500 + 2.000 + 0.250) x 2, 10% service, 16% tax on both.

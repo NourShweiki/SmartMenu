@@ -31,6 +31,11 @@ export type MenuItem = {
   readonly isSoldOut: boolean;
   /** Storage path of its photo ("<restaurantId>/<itemId>/<file>"), or null. See photo.ts. */
   readonly imagePath: string | null;
+  /**
+   * The customer may add a short note to it ("less sugar"), PROJECT_SPEC.md §3.3. Off unless the owner or manager
+   * switches it on for this item. A note never changes the price: paid extras stay options.
+   */
+  readonly allowsNote: boolean;
   readonly deletedAt: Date | null;
 };
 
@@ -138,6 +143,8 @@ export type MenuItemInput = {
   description: LocalizedText;
   priceFils: number;
   sortOrder: number;
+  /** "Allow a note". Left out: off for a new item, unchanged on an edit (the spreadsheet import does not know it). */
+  allowsNote?: boolean;
 };
 
 /** An item can only go into a live category of the SAME restaurant. */
@@ -173,6 +180,7 @@ export function createMenuItem(
     isHidden: false,
     isSoldOut: false,
     imagePath: null,
+    allowsNote: input.allowsNote === true,
     deletedAt: null,
   });
 }
@@ -189,7 +197,7 @@ export function updateMenuItem(
   const fields = validateItemInput(input);
   if (!fields.ok) return fields;
   // Past orders are unaffected: they keep their own price snapshot (data-model skill §4).
-  return ok({ ...item, categoryId: target.value.id, ...fields.value });
+  return ok({ ...item, categoryId: target.value.id, ...fields.value, allowsNote: input.allowsNote ?? item.allowsNote });
 }
 
 export function setItemHidden(item: MenuItem, isHidden: boolean): Result<MenuItem, MenuError> {

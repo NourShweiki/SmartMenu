@@ -20,7 +20,8 @@ function fakeMenu() {
   const item = (id: string, categoryId: string, restaurantId: RestaurantId, sortOrder: number): MenuItem => ({
     id: id as MenuItemId, restaurantId, categoryId: categoryId as CategoryId, name: { en: id, ar: id },
     description: { en: "", ar: "" }, priceFils: 100 as Fils, sortOrder, isHidden: false, isSoldOut: false,
-    imagePath: null, deletedAt: null,
+    imagePath: null,
+    allowsNote: false, deletedAt: null,
   });
   const state = {
     categories: [cat("grills", GRILL, 0), cat("drinks", GRILL, 1), cat("hot", COFFEE, 0)],

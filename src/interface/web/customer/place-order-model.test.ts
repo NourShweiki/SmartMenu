@@ -72,8 +72,14 @@ afterEach(() => vi.restoreAllMocks());
 
 describe("readCartLines", () => {
   it("keeps ids and quantities only", () => {
-    expect(readCartLines(CART)).toEqual([{ menuItemId: ITEM, quantity: 2, selectedOptionIds: [OPTION] }]);
+    expect(readCartLines(CART)).toEqual([{ menuItemId: ITEM, quantity: 2, selectedOptionIds: [OPTION], note: null }]);
     expect(readCartLines({ lines: [] })).toEqual([]);
+  });
+
+  it("passes each line's note on as text (the domain cleans and checks it); no note is null", () => {
+    const good = CART.lines[0]!;
+    expect(readCartLines({ lines: [{ ...good, note: "less sugar" }] })?.[0]?.note).toBe("less sugar");
+    expect(readCartLines({ lines: [{ ...good, note: null }] })?.[0]?.note).toBeNull();
   });
 
   it("refuses the whole cart when anything is odd (never drops a line silently)", () => {
@@ -94,6 +100,9 @@ describe("readCartLines", () => {
       { lines: [{ ...good, quantity: Number.NaN }] },
       { lines: Array.from({ length: 101 }, () => good) },
       { lines: [{ ...good, optionIds: Array.from({ length: 101 }, () => OPTION) }] },
+      { lines: [{ ...good, note: 7 }] },
+      { lines: [{ ...good, note: { text: "x" } }] },
+      { lines: [{ ...good, note: "x".repeat(1001) }] },
     ]) {
       expect(readCartLines(cart)).toBeNull();
     }
@@ -118,6 +127,8 @@ describe("orderProblem", () => {
     expect(orderProblem({ type: "ITEM_NOT_FOUND", menuItemId: ITEM })).toBe("itemsChanged");
     expect(orderProblem({ type: "ITEM_NOT_ORDERABLE", menuItemId: ITEM })).toBe("itemsChanged");
     expect(orderProblem({ type: "SELECTION", menuItemId: ITEM, reason: { type: "TOO_FEW", min: 1 } as never })).toBe("itemsChanged");
+    expect(orderProblem({ type: "NOTE_NOT_ALLOWED", menuItemId: ITEM })).toBe("itemsChanged");
+    expect(orderProblem({ type: "NOTE_TOO_LONG", menuItemId: ITEM, max: 100 })).toBe("noteTooLong");
     expect(orderProblem({ type: "INVALID_RATES" })).toBe("failed");
     expect(orderProblem({ type: "WRONG_RESTAURANT" })).toBe("failed");
     expect(orderProblem({ type: "CONFLICT" })).toBe("failed");
@@ -136,7 +147,7 @@ describe("placeCustomerOrder", () => {
         sessionId: SESSION,
         kind: "TABLE",
         rates: { taxRateBp: 1600, serviceChargeBp: 1000 },
-        lines: [{ menuItemId: ITEM, quantity: 2, selectedOptionIds: [OPTION] }],
+        lines: [{ menuItemId: ITEM, quantity: 2, selectedOptionIds: [OPTION], note: null }],
         requestId: KEY,
       },
     ]);
@@ -157,7 +168,7 @@ describe("placeCustomerOrder", () => {
       sessionId: SESSION,
       kind: "TABLE",
       rates: { taxRateBp: 1600, serviceChargeBp: 1000 },
-      lines: [{ menuItemId: ITEM, quantity: 2, selectedOptionIds: [OPTION] }],
+      lines: [{ menuItemId: ITEM, quantity: 2, selectedOptionIds: [OPTION], note: null }],
       requestId: KEY,
     });
   });
@@ -247,7 +258,7 @@ describe("placeCustomerOrder: takeout", () => {
     const outcome = await placeCustomerOrder(deps, { restaurant: coffee(), sessionId: null, cart: cartFor(ALI) });
     expect(outcome).toEqual({ ok: true, orderNumber: 7, startedVisit: KEY });
     expect(seen.pickups).toEqual([
-      { restaurantId: R, rates: { taxRateBp: 1600, serviceChargeBp: 1000 }, lines: [{ menuItemId: ITEM, quantity: 2, selectedOptionIds: [OPTION] }], requestId: KEY, customer: ALI, clientHash: null },
+      { restaurantId: R, rates: { taxRateBp: 1600, serviceChargeBp: 1000 }, lines: [{ menuItemId: ITEM, quantity: 2, selectedOptionIds: [OPTION], note: null }], requestId: KEY, customer: ALI, clientHash: null },
     ]);
     expect(seen.placed).toEqual([]); // not the table path
     expect(seen.finds).toEqual([]); // no cookie: nothing to look up

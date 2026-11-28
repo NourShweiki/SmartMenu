@@ -20,8 +20,11 @@ export type PlaceOrderInput = {
   kind: SessionKind;
   /** The restaurant's current tax / service rates, read by the server from its settings (not from the customer). */
   rates: OrderRates;
-  /** The cart as the customer sent it: ids and quantities only. Names and prices come from the live menu. */
-  lines: readonly { menuItemId: string; quantity: number; selectedOptionIds: readonly string[] }[];
+  /**
+   * The cart as the customer sent it: ids, quantities and the line's note only. Names and prices come from the live
+   * menu; the note is cleaned and checked by the domain (only on an item that takes one).
+   */
+  lines: readonly { menuItemId: string; quantity: number; selectedOptionIds: readonly string[]; note?: string | null }[];
   /**
    * One random key per submission, made up by the customer's device; a retry sends the same key. With it, placing
    * is safe to repeat: the second call returns the first order. Without it every call is a new order.
@@ -126,7 +129,7 @@ async function place(deps: PlaceDeps, input: PlaceOrderInput, startPickupFor?: P
   for (const line of input.lines) {
     const entry = byItem.get(line.menuItemId);
     if (!entry) return err({ type: "ITEM_NOT_FOUND", menuItemId: line.menuItemId });
-    lines.push({ ...entry, selectedOptionIds: line.selectedOptionIds, quantity: line.quantity });
+    lines.push({ ...entry, selectedOptionIds: line.selectedOptionIds, quantity: line.quantity, note: line.note });
   }
 
   const now = deps.clock.now();

@@ -58,6 +58,12 @@ export async function KitchenBoardView({ locale, board, serverNow }: { locale: L
                   ))}
                 </span>
               )}
+              {line.note && (
+                // The customer's own words (never translated), highlighted so it is not missed at the counter.
+                <span className="mt-1.5 block rounded-md bg-yellow-100 px-2 py-1 text-base font-bold text-yellow-950 ring-2 ring-yellow-400">
+                  {t("note")} <bdi>{line.note}</bdi>
+                </span>
+              )}
             </span>
           </li>
         ))}

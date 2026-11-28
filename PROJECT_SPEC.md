@@ -88,6 +88,7 @@ One shared platform serves **all restaurant clients** from a single codebase. Ea
 - On such an item the customer gets a short note box in the cart, up to 100 characters (our number). The note is saved with the order line, like the price, and shown exactly as typed (not translated) on the kitchen screen and the Orders list.
 - **A note never changes the price.** Paid extras stay options; a note is only a request.
 - The AI assistant does not add notes in this version.
+- *Built 2026-11-28. Details fixed while building (ours): a note is cleaned before it is kept (line breaks and tabs become spaces, repeated spaces one, trimmed; empty = no note), and a note over 100 characters is refused, never cut. The same item with two different notes is two cart lines (each line has its own note); the same note merges. If the owner switches notes off for an item while a customer has a note on it in the cart, the cart says so and the customer clears it; the server and the database refuse such an order too. Staff see the note on the kitchen ticket and the Orders list, highlighted and prefixed "Note:". The guest's own "your orders" list does not repeat it.*
 
 ---
 

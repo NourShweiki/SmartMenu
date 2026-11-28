@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { addToCart, EMPTY_CART, parseCart, removeLine, setQuantity, type Cart, type CartError } from "@/domain/cart/cart";
+import { addToCart, EMPTY_CART, parseCart, removeLine, setNote, setQuantity, type Cart, type CartError } from "@/domain/cart/cart";
 import type { MenuItemId } from "@/domain/menu/menu";
 import type { OptionId } from "@/domain/menu/options";
 import type { Result } from "@/domain/shared/result";
@@ -69,6 +69,10 @@ export function useCart(restaurantSlug: string) {
     add: (menuItemId: MenuItemId, optionIds: readonly OptionId[], quantity: number) =>
       apply((c) => addToCart(c, { menuItemId, optionIds, quantity })),
     setQuantity: (key: string, quantity: number) => apply((c) => setQuantity(c, key, quantity)),
+    /** Writes (or, with empty text, clears) a line's note (items that take one; spec §3.3). */
+    setNote: (key: string, note: string) => apply((c) => setNote(c, key, note)),
+    /** The cart as it is right now, also when the screen has not been redrawn since the last change (placing an order). */
+    latest: () => current.current,
     remove: (key: string) => apply((c) => ({ ok: true as const, value: removeLine(c, key) })),
     clear: () => apply(() => ({ ok: true as const, value: EMPTY_CART })),
     /** Takes a whole cart (the assistant's answer: the cart with its checked suggestions added). Re-read through `parseCart`, so a damaged one is cleaned like a saved cart. */

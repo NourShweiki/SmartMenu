@@ -7,7 +7,7 @@ import {
   type OptionGroup,
   type OptionId,
 } from "@/domain/menu/options";
-import { calculateTotals, MAX_LINE_QUANTITY, MAX_ORDER_LINES, type OrderRates } from "@/domain/order/order";
+import { calculateTotals, MAX_LINE_QUANTITY, MAX_NOTE_LENGTH, MAX_ORDER_LINES, normalizeNote, noteLength, type OrderRates } from "@/domain/order/order";
 import type { Fils } from "@/domain/shared/money";
 import { err, ok, type Result } from "@/domain/shared/result";
 
@@ -17,31 +17,41 @@ import { err, ok, type Result } from "@/domain/shared/result";
  * up immediately), and the server re-checks everything and prices the real order itself (placeOrder).
  */
 export type CartLine = {
-  /** Same item + same set of options = same line (quantities merge). */
+  /** Same item + same set of options + same note = same line (quantities merge). */
   readonly key: string;
   readonly menuItemId: MenuItemId;
   /** Sorted, so the order the customer ticked them in does not matter. */
   readonly optionIds: readonly OptionId[];
   readonly quantity: number;
+  /** The customer's note for this line (only on items that take one), or null. Two notes = two lines. */
+  readonly note: string | null;
 };
 export type Cart = { readonly lines: readonly CartLine[] };
 export const EMPTY_CART: Cart = { lines: [] };
 
-export type CartError = { type: "INVALID_QUANTITY" } | { type: "QUANTITY_TOO_HIGH"; max: number } | { type: "CART_FULL"; max: number } | { type: "LINE_NOT_FOUND" };
+export type CartError =
+  | { type: "INVALID_QUANTITY" }
+  | { type: "QUANTITY_TOO_HIGH"; max: number }
+  | { type: "CART_FULL"; max: number }
+  | { type: "LINE_NOT_FOUND" }
+  | { type: "NOTE_TOO_LONG"; max: number };
 
 const isQuantity = (n: unknown): n is number => typeof n === "number" && Number.isInteger(n) && n >= 1;
 
-export function lineKey(menuItemId: string, optionIds: readonly string[]): string {
-  return `${menuItemId}|${[...new Set(optionIds)].sort().join(",")}`;
+export function lineKey(menuItemId: string, optionIds: readonly string[], note: string | null = null): string {
+  const base = `${menuItemId}|${[...new Set(optionIds)].sort().join(",")}`;
+  return note === null ? base : `${base}|${note}`;
 }
 
 export function addToCart(
   cart: Cart,
-  input: { menuItemId: MenuItemId; optionIds: readonly OptionId[]; quantity: number },
+  input: { menuItemId: MenuItemId; optionIds: readonly OptionId[]; quantity: number; note?: string | null },
 ): Result<Cart, CartError> {
   if (!isQuantity(input.quantity)) return err({ type: "INVALID_QUANTITY" });
+  const note = normalizeNote(input.note);
+  if (note !== null && noteLength(note) > MAX_NOTE_LENGTH) return err({ type: "NOTE_TOO_LONG", max: MAX_NOTE_LENGTH });
   const optionIds = [...new Set(input.optionIds)].sort();
-  const key = lineKey(input.menuItemId, optionIds);
+  const key = lineKey(input.menuItemId, optionIds, note);
   const existing = cart.lines.find((l) => l.key === key);
 
   if (existing) {
@@ -51,7 +61,27 @@ export function addToCart(
   }
   if (input.quantity > MAX_LINE_QUANTITY) return err({ type: "QUANTITY_TOO_HIGH", max: MAX_LINE_QUANTITY });
   if (cart.lines.length >= MAX_ORDER_LINES) return err({ type: "CART_FULL", max: MAX_ORDER_LINES });
-  return ok({ lines: [...cart.lines, { key, menuItemId: input.menuItemId, optionIds, quantity: input.quantity }] });
+  return ok({ lines: [...cart.lines, { key, menuItemId: input.menuItemId, optionIds, quantity: input.quantity, note }] });
+}
+
+/**
+ * Writes (or clears, with an empty text) a line's note. The line keeps its place; if another line already has the
+ * same item, options and this note, the two become one line (quantities added, up to the limit).
+ */
+export function setNote(cart: Cart, key: string, raw: string): Result<Cart, CartError> {
+  const line = cart.lines.find((l) => l.key === key);
+  if (!line) return err({ type: "LINE_NOT_FOUND" });
+  const note = normalizeNote(raw);
+  if (note !== null && noteLength(note) > MAX_NOTE_LENGTH) return err({ type: "NOTE_TOO_LONG", max: MAX_NOTE_LENGTH });
+  const nextKey = lineKey(line.menuItemId, line.optionIds, note);
+  if (nextKey === key) return ok(cart);
+  const twin = cart.lines.find((l) => l.key === nextKey);
+  if (twin) {
+    const quantity = twin.quantity + line.quantity;
+    if (quantity > MAX_LINE_QUANTITY) return err({ type: "QUANTITY_TOO_HIGH", max: MAX_LINE_QUANTITY });
+    return ok({ lines: cart.lines.filter((l) => l.key !== key).map((l) => (l.key === nextKey ? { ...l, quantity } : l)) });
+  }
+  return ok({ lines: cart.lines.map((l) => (l.key === key ? { ...l, key: nextKey, note } : l)) });
 }
 
 /** Sets a line's quantity; 0 removes the line. */
@@ -80,7 +110,8 @@ export function parseCart(json: unknown): Cart {
     const line = typeof entry === "object" && entry !== null ? (entry as Record<string, unknown>) : {};
     if (typeof line.menuItemId !== "string" || line.menuItemId === "" || !Array.isArray(line.optionIds)) continue;
     const optionIds = line.optionIds.filter((o): o is string => typeof o === "string" && o !== "");
-    const added = addToCart(cart, { menuItemId: line.menuItemId as MenuItemId, optionIds: optionIds as OptionId[], quantity: line.quantity as number });
+    const note = typeof line.note === "string" ? line.note : null;
+    const added = addToCart(cart, { menuItemId: line.menuItemId as MenuItemId, optionIds: optionIds as OptionId[], quantity: line.quantity as number, note });
     if (added.ok) cart = added.value;
   }
   return cart;
@@ -98,12 +129,14 @@ export type CartCatalogEntry = {
 export type LineProblem =
   | "ITEM_UNAVAILABLE" // gone from the menu, hidden, or sold out since it was added
   | "OPTION_UNAVAILABLE" // a chosen option no longer exists
-  | "SELECTION_INVALID"; // the choices no longer satisfy the item's option rules
+  | "SELECTION_INVALID" // the choices no longer satisfy the item's option rules
+  | "NOTE_NOT_ALLOWED"; // the line has a note, but the item no longer takes notes (the customer can clear it)
 
 export type PricedLine = {
   readonly key: string;
   readonly quantity: number;
   readonly menuItemId: MenuItemId;
+  readonly note: string | null;
   readonly item: MenuItem | null;
   readonly options: readonly MenuOption[];
   readonly unitPriceFils: Fils;
@@ -122,7 +155,7 @@ export type PricedCart = {
 };
 
 function priceLine(line: CartLine, catalog: ReadonlyMap<string, CartCatalogEntry>): PricedLine {
-  const base = { key: line.key, quantity: line.quantity, menuItemId: line.menuItemId };
+  const base = { key: line.key, quantity: line.quantity, menuItemId: line.menuItemId, note: line.note };
   const broken = (problem: LineProblem, item: MenuItem | null = null, options: readonly MenuOption[] = []): PricedLine => ({
     ...base,
     item,
@@ -153,6 +186,8 @@ function priceLine(line: CartLine, catalog: ReadonlyMap<string, CartCatalogEntry
     if (!result.ok) return broken("SELECTION_INVALID", entry.item);
     picked.push(...result.value);
   }
+  // Same rule as the order: a note only where the item takes one (the owner may have switched it off since).
+  if (line.note !== null && !entry.item.allowsNote) return broken("NOTE_NOT_ALLOWED", entry.item, picked);
   const unit = priceWithOptions(entry.item.priceFils, picked);
   return { ...base, item: entry.item, options: picked, unitPriceFils: unit, lineTotalFils: (unit * line.quantity) as Fils, problem: null };
 }

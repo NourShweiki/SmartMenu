@@ -108,6 +108,15 @@ export function ItemForm({
         {errorFor("price")}
       </div>
 
+      {/* Item notes (spec §3.3): the customer may write a short note on this item; it never changes the price. */}
+      <label className="flex items-start gap-3">
+        <input type="checkbox" name="allowsNote" defaultChecked={values.allowsNote === "on"} className="mt-1 size-4" />
+        <span>
+          <span className="block font-semibold">{t("allowsNote")}</span>
+          <span className="block text-sm text-gray-500">{t("allowsNoteHint")}</span>
+        </span>
+      </label>
+
       <div className="flex items-center gap-3 pt-2">
         <button
           type="submit"

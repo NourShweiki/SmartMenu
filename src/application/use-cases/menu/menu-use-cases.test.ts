@@ -39,6 +39,7 @@ const item = (id: string, cat: MenuCategory): MenuItem => ({
   isHidden: false,
   isSoldOut: false,
   imagePath: null,
+    allowsNote: false,
   deletedAt: null,
 });
 
