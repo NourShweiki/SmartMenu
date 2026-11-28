@@ -71,7 +71,9 @@
       }
     },
     "kitchenLink": "Kitchen screen",
-    "kitchenLinkHint": "Tickets with timers, for the counter"
+    "kitchenLinkHint": "Tickets with timers, for the counter",
+    "counterSignLink": "QR sign for the counter",
+    "counterSignLinkHint": "Print it: customers scan it to order on their phone"
   },
   "Settings": {
     "title": "Restaurant settings",
@@ -835,5 +837,16 @@
       "working": "Saving…"
     },
     "note": "Note:"
+  },
+  "CounterSign": {
+    "title": "QR sign for the counter",
+    "back": "Staff dashboard",
+    "hint": "Print this sign and put it on the counter. Customers scan it, order on their own phone, and pay when they collect. Their order appears on the kitchen screen.",
+    "signLabel": "The counter sign"
+  },
+  "CounterCard": {
+    "title": "Scan to order",
+    "how": "Order on your phone. We call your name when it is ready; pay at the counter.",
+    "qrLabel": "QR code for the menu"
   }
 }

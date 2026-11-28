@@ -954,3 +954,13 @@ visit has no table; the services card then tells them to scan the table code). S
 - Docs: spec §3.3 (details fixed while building), data-model skill §4 (the note column), CLAUDE.md, README.
 - **After pulling this: `npx supabase db reset`.** Hosted database: `npx supabase db push` after the merge (two new migrations by then).
 - Next: step 5, a QR sign for the counter that opens the menu (staff side: a print page; no database change expected).
+
+
+## Coffee shop step 5: the QR sign for the counter (2026-11-28)
+- Staff side only, no database change. `src/app/[locale]/staff/counter-sign/page.tsx`: a printable sign (same `QrCode` and `PrintButton` as the table cards) with the logo, the restaurant's name in both languages, "Scan to order" / "امسح لتطلب", the QR code, a short "order on your phone, we call your name, pay at the counter" line in both languages, and the address under the code (for a phone without a QR reader). Text in BOTH languages whatever the owner's language, like the table cards.
+- `interface/web/tables/counter-sign-model.ts`: `counterMenuUrl(origin, language)` = `<origin>/<default language>/menu` (origin from `getScanOrigin`, so a preview link gets `/r/<slug>`; the language is in the path because preview links only accept `/ar|en/...`); `offersCounterSign(settings, mayPrintCodes)`: takeout on AND tables:manage (owner, manager). Tests (2, area "tables").
+- Staff dashboard: link "QR sign for the counter" / "لافتة QR للكاونتر" (both demo restaurants take takeout, so Demo Grill's owner sees it too: settings-driven). Messages `StaffHome.counterSignLink(Hint)`, `CounterSign.*`, `CounterCard.*` (en + ar); the link texts were chosen not to contain "Orders" / "الطلبات" (other specs find the Orders link by its text, see step 1c).
+- Browser `e2e/counter-sign.spec.ts` (3): coffee /en, /ar: from the dashboard to the sign, both languages, the QR image, the address `<origin>/ar/menu`, which opens the menu for a customer; the cashier (Grill) gets no link and a 404. With staff-login, staff-roles, tables, staff-orders, staff-checklist, staff-open-tables, staff-team: 71/71.
+- Checked by hand (/ar).
+- 732 unit; typecheck, lint, test groups green.
+- Next: step 6, a speed pass in the code (pages that read the database one question after another; a light refresh for the kitchen screen). The region move (Supabase Frankfurt + Vercel fra1) is Nour's, later.
