@@ -964,3 +964,14 @@ visit has no table; the services card then tells them to scan the table code). S
 - Checked by hand (/ar).
 - 732 unit; typecheck, lint, test groups green.
 - Next: step 6, a speed pass in the code (pages that read the database one question after another; a light refresh for the kitchen screen). The region move (Supabase Frankfurt + Vercel fra1) is Nour's, later.
+
+## Coffee shop step 6: speed pass in the code (2026-11-28): measured, no code change
+- Counted the database round trips per page load (sequential ones are what the distance multiplies):
+  - Every staff page: the middleware refreshes the session (the token is verified LOCALLY by `getClaims` with the asymmetric signing keys: no trip), `getCurrentSite` (1 RPC, deduplicated per request with React `cache`), `requireStaff` -> the role (1 query, needs the restaurant id first), then the page's data.
+  - Kitchen screen and Orders screen (every 5 s while visible): restaurant -> role -> open orders -> their visits (`findWithTables`, needs the session ids) = 4 sequential trips.
+  - Customer menu: restaurant -> (menu, visit, visit's orders in PARALLEL already) = 2 sequential trips. Home page: restaurant -> visit = 2.
+- Pages already run independent reads in parallel; nothing obvious is wasted. What could still be cut (NOT done):
+  - (a) the role lookup by the restaurant's slug in the same trip as the restaurant (a new membership query or RPC): -1 trip on every staff page;
+  - (b) open orders with their visits in ONE query (PostgREST embedding `orders -> table_sessions -> restaurant_tables`, a new repository method): -1 trip per kitchen/Orders refresh.
+- Why not now: with the app in Washington DC and the database in Seoul each trip costs about 0.2 s, so (a)+(b) would save about 0.4 s per kitchen refresh; once the app and the database are in the same region (Frankfurt + Vercel `fra1`, Nour's step) a trip costs about 1-5 ms, so the same changes would save under 10 ms while touching the order and membership data paths. The region move is THE fix (measured 2026-11-27: a page without database work 0.4 s, the menu 0.85-2 s). Re-measure after the move (curl `time_starttransfer`, header `x-vercel-id` should read `fra1::fra1`); do (a)/(b) only if a staff screen is still slow.
+- Also to check on the hosted project when moving: that it uses asymmetric JWT signing keys (Supabase dashboard -> JWT keys). With the legacy shared secret `getClaims` falls back to a network call to the auth server on every request.
